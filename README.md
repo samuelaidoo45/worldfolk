@@ -2,6 +2,21 @@
 
 Worldfolk is a multiplayer 3D life simulation beginning in Accra, Ghana. Explore the city, meet players, work, shop, travel, and build a home. The app runs on [vinext](https://github.com/cloudflare/vinext) with Cloudflare D1.
 
+## Deploy to your Cloudflare account
+
+Build the app, create a D1 database in your Cloudflare account, and prepare a separate Worker configuration. The generated configuration leaves the Sites configuration intact.
+
+```sh
+npm run build
+node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js login
+node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js d1 create worldfolk-prod
+npm run cloudflare:prepare -- <database_id_from_create>
+node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js d1 migrations apply DB --remote --config dist/server/wrangler.cloudflare.json
+node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js deploy --config dist/server/wrangler.cloudflare.json
+```
+
+Cloudflare returns the public `workers.dev` URL after deployment. Keep the D1 database and Worker in the same account. A fresh D1 database has no existing player records; migrate player data before directing existing players to the new host. Future deployments reuse the database ID and apply only pending migrations before deploying.
+
 ## Prerequisites
 
 - Node.js `>=22.13.0`
