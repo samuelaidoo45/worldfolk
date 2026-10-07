@@ -22,7 +22,7 @@ export function createCityLife(map,physics,onHit=()=>{}){
       const direction=isCar&&(road.oneway===-1||!road.oneway&&index%2)?-1:1,t=.2+(index%7)*.1,base=[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t],heading=direction===1?bearingTo(a,b):bearingTo(b,a),angle=heading*Math.PI/180,side=isCar?road.width*.23:(index%2?1:-1)*(road.width/2+1.15),point=offsetMetres(base,Math.cos(angle)*side,-Math.sin(angle)*side);
       const distance=distanceMetres(position,point);if(isCar&&(distanceMetres(base,a)<9||distanceMetres(base,b)<9))continue;
       if(distance<10||distance>150||physics.collision(point,isCar?1.2:.5)||[...people,...traffic].some(n=>distanceMetres(n.position,point)<5))continue;
-      return {id:`ambient-${index}`,name:names[index%names.length],avatar:looks[index%looks.length],driving:isCar,vehicle:isCar?(index%5===0?'bus':index%3===0?'taxi':'car'):null,position:point,heading,line,layer:road.layer,index:direction===1?seg+1:seg,direction,side,speed:0,roadClass:road.roadClass,highway:road.highway,maxSpeed:isCar?(road.highway?19+index%7:7+index%5):1.05+(index%4)*.12,pauseUntil:0,blockedFor:0,moving:false};
+      return {id:`ambient-${index}`,name:names[index%names.length],avatar:looks[index%looks.length],driving:isCar,vehicle:isCar?(index%5===0?'bus':index%3===0?'taxi':'car'):null,position:point,heading,line,layer:road.layer,index:direction===1?seg+1:seg,direction,side,speed:0,roadClass:road.roadClass,highway:road.highway,maxSpeed:isCar?(road.highway?25+index%9:12+index%5):1.05+(index%4)*.12,pauseUntil:0,blockedFor:0,moving:false};
     }return null;
   }
   function maintain(position,now){if(now-lastSeed<2500||!physics.count)return;lastSeed=now;

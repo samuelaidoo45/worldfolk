@@ -43,9 +43,9 @@ export function makeRoadPath(coordinates,lane=0){
 }
 // Never sweep a diagonal across a corner, even after a slow frame.
 export function advanceRoad(path,distance,speed,dt,physics,actors=[],kind='bus'){
- let current=path.at(distance),allowed=trafficSpeed(current.position,current.heading,speed,14,actors),ahead=path.at(distance+Math.max(8,speed*2));
+ let current=path.at(distance),allowed=trafficSpeed(current.position,current.heading,speed,22,actors),ahead=path.at(distance+Math.max(8,speed*2));
  if(angleDifference(current.heading,ahead.heading)>25)allowed=Math.min(allowed,4);
- let nextSpeed=Math.max(0,speed+Math.max(-6*dt,Math.min(2*dt,allowed-speed))),left=nextSpeed*dt,blocked=false;
+ let nextSpeed=Math.max(0,speed+Math.max(-6*dt,Math.min(3.2*dt,allowed-speed))),left=nextSpeed*dt,blocked=false;
  while(left>1e-7&&distance<path.total){current=path.at(distance);const step=Math.min(left,.25,current.remaining>1e-6?current.remaining+.000001:.25,path.total-distance),next=path.at(distance+step);
   if(physics&&physics.moveVehicle(current.position,next.position,next.heading,kind).blocked){
    // Narrow streets sometimes have a footprint close to the lane edge. Ease inward,

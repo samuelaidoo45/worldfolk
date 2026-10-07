@@ -27,3 +27,7 @@ test('a bus eases inward on a narrow road without crossing its boundary',()=>{
  const path=makeRoadPath([origin,p(0,100)],1.6),physics={moveVehicle(a,b){return {position:b,blocked:b[1]>p(0,5)[1]&&b[0]>p(1,0)[0]}}};let value={distance:0,speed:5};
  for(let i=0;i<400;i++)value=advanceRoad(path,value.distance,value.speed,.05,physics,[]);assert.ok(value.distance>20);assert.ok(path.lane<1.01);assert.ok(path.lane>=0);
 });
+test('four-times playback covers more road using the same collision-safe steps',()=>{
+ const run=rate=>{const path=makeRoadPath([origin,p(0,2000)]);let value={distance:0,speed:0};for(let frame=0;frame<600;frame++)for(let step=0;step<rate;step++)value=advanceRoad(path,value.distance,value.speed,1/60,null,[]);return value};
+ const normal=run(1),fast=run(4);assert.ok(normal.speed>20);assert.ok(fast.distance>normal.distance*3.5);assert.ok(fast.speed<=22);
+});

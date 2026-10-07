@@ -79,7 +79,7 @@ export async function handleLife(db:D1Database,p:LifePlayer,input:Record<string,
  if(type==='ride-progress'){
   const trip=life.transit,progress=Number(input.progress);if(!trip?.coordinates||trip.progress===undefined||!Number.isFinite(progress)||progress<0||progress>1)return fail('Invalid journey progress');
   const length=trip.coordinates.slice(1).reduce((sum,point,i)=>sum+metres(trip.coordinates![i],point),0),elapsed=Math.max(0,(now-(trip.progressAt||trip.startedAt))/1000);
-  if(progress<trip.progress||((progress-trip.progress)*length)>elapsed*16+2)return fail('Journey progress is too fast');
+  if(progress<trip.progress||((progress-trip.progress)*length)>elapsed*90+2)return fail('Journey progress is too fast');
   if(now<(trip.progressAt||trip.startedAt)+1000)return fail('Wait for the next journey checkpoint',429);
   trip.progress=progress;trip.progressAt=now;return save(false);
  }
@@ -90,7 +90,7 @@ export async function handleLife(db:D1Database,p:LifePlayer,input:Record<string,
   next.money-=route.fare;const departure=Math.ceil((now+2000)/30000)*30000;life.transit={routeId:route.id,startedAt:departure,endsAt:departure+detailed.seconds*1000,coordinates:detailed.coordinates,progress:0,progressAt:departure};event='Ticket purchased. Boarded the tro-tro; departure within 30 seconds.';return save();
  }
  if(type==='bus-arrive'||type==='ride-exit'){
-  const trip=life.transit,route=transit.routes.find(r=>r.id===trip?.routeId);if(!trip||(!route&&!trip.coordinates)||type==='bus-arrive'&&(now<trip.endsAt||trip.progress!==undefined&&trip.progress<1))return fail('Your vehicle has not arrived');const to=route?transit.stops.find(s=>s.id===route.to)!:{id:'home',name:trip.name||'Your destination'},coords=trip.coordinates||route!.coordinates,point=type==='ride-exit'?routePoint(coords,trip.progress??Math.max(0,(now-trip.startedAt)/(trip.endsAt-trip.startedAt))).position:coords[coords.length-1];life.transit=null;
+  const trip=life.transit,route=transit.routes.find(r=>r.id===trip?.routeId);if(!trip||(!route&&!trip.coordinates)||type==='bus-arrive'&&(trip.progress===undefined?now<trip.endsAt:trip.progress<1))return fail('Your vehicle has not arrived');const to=route?transit.stops.find(s=>s.id===route.to)!:{id:'home',name:trip.name||'Your destination'},coords=trip.coordinates||route!.coordinates,point=type==='ride-exit'?routePoint(coords,trip.progress??Math.max(0,(now-trip.startedAt)/(trip.endsAt-trip.startedAt))).position:coords[coords.length-1];life.transit=null;
   const result=await db.prepare('UPDATE players SET life_json=?,pos_lng=?,pos_lat=?,place_id=?,driving=0,last_move_at=?,last_action_at=?,last_seen_at=?,revision=revision+1 WHERE id=? AND revision=?').bind(JSON.stringify(life),point[0],point[1],type==='ride-exit'?'home':to.id==='ridge'?'home':to.id,now,now,now,p.id,p.revision).run();if(!result.meta.changes)return fail('Please try again',409);const updated=await db.prepare('SELECT * FROM players WHERE id=?').bind(p.id).first();return Response.json({self:view(updated),event:type==='ride-exit'?'You left the vehicle at the roadside':`Arrived at ${to.name}`});
  }
  const item=GOODS.find(g=>g.id===input.itemId);
