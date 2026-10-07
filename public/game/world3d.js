@@ -1,8 +1,8 @@
-import {createRoofDetail} from './architecture-models.js';
+import {createBuildingFacade} from './building-facades.js';
 import {damp,turnToward,distanceMetres} from './motion.js';
 import * as THREE from './three.module.js';
 
-function disposeModel(group){const geometries=new Set(),materials=new Set();group.traverse(o=>{if(o.geometry)geometries.add(o.geometry);if(o.material)materials.add(o.material)});geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose())}
+function disposeModel(group){const geometries=new Set(),materials=new Set();group.traverse(o=>{if(o.geometry)geometries.add(o.geometry);if(o.material)materials.add(o.material)});geometries.forEach(g=>g.dispose());materials.forEach(m=>{m.map?.dispose();m.dispose()})}
 const DEG=Math.PI/180;
 const METERS_PER_DEGREE=111320;
 function colorForAvatar(icon){
@@ -99,7 +99,7 @@ export function createWorld3D(map,mapboxgl){
   }};
   map.addLayer(layer);
   return {
-    setArchitecture(items){const key=items.map(i=>i.id).join(",");if(key===architectureKey)return;architectureKey=key;const ids=new Set(items.map(i=>i.id));for(const data of items)if(!architectureItems.has(data.id)){const model=createRoofDetail(data);architectureItems.set(data.id,{data,model});scene.add(model.group)}for(const [id,item] of architectureItems)if(!ids.has(id)){scene.remove(item.model.group);disposeModel(item.model.group);architectureItems.delete(id)}},
+    setArchitecture(items){const key=items.map(i=>i.id).join(",");if(key===architectureKey)return;architectureKey=key;const ids=new Set(items.map(i=>i.id));for(const data of items)if(!architectureItems.has(data.id)){const model=createBuildingFacade(data);architectureItems.set(data.id,{data,model});scene.add(model.group)}for(const [id,item] of architectureItems)if(!ids.has(id)){scene.remove(item.model.group);disposeModel(item.model.group);architectureItems.delete(id)}},
     setScenery(items){if(items===scenerySource)return;scenerySource=items;const ids=new Set(items.map(i=>i.id));for(const data of items)if(!sceneryItems.has(data.id)){const model=createStreetProp(data.kind);sceneryItems.set(data.id,{data,model});scene.add(model.group)}for(const [id,item] of sceneryItems)if(!ids.has(id)){scene.remove(item.model.group);disposeModel(item.model.group);sceneryItems.delete(id)}},
     setEnabled(value){enabled=value;map.triggerRepaint()},
     setSelf(icon){scene.remove(own.group);Object.assign(own,createActor(icon));scene.add(own.group);map.triggerRepaint()},

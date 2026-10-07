@@ -1,12 +1,17 @@
-// Keep Mapbox Standard's native buildings and landmarks. Streets footprints are
-// loaded only for collision/navigation; no invented heights, facades or roofs.
+import {distanceMetres} from './motion.js';
 export const BUILDING_LAYER='accralife-real-buildings';
 export function installRealBuildings(map){
-  if(!map.getSource('accralife-streets'))map.addSource('accralife-streets',{type:'vector',url:'mapbox://mapbox.mapbox-streets-v8'});
-  // A hidden collision layer keeps building tiles loaded without drawing over Standard.
-  if(!map.getLayer('accralife-collision-footprints'))map.addLayer({id:'accralife-collision-footprints',type:'fill',source:'accralife-streets','source-layer':'building',slot:'bottom',paint:{'fill-opacity':0}});
-  map.setConfigProperty?.('basemap','show3dBuildings',true);
-  map.setConfigProperty?.('basemap','show3dFacades',true);
-  map.setConfigProperty?.('basemap','show3dLandmarks',true);
+ if(!map.getSource('accralife-streets'))map.addSource('accralife-streets',{type:'vector',url:'mapbox://mapbox.mapbox-streets-v8'});
+ if(!map.getLayer('accralife-collision-footprints'))map.addLayer({id:'accralife-collision-footprints',type:'fill',source:'accralife-streets','source-layer':'building',slot:'bottom',paint:{'fill-opacity':0}});
+ map.setConfigProperty?.('basemap','show3dBuildings',false);map.setConfigProperty?.('basemap','show3dFacades',true);map.setConfigProperty?.('basemap','show3dLandmarks',true);
+ map.setConfigProperty?.('basemap','showHdRoads',false);
+ map.setConfigProperty?.('basemap','colorRoads','#42484a');
+ if(!map.getLayer(BUILDING_LAYER))map.addLayer({id:BUILDING_LAYER,type:'fill-extrusion',source:'accralife-streets','source-layer':'building',slot:'top',minzoom:14,filter:['!=',['get','extrude'],'false'],paint:{'fill-extrusion-color':'#c7bcaa','fill-extrusion-height':['case',['>', ['coalesce',['get','height'],0],0],['max',3,['get','height']],5],'fill-extrusion-base':['coalesce',['get','min_height'],0],'fill-extrusion-opacity':1}});
+ // Street-width strokes follow the real road centre lines. Native labels remain above them.
+ const width=['interpolate',['exponential',2],['zoom'],15,2.4,18,19.2,21,153.6,24,1228.8];
+ const roadFilter=['all',['in',['get','class'],['literal',['motorway','trunk','primary','secondary','tertiary','street','street_limited','service']]],['!=',['get','structure'],'tunnel']];
+ for(const [id,color,mult] of [['pavement','#bcb6a6',1.5],['asphalt','#42484a',1]])map.addLayer({id:`worldfolk-${id}`,type:'line',source:'accralife-streets','source-layer':'road',slot:'top',minzoom:16,filter:roadFilter,layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':color,'line-width':['*',width,['match',['get','class'],['motorway','trunk'],2.1,['primary','secondary'],1.4,'service',.55,1],mult]}});
+ map.addLayer({id:'worldfolk-road-markings',type:'line',source:'accralife-streets','source-layer':'road',slot:'top',minzoom:17,filter:['all',roadFilter,['in',['get','class'],['literal',['motorway','trunk','primary','secondary','tertiary']]]],paint:{'line-color':'#e9ddb2','line-width':['interpolate',['exponential',2],['zoom'],17,.4,21,2,24,16],'line-dasharray':[5,7],'line-opacity':.85}});
 }
-export function createArchitecture(){return {details:[],update(){}}}
+// Facade detailing is procedural; footprints and available heights come from Mapbox.
+export function createArchitecture(map){let details=[],last=0,origin=null,dirty=true;map.on?.('sourcedata',e=>{if(e.sourceId==='accralife-streets')dirty=true});return {get details(){return details},update(position){if(Date.now()-last<1500||!dirty&&origin&&distanceMetres(origin,position)<25&&details.length)return;last=Date.now();dirty=false;origin=[...position];let features;try{features=map.querySourceFeatures('accralife-streets',{sourceLayer:'building'})}catch{return}const found=new Map();for(const f of features){if(Number(f.properties?.min_height)>0||String(f.properties?.extrude)==='false')continue;const polygons=f.geometry.type==='Polygon'?[f.geometry.coordinates]:f.geometry.type==='MultiPolygon'?f.geometry.coordinates:[];for(const rings of polygons){const ring=rings[0];if(!ring||ring.length<4)continue;const center=ring.slice(0,-1).reduce((a,p)=>[a[0]+p[0]/(ring.length-1),a[1]+p[1]/(ring.length-1)],[0,0]);const distance=distanceMetres(position,center);if(distance>180)continue;const height=Math.max(3,Number(f.properties?.height)||5),id=ring.map(p=>p.map(v=>v.toFixed(6)).join(',')).join(';');if(found.has(id))continue;let seed=0;for(const c of id)seed=(seed*31+c.charCodeAt(0))>>>0;found.set(id,{id,position:center,rings,height,seed,distance});}}details=[...found.values()].sort((a,b)=>a.distance-b.distance).slice(0,75)}}}
