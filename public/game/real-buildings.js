@@ -41,6 +41,15 @@ function addFacadeImages(map){
 export function installRealBuildings(map){
   if(map.getLayer(BUILDING_LAYER))return;
   if(!map.getSource(SOURCE))map.addSource(SOURCE,{type:'vector',url:'mapbox://mapbox.mapbox-streets-v8'});
+  // Metric-width road surfaces remain legible at street level and match the
+  // same vector centerlines used by ambient traffic and pedestrian navigation.
+  const roadFilter=['all',['!',['in',['get','class'],['literal',['motorway','trunk','rail','ferry','path','steps']]]],['!=',['get','structure'],'tunnel']];
+  const metres=['match',['get','class'],'primary',11,'secondary',9,'tertiary',8,'service',5,'pedestrian',4,7];
+  const width=extra=>['interpolate',['exponential',2],['zoom'],14,['*',['+',metres,extra],.21],22,['*',['+',metres,extra],53.5]];
+  const road={source:SOURCE,'source-layer':'road',slot:'middle',type:'line',minzoom:16,filter:roadFilter,layout:{'line-cap':'round','line-join':'round'}};
+  map.addLayer({...road,id:'accralife-pavements',paint:{'line-color':'#b8afa0','line-width':width(3),'line-opacity':.98}});
+  map.addLayer({...road,id:'accralife-road-surface',paint:{'line-color':'#50585a','line-width':width(0),'line-opacity':.97}});
+  map.addLayer({...road,id:'accralife-road-centre',filter:['all',roadFilter,['in',['get','class'],['literal',['primary','secondary','tertiary']]]],paint:{'line-color':'#e4d6a0','line-width':['interpolate',['exponential',2],['zoom'],16,.12,22,7.7],'line-dasharray':[3,6],'line-opacity':.7}});
   addFacadeImages(map);
   const shared={source:SOURCE,'source-layer':'building',slot:'middle',minzoom:14,filter:['==',['get','extrude'],'true']};
   map.addLayer({
