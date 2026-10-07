@@ -48,3 +48,15 @@ test('NPC car theft requires proximity, persists driving, and does not alter oth
  const r=await call(cookie,{type:'vehicle-steal',npcId:'ambient-9',lng:-.1819,lat:5.5598,heading:90});assert.equal(r.status,200);assert.equal(r.body.self.driving,true);assert.ok(r.body.self.life.vehicles.includes('car'));assert.equal(r.body.self.money,p.money);
  assert.equal((await call(cookie,{type:'vehicle',enter:false,lng:-.1819,lat:5.55981})).status,200);assert.equal((await call(cookie,{type:'vehicle-steal',npcId:'ambient-10',lng:-.1819,lat:5.5598,heading:0})).status,429);
 });
+
+test('three thefts cause arrest; restart clears wanted status and restores movement',async()=>{
+ const joined=await call(null,{type:'join',name:'Wanted Tester',avatar:'🧑🏾'}),id=joined.body.self.id,cookie=joined.cookie;
+ let life=joined.body.self.life;
+ for(let i=1;i<=3;i++){
+  fixture(id,{driving:0,pos_lng:-.1819,pos_lat:5.5598,life_json:JSON.stringify({...life,lastTheftAt:0})});
+  const r=await call(cookie,{type:'vehicle-steal',npcId:'ambient-9',lng:-.1819,lat:5.5598,heading:0});assert.equal(r.status,200);life=r.body.self.life;assert.equal(life.wanted,i);assert.equal(life.arrested,i===3);assert.equal(life.health,100);
+ }
+ assert.equal((await call(cookie,{type:'move',lng:-.1819,lat:5.5598,heading:0})).status,400);
+ assert.equal((await call(cookie,{type:'vehicle-steal',npcId:'ambient-10',lng:-.1819,lat:5.5598,heading:0})).status,400);
+ let r=await call(cookie,{type:'respawn'});assert.equal(r.status,200);assert.equal(r.body.self.life.wanted,0);assert.equal(r.body.self.life.arrested,false);assert.equal(r.body.self.life.arrests,1);assert.equal(r.body.self.driving,false);assert.equal(r.body.self.money,joined.body.self.money);
+});

@@ -136,7 +136,7 @@ export async function POST(request: Request) {
     const lifeInput=type==='act'&&input.actionId==='cook'?{type:'cook-inventory'}:input;
     const lifeResult=await handleLife(db,p,lifeInput,view);if(lifeResult)return lifeResult;
     const life=readLife(p);
-    if(life.health<=0&&!["heartbeat","chat"].includes(type))return json({error:"Restart at home to continue"},400);
+    if((life.health<=0||life.arrested)&&!["heartbeat","chat"].includes(type))return json({error:"Restart at home to continue"},400);
     if(life.transit&&!["heartbeat","chat"].includes(type))return json({error:"Your bus journey is in progress"},400);
     if(life.flight&&!["heartbeat","chat"].includes(type))return json({error:"Your flight is in progress"},400);
     if(life.shift&&!(life.shift.jobId==='driver'&&type==='vehicle')&&["vehicle","enter","travel","act"].includes(type))return json({error:"Finish or cancel your shift first"},400);
@@ -160,7 +160,7 @@ export async function POST(request: Request) {
       const lng=Number(input.lng),lat=Number(input.lat),heading=Number(input.heading);
       if(p.driving||life.shift||!/^ambient-\d+$/.test(String(input.npcId))||![lng,lat,heading].every(Number.isFinite)||distanceKm(playerPosition(p),[lng,lat])>.006)return json({error:"Walk close to a stopped NPC car first"},400);
       if(now-life.lastTheftAt<30000)return json({error:"Wait a moment before taking another vehicle"},429);
-      const changed={...life,lastTheftAt:now,drivingSince:now,vehicle:'car',vehicles:[...new Set([...life.vehicles,'car'])]};
+      const wanted=Math.min(3,life.wanted+1);const changed={...life,wanted,arrested:wanted>=3,arrests:life.arrests+(wanted>=3?1:0),lastTheftAt:now,drivingSince:now,vehicle:'car',vehicles:[...new Set([...life.vehicles,'car'])]};
       const result=await db.prepare("UPDATE players SET driving=1,pos_lng=?,pos_lat=?,heading=?,last_move_at=?,last_seen_at=?,life_json=?,revision=revision+1 WHERE id=? AND revision=?").bind(lng,lat,((heading%360)+360)%360,now,now,JSON.stringify(changed),p.id,p.revision).run();
       if(!result.meta.changes)return json({error:"Your state changed. Try again."},409);
       const updated=await db.prepare("SELECT * FROM players WHERE id=?").bind(p.id).first<Player>();return json({self:view(updated!)});

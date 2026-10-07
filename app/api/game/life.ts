@@ -8,8 +8,8 @@ import {crashDamage} from '../../../public/game/motion.js';
 import {GOODS,HOMES,JOBS,TERMINALS,propertyId} from '../../../public/game/life-catalog.js';
 export type LifePlayer={id:string;name:string;life_json:string;revision:number;money:number;energy:number;hunger:number;fun:number;social:number;hygiene:number;xp:number;jobs_done:number;job:string;place_id:string;pos_lng:number|null;pos_lat:number|null;driving:number;last_action_at:number};
 type Flight={from:string;to:string;startedAt:number;endsAt:number};
-type Life={lastTheftAt:number;momo:number;health:number;deaths:number;lastTrafficHitAt:number;lastVitalAt:number;lastCrashAt:number;drivingSince:number;transit:Ride|null;home:string;inventory:Record<string,number>;vehicles:string[];vehicle:string;properties:string[];job:string|null;shift:{jobId:string;endsAt:number;drove?:boolean}|null;flight:Flight|null;outfit:string|null;furnished:string[]};
-export function readLife(p:LifePlayer):Life {let saved;try{saved=JSON.parse(p.life_json||'{}')}catch{saved={}}return {lastTheftAt:0,momo:0,health:100,deaths:0,lastTrafficHitAt:0,lastVitalAt:0,lastCrashAt:0,drivingSince:0,transit:null,home:'starter',inventory:{},vehicles:['car'],vehicle:'car',properties:['starter'],job:null,shift:null,flight:null,outfit:null,furnished:[],...saved}}
+type Life={wanted:number;arrested:boolean;arrests:number;lastTheftAt:number;momo:number;health:number;deaths:number;lastTrafficHitAt:number;lastVitalAt:number;lastCrashAt:number;drivingSince:number;transit:Ride|null;home:string;inventory:Record<string,number>;vehicles:string[];vehicle:string;properties:string[];job:string|null;shift:{jobId:string;endsAt:number;drove?:boolean}|null;flight:Flight|null;outfit:string|null;furnished:string[]};
+export function readLife(p:LifePlayer):Life {let saved;try{saved=JSON.parse(p.life_json||'{}')}catch{saved={}}return {wanted:0,arrested:false,arrests:0,lastTheftAt:0,momo:0,health:100,deaths:0,lastTrafficHitAt:0,lastVitalAt:0,lastCrashAt:0,drivingSince:0,transit:null,home:'starter',inventory:{},vehicles:['car'],vehicle:'car',properties:['starter'],job:null,shift:null,flight:null,outfit:null,furnished:[],...saved}}
 export function lifeView(p:LifePlayer){const life=readLife(p);return {...life,homeId:propertyId(p.id,life.home),homeName:HOMES.find(h=>h.id===life.home)?.name,apartment:p.id.slice(0,6).toUpperCase()}}
 export const metres=(a:number[],b:number[])=>Math.hypot((a[0]-b[0])*111320*Math.cos(a[1]*Math.PI/180),(a[1]-b[1])*111320);
 const publicCoords:Record<string,number[]>={home:[-.1949,5.5682],makola:[-.2141,5.5485],kaneshie:[-.2346,5.5724],osu:[-.1819,5.5598],mall:[-.1738,5.6224],airport:[-.1787,5.6093],labadi:[-.140846,5.561955],legon:[-.1874,5.651]};
@@ -23,7 +23,7 @@ export async function handleLife(db:D1Database,p:LifePlayer,input:Record<string,
  const type=String(input.type),life=readLife(p),now=Date.now();
  const kinds=['momo','buy','consume','equip','furnish','vehicle-select','job-apply','shift-start','shift-complete','shift-cancel','property-buy','home-set','pass-create','pass-redeem','pass-revoke','flight-book','flight-arrive','cook-inventory','vitals','crash','respawn','recover','ride-book','ride-progress','ride-exit','ride-social','bus-board','bus-arrive','traffic-hit'];
  if(!kinds.includes(type))return null;
- if(life.health<=0&&!['respawn','vitals'].includes(type))return fail('Restart at home to continue');
+ if((life.health<=0||life.arrested)&&!['respawn','vitals'].includes(type))return fail('Restart at home to continue');
  if(life.transit&&!['bus-arrive','ride-progress','ride-exit','ride-social','vitals'].includes(type))return fail('Your bus is travelling');
  if(life.flight&&!['flight-arrive','vitals'].includes(type))return fail('Finish your flight before doing this');
  const next={...p};let event='',extra:Record<string,unknown>={};
@@ -42,16 +42,10 @@ export async function handleLife(db:D1Database,p:LifePlayer,input:Record<string,
   if(life.health>0){next.hunger=Math.max(0,p.hunger-elapsed/45);next.energy=Math.max(0,p.energy-elapsed/90);if(next.hunger===0)life.health=Math.max(0,life.health-elapsed/10);if(!life.health){life.deaths++;life.shift=null}}
   return save();
  }
- if(type==='traffic-hit'){
-  const speed=Number(input.speed);if(p.driving||life.shift||life.flight||life.transit||!Number.isFinite(speed)||speed<2||speed>30)return fail('Invalid traffic collision');if(now-life.lastTrafficHitAt<2500)return fail('Collision already recorded',429);life.lastTrafficHitAt=now;life.health=Math.max(0,life.health-pedestrianDamage(speed,input.highway===true));if(!life.health){life.deaths++;life.shift=null}event=life.health?'Hit by traffic. Move onto the pavement and recover at home.':'A fatal traffic collision. Restart at home.';return save();
- }
- if(type==='crash'){
-  const speed=Number(input.speed);if(!p.driving||!Number.isFinite(speed)||speed<0||speed>12+Math.max(0,(now-(life.drivingSince||now))/1000)*6)return fail('Invalid collision');
-  if(now-life.lastCrashAt<2000)return fail('Collision already recorded',429);life.lastCrashAt=now;const damage=crashDamage(speed);life.health=Math.max(0,life.health-damage);if(!life.health){life.deaths++;life.shift=null}event=life.health?(damage?`Collision · −${damage} health · ${life.health}/100 remaining. Rest at home to recover.`:'Minor bump · no health lost'):'Your character died. Restart at home.';return save();
- }
+ if(type==='traffic-hit'||type==='crash'){event='Contact · no health lost';return save(false)}
  if(type==='recover'){if(!p.place_id.startsWith(`p_${p.id}_`)||!await homeAccess())return fail('Rest inside your own home to recover');if(life.health>=100)return fail('You are already healthy');life.health=100;event='Rested and recovered at home';return save()}
  if(type==='respawn'){
-  if(life.health>0)return fail('You are still alive');const home=HOMES.find(h=>h.id===life.home)!;life.health=100;life.shift=null;life.flight=null;life.transit=null;life.drivingSince=0;life.lastVitalAt=now;
+  if(life.health>0&&!life.arrested)return fail('You are still alive');life.wanted=0;life.arrested=false;const home=HOMES.find(h=>h.id===life.home)!;life.health=100;life.shift=null;life.flight=null;life.transit=null;life.drivingSince=0;life.lastVitalAt=now;
   const result=await db.prepare('UPDATE players SET life_json=?,pos_lng=?,pos_lat=?,place_id=?,driving=0,energy=80,hunger=80,last_move_at=?,last_action_at=?,last_seen_at=?,revision=revision+1 WHERE id=? AND revision=?').bind(JSON.stringify(life),home.lng,home.lat,propertyId(p.id,home.id),now,now,now,p.id,p.revision).run();if(!result.meta.changes)return fail('Please try again',409);const updated=await db.prepare('SELECT * FROM players WHERE id=?').bind(p.id).first();return Response.json({self:view(updated),event:'A new day at home. Your belongings are safe.'});
  }
  if(type==='ride-social'){

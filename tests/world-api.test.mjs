@@ -12,9 +12,8 @@ test('health, unlimited-speed movement validation, death and bus journey persist
  assert.equal(life.health,100);assert.equal((await call(p.cookie,{type:'respawn'})).status,400);
  fixture(p.id,{driving:1,life_json:JSON.stringify({...life,drivingSince:Date.now()-30000}),last_move_at:Date.now()-1000});
  r=await call(p.cookie,{type:'move',lng:p.self.lng+.0005,lat:p.self.lat,heading:90});assert.equal(r.status,200,'driving faster than the old cap is accepted');
- r=await call(p.cookie,{type:'crash',speed:38});assert.equal(r.status,200);assert.equal(r.body.self.life.health,75);assert.equal(r.body.self.life.deaths,0);
- assert.equal((await call(p.cookie,{type:'crash',speed:38})).status,429,'one impact cannot be charged twice');assert.equal((await call(p.cookie)).body.self.life.health,75);
- for(const health of [50,25,0]){life=(await call(p.cookie)).body.self.life;life.lastCrashAt=0;fixture(p.id,{life_json:JSON.stringify(life)});r=await call(p.cookie,{type:'crash',speed:38});assert.equal(r.status,200);assert.equal(r.body.self.life.health,health)}assert.equal(r.body.self.life.deaths,1);
+ for(let i=0;i<4;i++){r=await call(p.cookie,{type:'crash',speed:38});assert.equal(r.status,200);assert.equal(r.body.self.life.health,100);assert.equal(r.body.self.life.wanted,0)}
+ fixture(p.id,{life_json:JSON.stringify({...r.body.self.life,health:0})});
  assert.equal((await call(p.cookie,{type:'buy',itemId:'water'})).status,400);assert.equal((await call(p.cookie,{type:'move',lng:p.self.lng,lat:p.self.lat,heading:0})).status,400);
  r=await call(p.cookie,{type:'respawn'});assert.equal(r.status,200);assert.equal(r.body.self.life.health,100);assert.equal(r.body.self.driving,false);assert.equal(r.body.self.money,120);assert.equal(r.body.self.lng,p.self.lng);
  assert.equal((await call(p.cookie,{type:'bus-board',routeId:'airport-mall'})).status,400,'must be at the origin stop');
@@ -38,9 +37,6 @@ test('voice opt-in, session ownership, recipient-only signaling and leaving',asy
  await voice(b.cookie,{type:'leave',sessionId:sb});await voice(c.cookie,{type:'leave',sessionId:sc});
 });
 
-test('pedestrian impacts persist, reject rapid duplicates and can be fatal',async()=>{
- const p=await player('Traffic Test');let r=await call(p.cookie,{type:'traffic-hit',speed:8,highway:false});assert.equal(r.status,200);assert.ok(r.body.self.life.health<100&&r.body.self.life.health>0);
- assert.equal((await call(p.cookie,{type:'traffic-hit',speed:8})).status,429);
- let life=r.body.self.life;life.lastTrafficHitAt=Date.now()-4000;fixture(p.id,{life_json:JSON.stringify(life)});r=await call(p.cookie,{type:'traffic-hit',speed:22,highway:true});assert.equal(r.body.self.life.health,0);assert.equal(r.body.self.life.deaths,1);r=await call(p.cookie,{type:'respawn'});assert.equal(r.body.self.life.health,100);
- assert.equal((await call(p.cookie,{type:'traffic-hit',speed:999})).status,400);
+test('traffic contact never removes health or adds crime',async()=>{
+ const p=await player('Traffic Test');for(const speed of [8,22,999]){const r=await call(p.cookie,{type:'traffic-hit',speed,highway:true});assert.equal(r.status,200);assert.equal(r.body.self.life.health,100);assert.equal(r.body.self.life.wanted,0);assert.equal(r.body.self.life.deaths,0)}
 });
