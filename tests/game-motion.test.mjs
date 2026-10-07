@@ -31,3 +31,21 @@ test('building styles are stable and varied by building and district',async()=>{
  const {buildingStyle,districtAt}=await import('../public/game/districts.js');const feature=(x,y,id)=>({id,properties:{height:7},geometry:{type:'Polygon',coordinates:[[[x,y],[x+.0001,y],[x+.0001,y+.0001],[x,y+.0001],[x,y]]]}});
  const styles=new Set(Array.from({length:20},(_,i)=>buildingStyle(feature(-.1949+i*.0002,5.57,i)).style));assert.ok(styles.size>=4);const a=buildingStyle(feature(-.2141,5.5485,20));assert.equal(a.district,'market');assert.equal(a.height,7);assert.deepEqual(a,buildingStyle(feature(-.2141,5.5485,20)));assert.equal(districtAt([-.140846,5.561955]).kind,'beach');assert.equal(districtAt([-.1896,5.5907]).kind,'mosque');
 });
+
+test('a player and vehicle can retreat out of a newly loaded overlapping wall',()=>{
+ const p=physics();const start=point(-.2,0),away=point(-3,0);
+ assert.ok(p.collision(start,.62));const walk=p.move(start,away,.62);assert.ok(distanceMetres(walk.position,away)<.02);assert.equal(p.collision(walk.position,.62),null);
+ assert.equal(p.vehicleCollision(start,0),true);const drive=p.moveVehicle(start,away,0);assert.equal(drive.blocked,false);assert.equal(p.vehicleCollision(drive.position,0),false);
+});
+test('courtyard boundaries collide on both sides and vehicle exits are clear',()=>{
+ const outer=[point(-20,-20),point(20,-20),point(20,20),point(-20,20),point(-20,-20)],hole=[point(-3,-3),point(3,-3),point(3,3),point(-3,3),point(-3,-3)];
+ const p=createBuildingPhysics({project:()=>({x:0,y:0}),queryRenderedFeatures:()=>[{geometry:{type:'Polygon',coordinates:[outer,hole]},properties:{}}]});p.refresh(origin,true);
+ assert.equal(p.collision(origin),null);assert.ok(p.collision(point(2.8,0),.6));assert.equal(p.vehicleExit(point(7,7),0),null,'no exit may be placed inside the building');
+ const exit=p.vehicleExit(origin,0);assert.ok(exit);assert.equal(p.collision(exit,.7),null);assert.ok(distanceMetres(exit,origin)>2);
+});
+test('room movement sweeps furniture, slides and allows recovery from overlap',async()=>{
+ const {createRoomPhysics}=await import('../public/game/room-physics.js');const p=createRoomPhysics([{x:0,z:0,w:1,d:3}]);
+ const blocked=p.move([-2,0],[5,0]);assert.ok(blocked[0]<-.83);assert.ok(p.clear(...blocked));
+ const slide=p.move([-.9,-1],[.4,3]);assert.ok(slide[1]>1.5);assert.ok(p.clear(...slide));
+ const recovered=p.move([-.4,0],[-2,0]);assert.ok(p.clear(...recovered));assert.equal(p.visible([-2,0],[2,0]),false);
+});
