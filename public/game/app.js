@@ -1,3 +1,4 @@
+import {moveAroundObstacles} from './obstacle-motion.js';
 function workLocked(){return !!state.self?.life?.shift&&state.self.life.shift.jobId!=='driver'}
 import {createRealtime} from './realtime.js';
 import {createMobileControls} from './mobile-controls.js';
@@ -230,6 +231,12 @@ function enterRoam(){
   state.map.dragPan.disable();state.map.dragRotate.disable();state.map.touchZoomRotate.disable();state.map.doubleClickZoom.disable();document.body.classList.add('roam-mode');$('roamHud').classList.remove('hidden');$('roamToggle').textContent='◫ City map';state.keys.clear();state.lastFrame=performance.now();updateNearby();renderMapMarkers();followCamera(true);if(state.spawnCorrectionPending)sendMove();syncLife();requestAnimationFrame(roamFrame)
 }
 function exitRoam(){if(workLocked()){state.lifeUI?.show('work');return}if(state.mode==='transit'){toast('Enjoy the bus journey until your stop');return}if(state.mode==='flight'){toast('Enjoy the flight until you reach the terminal');return}if(!state.roam)return;if(state.mode==='indoor')exitInterior();clearTimeout(finalMoveTimer);sendMove();state.roam=false;state.walkVelocity=[0,0];state.carSpeed=0;state.navigation?.toggle(false);state.mapModeRequested=true;state.cabinView=false;document.body.classList.remove('cabin-mode');state.world3d?.setCabinView(false);state.keys.clear();state.joystick={x:0,y:0};$('joystickKnob').style.transform='translate(-50%,-50%)';state.world3d?.setMoving(false);state.world3d?.setEnabled(false);state.map.dragPan.enable();state.map.dragRotate.enable();state.map.touchZoomRotate.enable();state.map.doubleClickZoom.enable();document.body.classList.remove('roam-mode');$('roamHud').classList.add('hidden');$('roamActionMenu').classList.add('hidden');state.actionMenuOpen=false;state.chatOpen=false;$('roamToggle').textContent='▶ 3D play';renderMapMarkers();state.map.easeTo({pitch:48,zoom:Math.min(state.map.getZoom(),16.5),offset:[0,0],duration:450})}
+function movementObstacles(driving){
+ const circles=(state.cityLife?.actors||[]).filter(p=>driving||!p.driving).map(p=>({position:p.position,radius:p.driving?3.4:driving?2.5:.65}));
+ for(const item of state.scenery?.items||[])circles.push({position:item.position,radius:(driving?1.1:.62)+(item.kind==='stall'?1.2:item.kind==='umbrella'?.5:item.kind==='bench'?1:.25)});
+ if(!driving&&state.carPosition&&state.self?.life?.vehicles?.includes(state.self.life.vehicle))circles.push({position:state.carPosition,radius:state.self.life.vehicle==='motorcycle'?.7:1.25});
+ return circles;
+}
 function roamFrame(now){
   if(!state.roam)return;
   const dt=Math.min(.05,(now-state.lastFrame)/1000||0);state.lastFrame=now;
@@ -250,15 +257,13 @@ function roamFrame(now){
     if(!state.physics?.vehicleCollision(state.position,next.heading,state.self.life?.vehicle)||state.physics.vehicleDepth(state.position,next.heading,state.self.life?.vehicle)<state.physics.vehicleDepth(state.position,state.heading,state.self.life?.vehicle))state.heading=next.heading;
     state.cameraBearing=state.heading;$('vehicleCabin').style.setProperty('--steer',`${Math.round(state.steer*42)}deg`);
     const angle=state.heading*Math.PI/180,candidate=offsetMetres(state.position,Math.sin(angle)*state.carSpeed*dt,Math.cos(angle)*state.carSpeed*dt);
-    const occupied=state.cityLife?.collides(candidate,true)||state.scenery?.collides(candidate,1.1);
-    const resolved=inAccra(...candidate)&&!occupied?(state.physics?.moveVehicle(state.position,candidate,state.heading,state.self.life?.vehicle)||{position:candidate,blocked:false}):{position:state.position,blocked:true};
+    const resolved=inAccra(...candidate)?moveAroundObstacles(state.position,candidate,movementObstacles(true),(a,b)=>state.physics?.moveVehicle(a,b,state.heading,state.self.life?.vehicle)||{position:b,blocked:false},false):{position:state.position,blocked:true};
     state.blockedHint=Math.abs(state.carSpeed)>.05&&resolved.blocked;if(resolved.blocked){if(Math.abs(state.carSpeed)>8&&!state.crashPending){state.crashPending=true;document.body.classList.add('damage-flash');lifeAction({type:'crash',speed:Math.abs(state.carSpeed)}).finally(()=>setTimeout(()=>{state.crashPending=false;document.body.classList.remove('damage-flash')},2100))}state.carSpeed=0;}
     state.position=resolved.position;state.carPosition=[...state.position];state.carHeading=state.heading;state.world3d.setCarPosition(...state.carPosition,state.carHeading);
   }else{
     state.walkVelocity=stepWalker(state.walkVelocity,x,y,state.cameraBearing,state.keys.has('ShiftLeft')||state.keys.has('ShiftRight'),dt);
     const [east,north]=state.walkVelocity,candidate=offsetMetres(state.position,east*dt,north*dt);
-    const occupied=state.cityLife?.collides(candidate)||state.scenery?.collides(candidate);
-    const resolved=inAccra(...candidate)&&!occupied?(state.physics?.move(state.position,candidate,.62)||{position:candidate,blocked:false}):{position:state.position,blocked:true};
+    const resolved=inAccra(...candidate)?moveAroundObstacles(state.position,candidate,movementObstacles(false),(a,b)=>state.physics?.move(a,b,.62)||{position:b,blocked:false}):{position:state.position,blocked:true};
     state.blockedHint=Math.hypot(east,north)>.1&&resolved.blocked;state.position=resolved.position;
     if(Math.hypot(east,north)>.1)state.heading=turnToward(state.heading,(Math.atan2(east,north)*180/Math.PI+360)%360,14,dt);
     if(!locked){if(state.keys.has('KeyQ'))state.cameraBearing-=75*dt;if(state.keys.has('KeyR'))state.cameraBearing+=75*dt}

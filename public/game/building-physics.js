@@ -24,7 +24,7 @@ export function createBuildingPhysics(map){
       blocked=true;const startDepth=penetration(current,radius),endDepth=penetration(next,radius);
       if(startDepth>0&&endDepth<startDepth-.00001){current=next;continue}
       let edge=null;for(const ring of hit.rings)for(const [a,b] of segments(ring)){const aa=local(current,a),bb=local(current,b),closest=closestSegment([0,0],aa,bb);if(!edge||closest.distance<edge.distance)edge={a:aa,b:bb,distance:closest.distance}}
-      if(edge){const dx=edge.b[0]-edge.a[0],dy=edge.b[1]-edge.a[1],len=Math.hypot(dx,dy)||1,along=(delta[0]*dx+delta[1]*dy)/len/steps,slide=global(current,dx/len*along,dy/len*along);if(!collision(slide,radius)){current=slide;continue}}
+      if(edge){const dx=edge.b[0]-edge.a[0],dy=edge.b[1]-edge.a[1],len=Math.hypot(dx,dy)||1,along=(delta[0]*dx+delta[1]*dy)/len/steps,slide=global(current,dx/len*along,dy/len*along);if(!collision(slide,radius)||startDepth>0&&penetration(slide,radius)<startDepth-.00001){current=slide;continue}}
       break;
     }
     return {position:current,blocked};

@@ -49,3 +49,16 @@ test('room movement sweeps furniture, slides and allows recovery from overlap',a
  const slide=p.move([-.9,-1],[.4,3]);assert.ok(slide[1]>1.5);assert.ok(p.clear(...slide));
  const recovered=p.move([-.4,0],[-2,0]);assert.ok(p.clear(...recovered));assert.equal(p.visible([-2,0],[2,0]),false);
 });
+
+test('NPC, car and prop overlaps permit escape without entering a new obstacle',async()=>{
+ const {moveAroundObstacles}=await import('../public/game/obstacle-motion.js');
+ const base=[-.19,5.56],east=m=>offsetMetres(base,m,0),free=(a,b)=>({position:b,blocked:false});
+ for(const radius of [.65,1.25,2.5,3.4]){
+  const from=east(radius-.1),to=offsetMetres(from,.05,0),r=moveAroundObstacles(from,to,[{position:base,radius}],free,false);
+  assert.ok(distanceMetres(base,r.position)>radius-.06,'overlapping actor can back away');assert.equal(r.blocked,false);
+  const inward=moveAroundObstacles(from,offsetMetres(from,-.05,0),[{position:base,radius}],free,false);assert.ok(distanceMetres(from,inward.position)<.001,'cannot move deeper');
+ }
+ const crossed=moveAroundObstacles(east(-5),east(5),[{position:base,radius:1.25}],free,false);assert.ok(distanceMetres(base,crossed.position)>=1.249,'fast movement cannot tunnel through a parked car');
+ const stuck=east(.6),wall=(a,b)=>({position:a,blocked:true});assert.deepEqual(moveAroundObstacles(stuck,east(2),[{position:base,radius:.65}],wall).position,stuck,'escape never bypasses building walls');
+ const center=moveAroundObstacles(base,east(.1),[{position:base,radius:1}],free);assert.ok(distanceMetres(base,center.position)>.09,'exactly overlapping centres can separate');
+});

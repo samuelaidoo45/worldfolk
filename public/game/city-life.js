@@ -31,7 +31,11 @@ export function createCityLife(map,physics,onHit=()=>{}){
   function tick(dt,position,now,playerMode='walk'){
     maintain(position,now);
     for(const npc of [...people,...traffic]){
-      npc.moving=false;if(now<npc.pauseUntil)continue;
+      npc.moving=false;
+      // A pedestrian yields instead of pinning the player against a wall/car.
+      const clearance=playerMode==='drive'?2.6:.8;
+      if(!npc.driving&&distanceMetres(npc.position,position)<clearance){const away=bearingTo(position,npc.position)*Math.PI/180;let best=npc.position;for(const turn of [0,Math.PI/2,-Math.PI/2]){const candidate=offsetMetres(npc.position,Math.sin(away+turn)*dt*1.8,Math.cos(away+turn)*dt*1.8),resolved=physics.move(npc.position,candidate,.42);if(distanceMetres(resolved.position,position)>distanceMetres(best,position))best=resolved.position}npc.moving=distanceMetres(best,npc.position)>.002;npc.position=best;npc.speed=0;continue}
+      if(now<npc.pauseUntil)continue;
       const raw=npc.line[npc.index],previous=npc.line[Math.max(0,Math.min(npc.line.length-1,npc.index-npc.direction))],heading=bearingTo(previous,raw),angle=heading*Math.PI/180;
       let target=offsetMetres(raw,Math.cos(angle)*npc.side,-Math.sin(angle)*npc.side);if(physics.collision(target,npc.driving?1.1:.45)){if(npc.driving)target=raw;else{npc.direction*=-1;npc.index=Math.max(0,Math.min(npc.line.length-1,npc.index+npc.direction));npc.pauseUntil=now+500;continue}}
       const d=distanceMetres(npc.position,target);if(d<1.3){npc.index+=npc.direction;if(npc.index>=npc.line.length||npc.index<0){npc.direction*=-1;npc.index=Math.max(0,Math.min(npc.line.length-1,npc.index+2*npc.direction));npc.pauseUntil=now+(npc.driving?250:800+(serial%4)*500)}continue}
