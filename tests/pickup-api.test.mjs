@@ -29,3 +29,12 @@ test('pickup is persisted, charged once, shares tro-tros, gates arrival and prot
  const driving=(await call(cookie)).body.self.life;assert.equal(driving.shift.drove,true);driving.shift.endsAt=Date.now()-1;fixture(p.id,{pos_lng:-.1819,pos_lat:5.5598,driving:0,life_json:JSON.stringify(driving)});assert.equal((await call(cookie,{type:'shift-complete'})).status,200);
 
 });
+
+test('MoMo requires an agent and commits cash transfers atomically',async()=>{
+ const p=await call(null,{type:'join',name:'Agent Tester',avatar:'🧑🏾'}),id=p.body.self.id,cookie=p.cookie;
+ fixture(id,{money:100,pos_lng:-.1949,pos_lat:5.5682});assert.equal((await call(cookie,{type:'momo',amount:50,operation:'deposit'})).status,400);
+ fixture(id,{pos_lng:-.1819,pos_lat:5.5598});const deposits=await Promise.all([call(cookie,{type:'momo',amount:80,operation:'deposit'}),call(cookie,{type:'momo',amount:80,operation:'deposit'})]);assert.equal(deposits.filter(r=>r.status===200).length,1);
+ let r=await call(cookie);assert.equal(r.body.self.money,20);assert.equal(r.body.self.life.momo,80);
+ assert.equal((await call(cookie,{type:'momo',amount:81,operation:'withdraw'})).status,400);
+ r=await call(cookie,{type:'momo',amount:80,operation:'withdraw'});assert.equal(r.status,200);assert.equal(r.body.self.money,100);assert.equal(r.body.self.life.momo,0);
+});

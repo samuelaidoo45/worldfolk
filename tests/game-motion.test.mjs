@@ -62,3 +62,17 @@ test('NPC, car and prop overlaps permit escape without entering a new obstacle',
  const stuck=east(.6),wall=(a,b)=>({position:a,blocked:true});assert.deepEqual(moveAroundObstacles(stuck,east(2),[{position:base,radius:.65}],wall).position,stuck,'escape never bypasses building walls');
  const center=moveAroundObstacles(base,east(.1),[{position:base,radius:1}],free);assert.ok(distanceMetres(base,center.position)>.09,'exactly overlapping centres can separate');
 });
+
+test('MoMo conserves game money and rejects invalid or unfunded transfers',async()=>{
+ const {exchangeMoMo}=await import('../public/game/street-services.js');
+ const deposit=exchangeMoMo(120,0,80,'deposit');assert.deepEqual(deposit,{cash:40,balance:80});assert.deepEqual(exchangeMoMo(deposit.cash,deposit.balance,80,'withdraw'),{cash:120,balance:0});
+ for(const amount of [-1,0,.5,NaN,Infinity,100001])assert.equal(exchangeMoMo(120,100,amount,'deposit'),null);
+ assert.equal(exchangeMoMo(10,0,11,'deposit'),null);assert.equal(exchangeMoMo(10,0,1,'withdraw'),null);assert.equal(exchangeMoMo(10,10,1,'anything'),null);
+});
+
+test('a bumped pedestrian yields, while a wall still prevents displacement',async()=>{
+ const {createCityLife}=await import('../public/game/city-life.js');let blocked=false;
+ const physics={count:1,collision:()=>false,move:(a,b)=>({position:blocked?a:b,blocked}),moveVehicle:(a,b)=>({position:b,blocked:false})};
+ const map={querySourceFeatures:()=>[{properties:{class:'street'},geometry:{type:'LineString',coordinates:[point(-100,0),point(100,0)]}}]};
+ const city=createCityLife(map,physics);city.tick(.016,point(0,10),4000);const npc=city.actors.find(p=>!p.driving);assert.ok(npc);const initial=[...npc.position];city.nudgePedestrians(point(0,10),initial);assert.ok(distanceMetres(initial,npc.position)>.1);blocked=true;const next=[...npc.position];city.nudgePedestrians(initial,next);assert.deepEqual(npc.position,next);
+});

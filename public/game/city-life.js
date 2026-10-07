@@ -20,13 +20,13 @@ export function createCityLife(map,physics,onHit=()=>{}){
       const index=serial++,road=options[(index*7+attempt)%options.length],line=road.line,seg=Math.max(0,Math.min(line.length-2,road.best.index+(index%5)-2)),a=line[seg],b=line[seg+1],length=distanceMetres(a,b);if(length<3)continue;
       const t=.2+(index%7)*.1,base=[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t],heading=bearingTo(a,b),angle=heading*Math.PI/180,side=isCar?road.width*.23:(index%2?1:-1)*(road.width/2+1.15),point=offsetMetres(base,Math.cos(angle)*side,-Math.sin(angle)*side);
       const distance=distanceMetres(position,point);if(distance<10||distance>150||physics.collision(point,isCar?1.2:.5)||[...people,...traffic].some(n=>distanceMetres(n.position,point)<5))continue;
-      return {id:`ambient-${index}`,name:names[index%names.length],avatar:looks[index%looks.length],driving:isCar,position:point,heading,line,index:seg+1,direction:1,side,speed:0,roadClass:road.roadClass,highway:road.highway,maxSpeed:isCar?(road.highway?19+index%7:7+index%5):1.05+(index%4)*.12,pauseUntil:0,blockedFor:0,moving:false};
+      return {id:`ambient-${index}`,name:names[index%names.length],avatar:looks[index%looks.length],driving:isCar,vehicle:isCar?(index%5===0?'bus':index%3===0?'taxi':'car'):null,position:point,heading,line,index:seg+1,direction:1,side,speed:0,roadClass:road.roadClass,highway:road.highway,maxSpeed:isCar?(road.highway?19+index%7:7+index%5):1.05+(index%4)*.12,pauseUntil:0,blockedFor:0,moving:false};
     }return null;
   }
   function maintain(position,now){if(now-lastSeed<2500||!physics.count)return;lastSeed=now;
     people=people.filter(p=>distanceMetres(position,p.position)<220);traffic=traffic.filter(p=>distanceMetres(position,p.position)<240);const available=roads(position);
-    while(people.length<12){const p=spawn(position,false,available);if(!p)break;people.push(p)}
-    while(traffic.length<7){const p=spawn(position,true,available);if(!p)break;traffic.push(p)}
+    while(people.length<18){const p=spawn(position,false,available);if(!p)break;people.push(p)}
+    while(traffic.length<14){const p=spawn(position,true,available);if(!p)break;traffic.push(p)}
   }
   function tick(dt,position,now,playerMode='walk'){
     maintain(position,now);
@@ -51,8 +51,15 @@ export function createCityLife(map,physics,onHit=()=>{}){
       npc.blockedFor=result.blocked?npc.blockedFor+dt:0;if(npc.blockedFor>3){npc.direction*=-1;npc.index=Math.max(0,Math.min(npc.line.length-1,npc.index+npc.direction));npc.blockedFor=0;npc.pauseUntil=now+1000}
     }
   }
+  function nudgePedestrians(from,to,driving=false){
+    const clearance=driving?2.55:.72;
+    for(const npc of people){if(distanceMetres(to,npc.position)>=clearance)continue;const direction=bearingTo(to,npc.position)*Math.PI/180,step=Math.min(.35,clearance-distanceMetres(to,npc.position)+.03);let best=npc.position;
+      for(const turn of [0,Math.PI/3,-Math.PI/3]){const candidate=offsetMetres(npc.position,Math.sin(direction+turn)*step,Math.cos(direction+turn)*step),result=physics.move(npc.position,candidate,.42);if(distanceMetres(result.position,to)>distanceMetres(best,to))best=result.position}
+      npc.position=best;npc.pauseUntil=performance.now()+350;npc.moving=true;
+    }
+  }
   function nearby(position){return people.map(p=>({...p,distance:distanceMetres(position,p.position)})).filter(p=>p.distance<4.2).sort((a,b)=>a.distance-b.distance)[0]||null}
   function greet(id,position){const p=people.find(x=>x.id===id);if(!p)return '';p.pauseUntil=performance.now()+6000;p.heading=bearingTo(p.position,position);return `${p.name} · resident: ${['Akwaaba! Open Destinations to find a place, then follow the gold route.','Looking for a ride? Walk to the red car and press F.','Osu is lively. Set Oxford Street as your destination.','Take your time around the corners. Space is your handbrake.'][names.indexOf(p.name)%4]}`}
   function collides(position,driving=false){return (driving?[...people,...traffic]:people).some(p=>distanceMetres(position,p.position)<(p.driving?(driving?3.4:1.7):(driving?2.5:.65)))}
-  return {tick,nearby,greet,collides,roads,get actors(){return [...people,...traffic]},get count(){return people.length}};
+  return {tick,nudgePedestrians,nearby,greet,collides,roads,get actors(){return [...people,...traffic]},get count(){return people.length}};
 }
