@@ -1,0 +1,28 @@
+export function createMobileControls({state,release,toggleCamera}){
+ const touch=matchMedia('(any-pointer: coarse)');
+ const menu=document.createElement('nav');menu.className='mobile-game-menu hidden';menu.id='mobileGameMenu';menu.setAttribute('aria-label','Game menu');
+ const toggle=document.createElement('button');toggle.className='mobile-menu-toggle';toggle.type='button';toggle.textContent='☰';toggle.setAttribute('aria-label','Open game menu');toggle.setAttribute('aria-expanded','false');toggle.setAttribute('aria-controls',menu.id);
+ const rotate=document.createElement('section');rotate.className='landscape-prompt';rotate.setAttribute('aria-label','Rotate your device');rotate.innerHTML='<span aria-hidden="true">↻</span><h2>Turn your phone sideways</h2><p>Explore Worldfolk in landscape.<br>Your controls will sit beside the action.</p><button type="button">Enter fullscreen</button><small>Rotation lock off? Turn your device to continue.</small>';
+ const status=document.createElement('span');status.id='connectionStatus';status.className='connection-status';status.textContent=document.body.dataset.connection||'Connecting';
+ document.body.append(menu,toggle,rotate,status);
+ let menuOpen=false;
+ function close(){menuOpen=false;menu.classList.add('hidden');toggle.setAttribute('aria-expanded','false');updatePause()}
+ toggle.onclick=()=>{menuOpen=!menuOpen;menu.classList.toggle('hidden',!menuOpen);toggle.setAttribute('aria-expanded',String(menuOpen));release();updatePause()};
+ async function fullscreen(){try{if(!document.fullscreenElement)await document.documentElement.requestFullscreen?.();await screen.orientation?.lock?.('landscape')}catch{/* iOS and other browsers use the physical rotation prompt. */}}
+ rotate.querySelector('button').onclick=fullscreen;
+ const items=[['◇','My life',()=>state.lifeUI?.show()],['⌖','Destinations',()=>state.navigation?.toggle(true)],['☏','Chat',()=>document.getElementById('roamChatToggle').click()],['🎙','Voice',()=>document.querySelector('.voice-launch')?.click()],['▰','Public transport',()=>document.querySelector('.transit-launch')?.click()],['◫','City map',()=>document.getElementById('roamToggle').click()],['◉','Camera',toggleCamera],['▧','Satellite',()=>document.querySelector('.satellite-launch')?.click()],['⛶','Fullscreen',fullscreen],['?','Help',()=>document.getElementById('helpBtn').click()]];
+ for(const [icon,label,action] of items){const b=document.createElement('button');b.type='button';const i=document.createElement('span');i.textContent=icon;b.append(i,document.createTextNode(label));b.onclick=()=>{close();release();action()};menu.append(b)}
+ const extra=document.createElement('div');extra.className='touch-extras';
+ const run=document.createElement('button');run.type='button';run.className='touch-run';run.textContent='Run';run.setAttribute('aria-label','Hold to run');
+ const brake=document.createElement('button');brake.type='button';brake.className='touch-brake';brake.textContent='Brake';brake.setAttribute('aria-label','Hold vehicle brake');extra.append(run,brake);document.querySelector('.touch-right').append(extra);
+ function hold(button,key){button.onpointerdown=e=>{e.preventDefault();button.setPointerCapture(e.pointerId);state.keys.add(key);button.classList.add('pressed')};for(const event of ['pointerup','pointercancel','lostpointercapture'])button.addEventListener(event,()=>{state.keys.delete(key);button.classList.remove('pressed')})}
+ hold(run,'ShiftLeft');hold(brake,'Space');
+ const look=document.createElement('div');look.className='touch-look';look.setAttribute('aria-label','Drag to look around');document.getElementById('roamHud').append(look);let lastX=null;
+ look.onpointerdown=e=>{if(document.body.classList.contains('mobile-paused'))return;look.setPointerCapture(e.pointerId);lastX=e.clientX};look.onpointermove=e=>{if(lastX===null||!look.hasPointerCapture(e.pointerId))return;if(state.mode==='drive')state.lookOffset=(state.lookOffset||0)+(e.clientX-lastX)*.22;else state.cameraBearing+=(e.clientX-lastX)*.22;lastX=e.clientX};for(const event of ['pointerup','pointercancel','lostpointercapture'])look.addEventListener(event,()=>lastX=null);
+ document.getElementById('joystickPad').addEventListener('lostpointercapture',()=>{state.joystick={x:0,y:0};document.getElementById('joystickKnob').style.transform='translate(-50%,-50%)'});
+ const panelSelectors=['.life-drawer','.world-panel','.destination-panel','.roam-action-menu','.help-modal'];
+ function updatePause(){const portrait=innerHeight>innerWidth,coarse=touch.matches||navigator.maxTouchPoints>0;document.body.classList.toggle('touch-device',coarse);const panelOpen=panelSelectors.some(s=>[...document.querySelectorAll(s)].some(el=>!el.classList.contains('hidden')))||state.chatOpen;const paused=coarse&&state.roam&&(portrait||menuOpen||panelOpen);if(paused&&!document.body.classList.contains('mobile-paused'))release();document.body.classList.toggle('mobile-paused',paused);document.body.classList.toggle('mobile-panel-open',coarse&&panelOpen);document.getElementById('roamHud').dataset.travel=state.mode}
+ const observer=new MutationObserver(updatePause);for(const el of document.querySelectorAll(panelSelectors.join(',')))observer.observe(el,{attributes:true,attributeFilter:['class']});
+ const watch=setInterval(updatePause,300);window.addEventListener('pagehide',()=>clearInterval(watch),{once:true});
+ window.addEventListener('resize',()=>{release();close();updatePause();state.map?.resize()});touch.addEventListener('change',updatePause);document.addEventListener('visibilitychange',()=>{if(document.hidden){close();release()}});updatePause();
+}

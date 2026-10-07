@@ -1,3 +1,4 @@
+import {roomFor} from '../../../server/world-room';
 import transit from '../../../public/game/transit-routes.json';
 import {routePoint} from '../../../public/game/transit.js';
 import {readLife,lifeView,handleLife,propertyInfo,canEnter,residences} from './life';
@@ -71,7 +72,16 @@ function view(p: Player) {
 function playerPosition(p:Player):[number,number]{return p.pos_lng!==null&&p.pos_lat!==null?[p.pos_lng,p.pos_lat]:placeCoords(p.place_id)??PLACE_COORDS.home}
 async function ownPlayer(db: D1Database, request: Request) {
   const id = cookieId(request);
-  return id ? await db.prepare("SELECT * FROM players WHERE session_token=? OR (id=? AND session_token IS NULL)").bind(id,id).first<Player>() : null;
+  let player=id ? await db.prepare("SELECT * FROM players WHERE session_token=? OR (id=? AND session_token IS NULL)").bind(id,id).first<Player>() : null;
+  const position=player?playerPosition(player):null;
+  const room=position?roomFor(...position):null;
+  if(player?.session_token&&room&&env.WORLD_ROOMS&&(request.method==='POST'||request.headers.has('X-World-Room'))){
+    const response=await env.WORLD_ROOMS.get(env.WORLD_ROOMS.idFromName(room)).fetch('https://room/checkpoint',{method:'POST',body:JSON.stringify({id:player.id,token:player.session_token,persist:request.method==='POST'})});
+    const live=await response.json() as {player:Player|null};
+    if(request.method==='POST')player=await db.prepare('SELECT * FROM players WHERE id=?').bind(player.id).first<Player>();
+    else if(live.player)player={...player,pos_lng:live.player.pos_lng,pos_lat:live.player.pos_lat,heading:live.player.heading};
+  }
+  return player;
 }
 function elapsed(p: Player, minutes: number) {
   const total = p.minute + minutes;
@@ -87,10 +97,12 @@ export async function GET(request: Request) {
   try {
     const now=Date.now();const self=await ownPlayer(db,request);let sessionHeaders:HeadersInit={};
     if(self&&!self.session_token){const token=crypto.randomUUID();const result=await db.prepare('UPDATE players SET session_token=? WHERE id=? AND session_token IS NULL').bind(token,self.id).run();if(result.meta.changes)sessionHeaders={"Set-Cookie":`accralife_session=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=2592000${new URL(request.url).protocol==='https:'?'; Secure':''}`}}
-    const online=await db.prepare("SELECT id,name,avatar,place_id,pos_lng,pos_lat,heading,driving,life_json FROM players WHERE last_seen_at > ? ORDER BY last_seen_at DESC LIMIT 100").bind(now-120000).all<Pick<Player,"id"|"name"|"avatar"|"place_id"|"pos_lng"|"pos_lat"|"heading"|"driving"|"life_json">>();
+    const messagesOnly=new URL(request.url).searchParams.get('messagesOnly')==='1';
+    const online=messagesOnly||request.headers.get('X-World-Room')?{results:[]}:await db.prepare("SELECT id,name,avatar,place_id,pos_lng,pos_lat,heading,driving,life_json FROM players WHERE last_seen_at > ? ORDER BY last_seen_at DESC LIMIT 100").bind(now-120000).all<Pick<Player,"id"|"name"|"avatar"|"place_id"|"pos_lng"|"pos_lat"|"heading"|"driving"|"life_json">>();
     const channel=new URL(request.url).searchParams.get("channel")||"city";
     const safeChannel=channel==="city"?"city":self?.place_id||"city";
     const messages=await db.prepare("SELECT m.id,m.channel,m.body,m.created_at,p.id AS player_id,p.name,p.avatar FROM messages m JOIN players p ON p.id=m.player_id WHERE m.channel=? ORDER BY m.created_at DESC LIMIT 40").bind(safeChannel).all();
+    if(messagesOnly)return json({messages:messages.results.reverse(),channel:safeChannel},200,sessionHeaders);
     return json({self:self?view(self):null,players:online.results.map((p)=>{const life=readLife(p as Player),trip=life.transit,route=transit.routes.find(r=>r.id===trip?.routeId),ride=trip&&route?routePoint(route.coordinates,(now-trip.startedAt)/(trip.endsAt-trip.startedAt)):null,[lng,lat]=ride?.position||playerPosition(p as Player);return {id:p.id,name:p.name,avatar:p.avatar,placeId:p.place_id,lng,lat,heading:ride?.heading??p.heading,driving:!!p.driving||!!ride,vehicle:ride?'bus':life.vehicle,health:life.health}}),messages:messages.results.reverse(),channel:safeChannel,residences:await residences(db),accessAllowed:!self?.place_id.startsWith("p_")||await canEnter(db,self!,self!.place_id)},200,sessionHeaders);
   } catch(error){console.error("world GET",error);return json({error:"Could not load the city"},500)}
 }

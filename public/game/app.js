@@ -1,3 +1,5 @@
+import {createRealtime} from './realtime.js';
+import {createMobileControls} from './mobile-controls.js';
 import {VENUES,districtAt,venueKind} from './districts.js';
 import {createStreetSafety} from './street-safety.js';
 import {installSatellite} from './satellite.js';
@@ -58,22 +60,25 @@ const AVATARS=['🧑🏾','👩🏾','👨🏾','👩🏿','👨🏿','🧑🏽'
 const NEEDS=[['hunger','Hunger','🍲'],['energy','Energy','⚡'],['fun','Fun','🎉'],['social','Social','💬'],['hygiene','Hygiene','🫧']];
 const state={lifeUI:null,residences:[],flightCompleting:false,walkVelocity:[0,0],steer:0,cameraPosition:null,cameraHeading:0,cityLife:null,navigation:null,nearResident:null,interactionPending:false,lastHud:0,map:null,engine:null,world3d:null,physics:null,interior:null,mode:'walk',cabinView:false,roam:false,mapModeRequested:false,position:null,carPosition:null,carHeading:0,carSpeed:0,heading:0,cameraBearing:0,keys:new Set(),joystick:{x:0,y:0},nearestPlace:null,nearDoor:null,nearCar:false,indoorPlace:null,blockedHint:false,spawnCorrectionPending:false,actionMenuOpen:false,chatOpen:false,lastFrame:0,lastCamera:0,lastMoveSend:0,lastNearbyCheck:0,lastSentPosition:null,moveInFlight:false,poiMarkers:new Map(),selectedMarker:null,playerMarkers:[],self:null,players:[],messages:[],selectedPlace:'home',panelTab:'life',placeQuery:'',searchResults:[],searchSeq:0,chatChannel:'city',avatar:AVATARS[0],loaded:false,tilted:false,chatCollapsed:false,busy:false,muted:new Set(JSON.parse(localStorage.getItem('accralife_muted')||'[]'))};
 let toastTimer, pollTimer, heartbeatTimer, searchTimer, finalMoveTimer;
+const realtime=createRealtime({onPlayers(players){state.players=players;state.world3d?.setPlayers(players,state.self?.id);renderTop();if(state.chatOpen)renderChat();if(!state.roam)renderMapMarkers()},onCorrection(p){if(!state.position)return;state.position=[p.lng,p.lat];state.lastSentPosition=[...state.position];state.world3d?.setPosition(...state.position,state.heading)},onStatus(text){document.body.dataset.connection=text;const el=document.getElementById('connectionStatus');if(el)el.textContent=text}});
 
 function toast(message){const el=$('toast');el.textContent=message;el.classList.remove('hidden');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.add('hidden'),3400)}
 function clockText(){return worldAtmosphere().label}
 function updateCityLight(){state.atmosphere?.update()}
 function safeText(el,value){el.textContent=String(value??'')}
 async function api(method,body,query=''){
-  const response=await fetch(`/api/game${query}`,{method,credentials:'same-origin',cache:'no-store',headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined});
+  const response=await fetch(`/api/game${query}`,{method,credentials:'same-origin',cache:'no-store',headers:{...(body?{'Content-Type':'application/json'}:{}),...(realtime.connected?{'X-World-Room':realtime.room}:{})},body:body?JSON.stringify(body):undefined});
   const data=await response.json().catch(()=>({error:'The city is unavailable'}));
   if(!response.ok)throw new Error(data.error||'The city is unavailable');
+  if(method==='POST'&&data.self&&realtime.connected)await realtime.sync().catch(()=>{});
   return data;
 }
 async function refreshWorld(){
   if(state.refreshing)return;state.refreshing=true;
   try{const data=await api('GET',null,`?channel=${state.chatChannel==='city'?'city':'place'}`);
     const previousSelf=JSON.stringify(state.self);
-    state.self=data.self;state.residences=data.residences||[];state.players=data.players||[];state.messages=data.messages||[];
+    state.self=data.self;state.residences=data.residences||[];if(!realtime.connected)state.players=data.players||[];state.messages=data.messages||[];
+    if(state.self)realtime.start();
     updateCityLight();state.lifeUI?.sync();if(data.accessAllowed===false&&state.mode==='indoor'){exitInterior();toast('Your guest access has ended')}syncLife();
     if(!state.loaded&&state.self){state.selectedPlace=state.self.placeId;state.loaded=true;state.position=[state.self.lng,state.self.lat];state.heading=state.self.heading||0;flyTo(state.selectedPlace,14.6)}
     state.world3d?.setPlayers(state.players,state.self?.id);
@@ -165,7 +170,7 @@ function renderChat(){const p=state.self;const here=state.players.filter(x=>x.pl
   $('chatInput').disabled=!p;$('chatInput').placeholder=p?'Say hello to Accra...':'Create a Sim to chat';$('chatForm').querySelector('button').disabled=!p;
 }
 function renderAll(){renderTop();renderPanel();renderPlace();renderChat();renderMapMarkers()}
-function openMobile(kind){if(window.innerWidth>760)return;const left=$('leftPanel'),right=document.querySelector('.right-stack');left.classList.remove('mobile-open');right.classList.remove('place-mobile','chat-mobile');document.querySelectorAll('.mobile-dock button').forEach(b=>b.classList.toggle('active',b.dataset.mobile===kind));if(kind==='sim'||kind==='places'){left.classList.add('mobile-open');state.panelTab=kind==='places'?'places':'life';renderPanel()}else if(kind==='chat')right.classList.add('chat-mobile');else if(kind==='place')right.classList.add('place-mobile')}
+function openMobile(kind){if(window.innerWidth>760&&!document.body.classList.contains('touch-device'))return;const left=$('leftPanel'),right=document.querySelector('.right-stack');left.classList.remove('mobile-open');right.classList.remove('place-mobile','chat-mobile');document.querySelectorAll('.mobile-dock button').forEach(b=>b.classList.toggle('active',b.dataset.mobile===kind));if(kind==='sim'||kind==='places'){left.classList.add('mobile-open');state.panelTab=kind==='places'?'places':'life';renderPanel()}else if(kind==='chat')right.classList.add('chat-mobile');else if(kind==='place')right.classList.add('place-mobile')}
 
 function metersBetween(a,b){const dx=(a[0]-b[0])*111320*Math.cos(a[1]*Math.PI/180),dy=(a[1]-b[1])*111320;return Math.hypot(dx,dy)}
 function nearbyPlace(){if(!state.position)return null;let closest=null,distance=Infinity;for(const place of [...PLACES,...visibleMapPlaces()]){const d=metersBetween(state.position,[place.lng,place.lat]);if(d<distance){closest=place;distance=d}}return distance<=80?closest:geoPlace(...state.position,'Explore this street','Street','✨')}
@@ -208,7 +213,8 @@ function followCamera(force=false,dt=1/60){
   const angle=state.cameraHeading*Math.PI/180,ahead=state.scenicCamera?6:state.mode==='drive'||state.mode==='transit'?(state.cabinView?12:12+Math.min(18,Math.abs(state.carSpeed)*.2)):7;
   const center=offsetMetres(state.cameraPosition,Math.sin(angle)*ahead,Math.cos(angle)*ahead);
   let obstructed=false;for(let d=2;d<=14;d+=2){if(state.physics?.collision(offsetMetres(state.position,-Math.sin(angle)*d,-Math.cos(angle)*d),.3)){obstructed=true;break}}
-  const scenic=state.scenicCamera,targetPitch=state.cabinView?85:scenic?67:obstructed?72:82,targetZoom=state.cabinView?23.3:scenic?20.7:obstructed?22.5:state.mode==='transit'?21.15:state.mode==='drive'?21.75:22.2;
+  const scenic=state.scenicCamera,targetPitch=state.cabinView?85:scenic?67:obstructed?72:82,baseZoom=state.cabinView?23.3:scenic?20.7:obstructed?22.5:state.mode==='transit'?21.15:state.mode==='drive'?21.75:22.2;
+  const targetZoom=baseZoom+(document.body.classList.contains('touch-device')?Math.min(0,Math.log2(Math.max(240,innerHeight)/800)):0);
   state.cameraPitch=force?targetPitch:damp(state.cameraPitch??targetPitch,targetPitch,5,dt);state.cameraZoom=force?targetZoom:damp(state.cameraZoom??targetZoom,targetZoom,5,dt);
   state.map.jumpTo({center,zoom:state.cameraZoom,pitch:state.cameraPitch,bearing:state.cameraHeading});
 }
@@ -226,7 +232,7 @@ function exitRoam(){if(state.self?.life?.shift){state.lifeUI?.show('work');retur
 function roamFrame(now){
   if(!state.roam)return;
   const dt=Math.min(.05,(now-state.lastFrame)/1000||0);state.lastFrame=now;
-  const locked=state.self?.life?.health<=0||state.transit?.isOpen||state.actionMenuOpen||state.chatOpen||state.navigation?.isOpen||state.interactionPending||state.lifeUI?.isOpen||state.self?.life?.shift||/INPUT|TEXTAREA/.test(document.activeElement?.tagName||'');
+  const locked=document.body.classList.contains('mobile-paused')||state.self?.life?.health<=0||state.transit?.isOpen||state.actionMenuOpen||state.chatOpen||state.navigation?.isOpen||state.interactionPending||state.lifeUI?.isOpen||state.self?.life?.shift||/INPUT|TEXTAREA/.test(document.activeElement?.tagName||'');
   state.architecture?.update(state.position);state.world3d.setArchitecture(state.architecture?.details||[]);state.lifeUI?.tick();updateLifeStatus();updateSurvival();if(state.self?.life?.health<=0){requestAnimationFrame(roamFrame);return}if(state.transit?.tick()){updateDistrict();state.scenery?.update(state.position);state.world3d.setScenery(state.scenery?.items||[]);state.cityLife?.tick(dt,state.position,now,state.mode);state.world3d.setAmbient(state.cityLife?.actors||[]);followCamera(false,dt);requestAnimationFrame(roamFrame);return}if(state.mode==='flight'){flightFrame(now);requestAnimationFrame(roamFrame);return}
   const held=(a,b)=>state.keys.has(a)||state.keys.has(b);
   let x=locked?0:state.joystick.x+(held('KeyD','ArrowRight')?1:0)-(held('KeyA','ArrowLeft')?1:0),y=locked?0:state.joystick.y+(held('KeyW','ArrowUp')?1:0)-(held('KeyS','ArrowDown')?1:0);
@@ -265,7 +271,7 @@ function roamFrame(now){
   requestAnimationFrame(roamFrame);
 }
 async function flushMove(){while(state.moveInFlight)await new Promise(resolve=>setTimeout(resolve,40));if(performance.now()-state.lastMoveSend<200)await new Promise(resolve=>setTimeout(resolve,200));await sendMove()}
-async function sendMove(){if(!state.position||['indoor','flight','transit'].includes(state.mode)||state.self?.life?.health<=0||state.self?.life?.shift||state.moveInFlight||state.lastSentPosition&&metersBetween(state.position,state.lastSentPosition)<.04)return;state.lastMoveSend=performance.now();state.moveInFlight=true;const position=[...state.position];try{await api('POST',{type:'move',lng:position[0],lat:position[1],heading:state.heading,spawnCorrection:state.spawnCorrectionPending});state.lastSentPosition=position;state.spawnCorrectionPending=false}catch(error){if(error.message==='Slow down'){clearTimeout(finalMoveTimer);finalMoveTimer=setTimeout(sendMove,250)}else if(state.spawnCorrectionPending&&error.message==='Move through the city to get there'){clearTimeout(finalMoveTimer);finalMoveTimer=setTimeout(sendMove,8000)}else{console.warn('Movement sync',error);const fresh=await api('GET').catch(()=>null);if(fresh?.self){state.position=[fresh.self.lng,fresh.self.lat];state.lastSentPosition=[...state.position];state.spawnCorrectionPending=false;state.world3d?.setPosition(...state.position,state.heading);followCamera(true)}}}finally{state.moveInFlight=false}}
+async function sendMove(){if(!state.position||['indoor','flight','transit'].includes(state.mode)||state.self?.life?.health<=0||state.self?.life?.shift||state.moveInFlight||state.lastSentPosition&&metersBetween(state.position,state.lastSentPosition)<.04)return;state.lastMoveSend=performance.now();state.moveInFlight=true;const position=[...state.position];try{const move={lng:position[0],lat:position[1],heading:state.heading,spawnCorrection:state.spawnCorrectionPending};if(realtime.connected)await realtime.move(move);else await api('POST',{type:'move',...move});state.lastSentPosition=position;state.spawnCorrectionPending=false}catch(error){if(error.message==='Slow down'){clearTimeout(finalMoveTimer);finalMoveTimer=setTimeout(sendMove,250)}else if(state.spawnCorrectionPending&&error.message==='Move through the city to get there'){clearTimeout(finalMoveTimer);finalMoveTimer=setTimeout(sendMove,8000)}else{console.warn('Movement sync',error);const fresh=await api('GET').catch(()=>null);if(fresh?.self){state.position=[fresh.self.lng,fresh.self.lat];state.lastSentPosition=[...state.position];state.spawnCorrectionPending=false;state.world3d?.setPosition(...state.position,state.heading);followCamera(true)}}}finally{state.moveInFlight=false}}
 function showActions(place,onlyIds=null){state.actionMenuOpen=true;state.keys.clear();$('roamActionMenu').classList.remove('hidden');$('roamActionTitle').textContent=place.name;const list=$('roamActionList');list.replaceChildren();(onlyIds||[...place.activities,'connect']).forEach((id,index)=>{const activity=ACTIVITIES[id];if(!activity)return;const button=document.createElement('button');button.type='button';button.className='roam-action';button.innerHTML=`<span class="roam-action-key">${index+1}</span><span class="roam-action-icon">${activity.emoji}</span><span><strong></strong><small></small></span>`;button.querySelector('strong').textContent=activity.name;button.querySelector('small').textContent=activity.detail;button.addEventListener('click',async()=>{button.disabled=true;const result=await postAction({type:'act',actionId:id});if(result){state.world3d?.playAction();closeActions()}else button.disabled=false});list.appendChild(button)})}
 function closeActions(){state.actionMenuOpen=false;$('roamActionMenu').classList.add('hidden')}
 function interiorKind(place){const venue=venueKind(place);if(venue)return venue;const text=`${place.id} ${place.name} ${place.type}`.toLowerCase();if(/home|residen|house|hotel/.test(text))return 'home';if(/cafe|coffee|restaurant|food|bar/.test(text))return 'cafe';if(/market|mall|shop|store|retail/.test(text))return 'shop';if(/office|school|university|study|education|work/.test(text))return 'office';return 'generic'}
@@ -281,7 +287,7 @@ function setJoystick(event){const pad=$('joystickPad'),rect=pad.getBoundingClien
 $('joystickPad').addEventListener('pointerdown',event=>{event.preventDefault();$('joystickPad').setPointerCapture(event.pointerId);setJoystick(event)});
 $('joystickPad').addEventListener('pointermove',event=>{if($('joystickPad').hasPointerCapture(event.pointerId))setJoystick(event)});
 for(const eventName of ['pointerup','pointercancel'])$('joystickPad').addEventListener(eventName,()=>{state.joystick={x:0,y:0};$('joystickKnob').style.transform='translate(-50%,-50%)';clearTimeout(finalMoveTimer);finalMoveTimer=setTimeout(sendMove,250)});
-$('turnLeft').addEventListener('click',()=>{state.cameraBearing-=20});$('turnRight').addEventListener('click',()=>{state.cameraBearing+=20});
+$('turnLeft').addEventListener('click',()=>{if(state.mode==='drive')state.lookOffset=(state.lookOffset||0)-20;else state.cameraBearing-=20});$('turnRight').addEventListener('click',()=>{if(state.mode==='drive')state.lookOffset=(state.lookOffset||0)+20;else state.cameraBearing+=20});
 $('touchInteract').addEventListener('click',interact);$('roamActionClose').addEventListener('click',closeActions);$('roamChatToggle').addEventListener('click',toggleRoamChat);
 $('vehicleButton').addEventListener('click',()=>state.mode==='drive'?exitVehicle():enterVehicle());
 $('viewButton').addEventListener('click',toggleCabin);
@@ -293,7 +299,7 @@ document.querySelectorAll('.panel-tabs button').forEach(b=>b.addEventListener('c
 document.querySelectorAll('.mobile-dock button').forEach(b=>b.addEventListener('click',()=>openMobile(b.dataset.mobile)));
 document.querySelectorAll('.chat-channels button[data-channel]').forEach(b=>b.addEventListener('click',async()=>{state.chatChannel=b.dataset.channel;await refreshWorld()}));
 $('unmuteAll').addEventListener('click',()=>{state.muted.clear();localStorage.removeItem('accralife_muted');renderChat();toast('All players unmuted')});
-$('chatCollapse').addEventListener('click',()=>{$('chatPanel').classList.toggle('collapsed');state.chatCollapsed=!state.chatCollapsed;$('chatCollapse').textContent=state.chatCollapsed?'⌃':'⌄'});
+$('chatCollapse').addEventListener('click',()=>{if(state.roam&&document.body.classList.contains('touch-device')){toggleRoamChat();return}$('chatPanel').classList.toggle('collapsed');state.chatCollapsed=!state.chatCollapsed;$('chatCollapse').textContent=state.chatCollapsed?'⌃':'⌄'});
 $('chatForm').addEventListener('submit',async e=>{e.preventDefault();const input=$('chatInput');const body=input.value.trim();if(!body)return;const result=await postAction({type:'chat',body,channel:state.chatChannel});if(result){input.value='';await refreshWorld()}});
 $('joinForm').addEventListener('submit',async e=>{e.preventDefault();const name=$('joinName').value.trim();if(name.length<2)return;const result=await postAction({type:'join',name,avatar:state.avatar});if(result){$('welcomeModal').classList.add('hidden');$('modalScrim').classList.add('hidden');toast(`Akwaaba, ${name}! Your Accra story begins.`);flyTo('home',15.5)}});
 $('brandBtn').addEventListener('click',()=>state.map?.flyTo({center:[-0.1905,5.5704],zoom:12.7,pitch:28,bearing:0,essential:true}));
@@ -305,7 +311,9 @@ $('helpBtn').addEventListener('click',()=>{$('helpModal').classList.remove('hidd
 $('helpClose').addEventListener('click',()=>{$('helpModal').classList.add('hidden');if(state.self)$('modalScrim').classList.add('hidden')});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('helpModal').classList.contains('hidden'))$('helpClose').click()});
 AVATARS.forEach(avatar=>{const b=document.createElement('button');b.type='button';b.textContent=avatar;b.classList.toggle('active',avatar===state.avatar);b.setAttribute('aria-label',`Choose avatar ${avatar}`);b.addEventListener('click',()=>{state.avatar=avatar;$('welcomePreview').textContent=avatar;document.querySelectorAll('.avatar-choices button').forEach(x=>x.classList.toggle('active',x===b))});$('avatarChoices').appendChild(b)});
-initMap();refreshWorld();pollTimer=setInterval(refreshWorld,1500);heartbeatTimer=setInterval(()=>{if(state.self)api('POST',{type:'heartbeat'}).catch(()=>{})},20000);
+initMap();refreshWorld();pollTimer=setInterval(()=>{if(!document.hidden)refreshWorld()},15000);heartbeatTimer=setInterval(()=>{if(state.self&&!document.hidden&&!realtime.connected)api('POST',{type:'heartbeat'}).catch(()=>{})},60000);
+createMobileControls({state,release:releaseControls,interact,toggleCamera:toggleScenic});
+let chatRefreshPending=false;setInterval(async()=>{if(document.hidden||!state.self||state.roam&&!state.chatOpen||chatRefreshPending)return;chatRefreshPending=true;try{const data=await api('GET',null,`?messagesOnly=1&channel=${state.chatChannel==='city'?'city':'place'}`);state.messages=data.messages;renderChat()}catch{}finally{chatRefreshPending=false}},3000);
 
 let residentTimer;function showResidentDialogue(text){let box=document.querySelector('.resident-dialogue');if(!box){box=document.createElement('div');box.className='resident-dialogue';box.setAttribute('role','status');document.getElementById('roamHud').appendChild(box)}box.textContent=text;box.classList.remove('hidden');clearTimeout(residentTimer);residentTimer=setTimeout(()=>box.classList.add('hidden'),6000)}
 function releaseControls(){state.keys.clear();state.joystick={x:0,y:0};state.walkVelocity=[0,0];state.carSpeed=0;$('joystickKnob').style.transform='translate(-50%,-50%)';sendMove()}

@@ -166,3 +166,34 @@ The tests cover collision sweeps, frame-rate independence, no forward speed clam
 - Verification: 13 sequential automated tests, TypeScript check, source diff check; local browser inspection of varied façades, streamed satellite tiles, all four venue scenes and route UI.
 
 Map sources: [Mapbox Satellite](https://docs.mapbox.com/data/tilesets/reference/mapbox-satellite/). Venue references: [Holy Trinity Cathedral](https://www.wikidata.org/wiki/Q9710080), [Ghana National Mosque Complex](https://www.arc.gov.gh/portfolios/ghana-national-mosque-complex/).
+
+## Live rooms and mobile controls
+
+Movement uses authenticated Cloudflare Durable Object WebSockets at `/api/realtime`.
+Players join their geographic district (roughly 2 km cells, at most 128 live sockets).
+Rooms validate movement, broadcast nearby player updates, checkpoint to D1 every
+60 seconds and on clean disconnect, and flush live position before game actions.
+Optimistic revision checks prevent a delayed movement save overwriting newer progress.
+Economy, inventory, property access, chat history and voice signaling remain D1 backed.
+The client reconnects with backoff, suspends its socket in the background, and uses
+HTTP movement when live rooms are unavailable. World polling is every 15 seconds;
+a lean chat request runs every 3 seconds while chat is visible. This is a bounded
+realtime foundation, not a million-concurrent-player capacity certification. D1
+sharding, global chat/voice scaling, overflow admission and load tests remain needed
+before that scale. No monetary billing ceiling is enforced by this update.
+
+The Worker exports `WorldRoom`; Vite includes the `WORLD_ROOMS` binding and the
+`world-rooms-v1` SQLite Durable Object migration. `cloudflare:prepare` preserves
+these bindings when producing the standalone Cloudflare deployment configuration.
+Reuse the existing production D1 database when deploying.
+
+Touch devices use landscape thumb controls, safe-area insets, run/brake buttons,
+drag-to-look, and a compact menu. Portrait gameplay shows a rotation prompt.
+Fullscreen/orientation locking is requested only from a user gesture and is best
+effort; unsupported browsers still work after physically rotating the device.
+
+With the built local server running on port 3000, run:
+
+```sh
+node --test --test-concurrency=1 tests/game-motion.test.mjs tests/life-api.test.mjs tests/world-api.test.mjs tests/realtime-api.test.mjs
+```
