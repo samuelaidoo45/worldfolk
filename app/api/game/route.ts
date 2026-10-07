@@ -156,6 +156,15 @@ export async function POST(request: Request) {
       await db.prepare("UPDATE players SET pos_lng=?,pos_lat=?,heading=?,last_move_at=?,last_seen_at=? WHERE id=?").bind(lng,lat,((Math.round(heading)%360)+360)%360,now,now,p.id).run();
       return json({ok:true,lng,lat});
     }
+    if(type==="vehicle-steal"){
+      const lng=Number(input.lng),lat=Number(input.lat),heading=Number(input.heading);
+      if(p.driving||life.shift||!/^ambient-\d+$/.test(String(input.npcId))||![lng,lat,heading].every(Number.isFinite)||distanceKm(playerPosition(p),[lng,lat])>.006)return json({error:"Walk close to a stopped NPC car first"},400);
+      if(now-life.lastTheftAt<30000)return json({error:"Wait a moment before taking another vehicle"},429);
+      const changed={...life,lastTheftAt:now,drivingSince:now,vehicle:'car',vehicles:[...new Set([...life.vehicles,'car'])]};
+      const result=await db.prepare("UPDATE players SET driving=1,pos_lng=?,pos_lat=?,heading=?,last_move_at=?,last_seen_at=?,life_json=?,revision=revision+1 WHERE id=? AND revision=?").bind(lng,lat,((heading%360)+360)%360,now,now,JSON.stringify(changed),p.id,p.revision).run();
+      if(!result.meta.changes)return json({error:"Your state changed. Try again."},409);
+      const updated=await db.prepare("SELECT * FROM players WHERE id=?").bind(p.id).first<Player>();return json({self:view(updated!)});
+    }
     if(type==="vehicle"){
       const entering=input.enter===true;const lng=Number(input.lng),lat=Number(input.lat);
       if(entering&&!life.vehicles.includes(life.vehicle))return json({error:"Buy a vehicle first, or request public transport"},400);

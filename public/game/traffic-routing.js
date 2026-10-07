@@ -4,7 +4,7 @@ export const angleDifference=(a,b)=>Math.abs(((a-b+540)%360)-180);
 export function trafficSpeed(position,heading,speed,maximum,actors,id=''){
  let allowed=maximum;
  for(const other of actors){if(other.id===id)continue;const d=distanceMetres(position,other.position),a=(bearingTo(position,other.position)-heading)*Math.PI/180,forward=d*Math.cos(a),side=Math.abs(d*Math.sin(a));
-  const clearance=other.driving?5.5:3;
+  const clearance=other.driving?(other.vehicle==='bus'?9:6):3;
   if(forward<=0||side>(other.driving?2.15:1.5)||forward>Math.max(16,speed*2+12))continue;
   const gap=Math.max(0,forward-clearance),following=other.driving&&angleDifference(heading,other.heading)<45?Math.max(0,other.speed||0):0;
   allowed=Math.min(allowed,Math.sqrt(following*following+2*3*gap),gap<.4?0:gap/1.1);
@@ -29,10 +29,10 @@ export function roadContinuation(npc,roads){
  // Stable variation at intersections without reversing or changing lanes at random.
  return candidates.length?{...candidates[(Number(npc.id.replace(/\D/g,''))+ (npc.turns||0))%candidates.length],choices:candidates.length}:null;
 }
-export function vehiclesOverlap(a,heading,b,otherHeading=heading){
+export function vehiclesOverlap(a,heading,b,otherHeading=heading,kind='car',otherKind='car'){
  const delta=distanceMetres(a,b),angle=bearingTo(a,b)*Math.PI/180,x=delta*Math.sin(angle),y=delta*Math.cos(angle);
  // Separating axes for two car-sized footprints. Adjacent lanes stay independent.
- for(const axis of [heading,heading+90,otherHeading,otherHeading+90]){const r=axis*Math.PI/180,project=Math.abs(x*Math.sin(r)+y*Math.cos(r)),extent=h=>2.35*Math.abs(Math.cos((h-axis)*Math.PI/180))+1.05*Math.abs(Math.sin((h-axis)*Math.PI/180));if(project>=extent(heading)+extent(otherHeading))return false}
+ for(const axis of [heading,heading+90,otherHeading,otherHeading+90]){const r=axis*Math.PI/180,project=Math.abs(x*Math.sin(r)+y*Math.cos(r)),extent=(h,k)=>(k==='bus'?3.9:2.35)*Math.abs(Math.cos((h-axis)*Math.PI/180))+(k==='bus'?1.3:1.05)*Math.abs(Math.sin((h-axis)*Math.PI/180));if(project>=extent(heading,kind)+extent(otherHeading,otherKind))return false}
  return true;
 }
 export function makeRoadPath(coordinates,lane=0){
@@ -51,10 +51,10 @@ export function advanceRoad(path,distance,speed,dt,physics,actors=[],kind='bus')
    // Narrow streets sometimes have a footprint close to the lane edge. Ease inward,
    // checking the complete lateral movement; never jump through the obstruction.
    const lane=Math.max(0,path.lane-.08),inward=path.at(distance,lane);
-   if(lane<path.lane&&!physics.moveVehicle(current.position,inward.position,current.heading,kind).blocked&&!actors.some(a=>a.driving&&vehiclesOverlap(inward.position,current.heading,a.position,a.heading)))path.lane=lane;
+   if(lane<path.lane&&!physics.moveVehicle(current.position,inward.position,current.heading,kind).blocked&&!actors.some(a=>a.driving&&vehiclesOverlap(inward.position,current.heading,a.position,a.heading,kind,a.vehicle)))path.lane=lane;
    blocked=true;nextSpeed=0;break;
   }
-  if(actors.some(a=>a.driving&&vehiclesOverlap(next.position,next.heading,a.position,a.heading)&&distanceMetres(next.position,a.position)<distanceMetres(current.position,a.position))){blocked=true;nextSpeed=0;break}
+  if(actors.some(a=>a.driving&&vehiclesOverlap(next.position,next.heading,a.position,a.heading,kind,a.vehicle)&&distanceMetres(next.position,a.position)<distanceMetres(current.position,a.position))){blocked=true;nextSpeed=0;break}
   distance+=step;left-=step;
  }
  return {distance,speed:nextSpeed,blocked, ...path.at(distance)};
@@ -72,7 +72,7 @@ export function recoverTraffic(npc,dt,physics,actors){
   const target=offsetMetres(npc.position,Math.cos(r)*step,-Math.sin(r)*step);
   const resolved=physics.moveVehicle(npc.position,target,heading);
   if(resolved.blocked||distanceMetres(npc.position,resolved.position)<.001)continue;
-  if(actors.some(a=>a.id!==npc.id&&(a.driving?vehiclesOverlap(resolved.position,heading,a.position,a.heading):distanceMetres(resolved.position,a.position)<1.7)))continue;
+  if(actors.some(a=>a.id!==npc.id&&(a.driving?vehiclesOverlap(resolved.position,heading,a.position,a.heading,npc.vehicle,a.vehicle):distanceMetres(resolved.position,a.position)<1.7)))continue;
   return {position:resolved.position,side:side+step,goal};
  }
  return null;

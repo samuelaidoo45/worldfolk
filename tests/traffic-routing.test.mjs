@@ -48,3 +48,10 @@ test('city traffic recovers behind a stationary vehicle instead of freezing its 
  for(let i=0;i<1800;i++){city.tick(1/60,stoppedPlayer,3001,'drive');assert.equal(vehiclesOverlap(car.position,car.heading,stoppedPlayer,0),false)}
  assert.ok(car.position[1]>p(0,30)[1],'driver must pass the obstruction and continue forward');
 });
+test('bus footprints need more clearance than cars',()=>{
+ assert.equal(vehiclesOverlap(origin,0,p(0,6),0),false);assert.equal(vehiclesOverlap(origin,0,p(0,6),0,'bus','bus'),true);
+});
+test('unrecoverable traffic is cleared instead of permanently blocking the road',async()=>{
+ const {createCityLife}=await import('../public/game/city-life.js');const physics={count:1,collision:()=>null,move:(a,b)=>({position:a,blocked:true}),moveVehicle:(a,b)=>({position:a,blocked:true})},line=[p(0,-150),p(0,150)];const city=createCityLife({querySourceFeatures:()=>[{geometry:{type:'LineString',coordinates:line},properties:{class:'motorway'}}]},physics);city.tick(.02,p(50,0),3000);const ids=city.actors.filter(a=>a.driving).map(a=>a.id);assert.ok(ids.length);
+ for(let i=0;i<1100;i++)city.tick(.02,p(50,0),3001);assert.ok(!city.actors.some(a=>ids.includes(a.id)));
+});

@@ -41,3 +41,10 @@ test('MoMo requires an agent and commits cash transfers atomically',async()=>{
  assert.equal((await call(cookie,{type:'momo',amount:81,operation:'withdraw'})).status,400);
  r=await call(cookie,{type:'momo',amount:80,operation:'withdraw'});assert.equal(r.status,200);assert.equal(r.body.self.money,100);assert.equal(r.body.self.life.momo,0);
 });
+test('NPC car theft requires proximity, persists driving, and does not alter other players',async()=>{
+ const joined=await call(null,{type:'join',name:'Car Taker',avatar:'🧑🏾'}),p=joined.body.self,cookie=joined.cookie;fixture(p.id,{pos_lng:-.1819,pos_lat:5.5598,life_json:JSON.stringify({...p.life,vehicles:[]})});
+ assert.equal((await call(cookie,{type:'vehicle-steal',npcId:'ambient-9',lng:-.2,lat:5.6,heading:0})).status,400);
+ assert.equal((await call(cookie,{type:'vehicle-steal',npcId:p.id,lng:-.1819,lat:5.5598,heading:0})).status,400);
+ const r=await call(cookie,{type:'vehicle-steal',npcId:'ambient-9',lng:-.1819,lat:5.5598,heading:90});assert.equal(r.status,200);assert.equal(r.body.self.driving,true);assert.ok(r.body.self.life.vehicles.includes('car'));assert.equal(r.body.self.money,p.money);
+ assert.equal((await call(cookie,{type:'vehicle',enter:false,lng:-.1819,lat:5.55981})).status,200);assert.equal((await call(cookie,{type:'vehicle-steal',npcId:'ambient-10',lng:-.1819,lat:5.5598,heading:0})).status,429);
+});
