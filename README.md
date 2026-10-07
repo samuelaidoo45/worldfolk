@@ -1,6 +1,6 @@
-# vinext-starter
+# worldfolk
 
-A clean full-stack starter running on [vinext](https://github.com/cloudflare/vinext), with optional Cloudflare D1 and Drizzle support.
+Worldfolk is a multiplayer 3D life simulation beginning in Accra, Ghana. Explore the city, meet players, work, shop, travel, and build a home. The app runs on [vinext](https://github.com/cloudflare/vinext) with Cloudflare D1.
 
 ## Prerequisites
 
