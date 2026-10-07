@@ -18,7 +18,7 @@ test('health, unlimited-speed movement validation, death and bus journey persist
  assert.equal((await call(p.cookie,{type:'bus-board',routeId:'airport-mall'})).status,400,'must be at the origin stop');
  r=await call(p.cookie,{type:'bus-board',routeId:'ridge-osu'});assert.equal(r.status,200);assert.equal(r.body.self.money,110);assert.ok(r.body.self.life.transit);
  assert.equal((await call(p.cookie,{type:'bus-arrive'})).status,400);assert.equal((await call(p.cookie,{type:'vehicle',enter:true,lng:p.self.lng,lat:p.self.lat})).status,400);
- life=r.body.self.life;life.transit.endsAt=Date.now()-10;fixture(p.id,{life_json:JSON.stringify(life)});
+ life=r.body.self.life;life.transit.endsAt=Date.now()-10;life.transit.progress=1;fixture(p.id,{life_json:JSON.stringify(life)});
  const arrivals=await Promise.all([call(p.cookie,{type:'bus-arrive'}),call(p.cookie,{type:'bus-arrive'})]);assert.equal(arrivals.filter(x=>x.status===200).length,1);r=await call(p.cookie);assert.equal(r.body.self.placeId,'osu');assert.equal(r.body.self.life.transit,null);assert.equal(r.body.self.money,110);
  life=r.body.self.life;life.lastVitalAt=Date.now()-86400000;fixture(p.id,{hunger:50,life_json:JSON.stringify(life)});r=await call(p.cookie,{type:'vitals'});assert.equal(r.body.self.life.health,100);assert.ok(r.body.self.hunger>=48,'offline time does not starve a player');
 });

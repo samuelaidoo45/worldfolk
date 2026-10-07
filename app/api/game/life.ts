@@ -1,3 +1,4 @@
+import {routePoint} from '../../../public/game/transit.js';
 import {STREET_SERVICES,exchangeMoMo} from '../../../public/game/street-services.js';
 import {roadRoute,type Ride} from './ride';
 import {rideFare} from '../../../public/game/life-catalog.js';
@@ -20,14 +21,14 @@ export async function residences(db:D1Database){const rows=await db.prepare('SEL
 async function hash(code:string){return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(code)))).map(x=>x.toString(16).padStart(2,'0')).join('')}
 export async function handleLife(db:D1Database,p:LifePlayer,input:Record<string,unknown>,view:(p:any)=>unknown):Promise<Response|null>{
  const type=String(input.type),life=readLife(p),now=Date.now();
- const kinds=['momo','buy','consume','equip','furnish','vehicle-select','job-apply','shift-start','shift-complete','shift-cancel','property-buy','home-set','pass-create','pass-redeem','pass-revoke','flight-book','flight-arrive','cook-inventory','vitals','crash','respawn','recover','ride-book','ride-social','bus-board','bus-arrive','traffic-hit'];
+ const kinds=['momo','buy','consume','equip','furnish','vehicle-select','job-apply','shift-start','shift-complete','shift-cancel','property-buy','home-set','pass-create','pass-redeem','pass-revoke','flight-book','flight-arrive','cook-inventory','vitals','crash','respawn','recover','ride-book','ride-progress','ride-exit','ride-social','bus-board','bus-arrive','traffic-hit'];
  if(!kinds.includes(type))return null;
  if(life.health<=0&&!['respawn','vitals'].includes(type))return fail('Restart at home to continue');
- if(life.transit&&!['bus-arrive','ride-social','vitals'].includes(type))return fail('Your bus is travelling');
+ if(life.transit&&!['bus-arrive','ride-progress','ride-exit','ride-social','vitals'].includes(type))return fail('Your bus is travelling');
  if(life.flight&&!['flight-arrive','vitals'].includes(type))return fail('Finish your flight before doing this');
  const next={...p};let event='',extra:Record<string,unknown>={};
  async function homeAccess(){const property=await propertyInfo(db,p.place_id);return !!property&&!p.driving&&metres([p.pos_lng??0,p.pos_lat??0],property.coords)<=85&&await canEnter(db,p,p.place_id)}
- async function save(){const result=await db.prepare('UPDATE players SET money=?,life_json=?,place_id=?,energy=?,hunger=?,fun=?,social=?,xp=?,job=?,jobs_done=?,revision=revision+1,last_action_at=?,last_seen_at=? WHERE id=? AND revision=?').bind(next.money,JSON.stringify(life),next.place_id,next.energy,next.hunger,next.fun,next.social,next.xp,next.job,next.jobs_done,now,now,p.id,p.revision).run();if(!result.meta.changes)return fail('Your state changed. Please try again.',409);const updated=await db.prepare('SELECT * FROM players WHERE id=?').bind(p.id).first();return Response.json({self:view(updated),event,...extra},{headers:{'Cache-Control':'no-store'}})}
+ async function save(touchAction=true){const result=await db.prepare('UPDATE players SET money=?,life_json=?,place_id=?,energy=?,hunger=?,fun=?,social=?,xp=?,job=?,jobs_done=?,revision=revision+1,last_action_at=?,last_seen_at=? WHERE id=? AND revision=?').bind(next.money,JSON.stringify(life),next.place_id,next.energy,next.hunger,next.fun,next.social,next.xp,next.job,next.jobs_done,touchAction?now:p.last_action_at,now,p.id,p.revision).run();if(!result.meta.changes)return fail('Your state changed. Please try again.',409);const updated=await db.prepare('SELECT * FROM players WHERE id=?').bind(p.id).first();return Response.json({self:view(updated),event,...extra},{headers:{'Cache-Control':'no-store'}})}
 
  if(type==='momo'){
   if(p.driving||life.shift||!STREET_SERVICES.some(s=>metres([p.pos_lng??0,p.pos_lat??0],[s.lng,s.lat])<=45))return fail('Visit a MoMo agent on foot first');
@@ -67,7 +68,7 @@ export async function handleLife(db:D1Database,p:LifePlayer,input:Record<string,
   const gate=await db.prepare('UPDATE players SET last_action_at=? WHERE id=? AND revision=? AND last_action_at<?').bind(now,p.id,p.revision,now-2000).run();if(!gate.meta.changes)return fail('A ride request is already being processed',429);
   let route;try{route=await roadRoute(from,[lng,lat])}catch{return fail('No road pickup route is available here. Try a nearby street.',503)}
   const name=String(input.name||'Your destination').slice(0,70),rideId=crypto.randomUUID();
-  life.transit={routeId:'pickup',rideId,kind,name,fare,coordinates:route.coordinates,startedAt:now+15000,endsAt:now+15000+route.seconds*1000};
+  life.transit={routeId:'pickup',rideId,kind,name,fare,progress:0,progressAt:now+15000,coordinates:route.coordinates,startedAt:now+15000,endsAt:now+15000+route.seconds*1000};
   // Nearby tro-tro bookings can share a vehicle while it is waiting for departure.
   if(kind==='trotro'){
    const waiting=await db.prepare("SELECT life_json FROM players WHERE last_seen_at>? AND place_id LIKE 'ride_%' LIMIT 50").bind(now-60000).all<LifePlayer>();
@@ -75,14 +76,22 @@ export async function handleLife(db:D1Database,p:LifePlayer,input:Record<string,
   }
   next.money-=fare;next.place_id=`ride_${life.transit.rideId}`;event=`${kind==='taxi'?'Taxi':'Tro-tro'} booked · ₵${fare}. Pickup in ${Math.ceil((life.transit.startedAt-now)/1000)} seconds.`;return save();
  }
+ if(type==='ride-progress'){
+  const trip=life.transit,progress=Number(input.progress);if(!trip?.coordinates||trip.progress===undefined||!Number.isFinite(progress)||progress<0||progress>1)return fail('Invalid journey progress');
+  const length=trip.coordinates.slice(1).reduce((sum,point,i)=>sum+metres(trip.coordinates![i],point),0),elapsed=Math.max(0,(now-(trip.progressAt||trip.startedAt))/1000);
+  if(progress<trip.progress||((progress-trip.progress)*length)>elapsed*16+2)return fail('Journey progress is too fast');
+  if(now<(trip.progressAt||trip.startedAt)+1000)return fail('Wait for the next journey checkpoint',429);
+  trip.progress=progress;trip.progressAt=now;return save(false);
+ }
  if(type==='bus-board'){
   const route=transit.routes.find(r=>r.id===input.routeId);if(!route)return fail('Choose a bus route');const stop=transit.stops.find(s=>s.id===route.from)!;
   if(p.driving||life.shift||metres([p.pos_lng??0,p.pos_lat??0],[stop.lng,stop.lat])>85)return fail('Walk to this bus stop before boarding');if(p.money<route.fare)return fail('A ticket costs ₵10');
-  next.money-=route.fare;const departure=Math.ceil((now+2000)/30000)*30000;life.transit={routeId:route.id,startedAt:departure,endsAt:departure+route.seconds*1000};event='Ticket purchased. Boarded the tro-tro; departure within 30 seconds.';return save();
+  const destination=transit.stops.find(s=>s.id===route.to)!;let detailed;try{detailed=await roadRoute([stop.lng,stop.lat],[destination.lng,destination.lat])}catch{return fail('Road routing is unavailable. Please try again.',503)}
+  next.money-=route.fare;const departure=Math.ceil((now+2000)/30000)*30000;life.transit={routeId:route.id,startedAt:departure,endsAt:departure+detailed.seconds*1000,coordinates:detailed.coordinates,progress:0,progressAt:departure};event='Ticket purchased. Boarded the tro-tro; departure within 30 seconds.';return save();
  }
- if(type==='bus-arrive'){
-  const trip=life.transit,route=transit.routes.find(r=>r.id===trip?.routeId);if(!trip||(!route&&!trip.coordinates)||now<trip.endsAt)return fail('Your vehicle has not arrived');const to=route?transit.stops.find(s=>s.id===route.to)!:{id:'home',name:trip.name||'Your destination'},coords=trip.coordinates||route!.coordinates,point=coords[coords.length-1];life.transit=null;
-  const result=await db.prepare('UPDATE players SET life_json=?,pos_lng=?,pos_lat=?,place_id=?,driving=0,last_move_at=?,last_action_at=?,last_seen_at=?,revision=revision+1 WHERE id=? AND revision=?').bind(JSON.stringify(life),point[0],point[1],to.id==='ridge'?'home':to.id,now,now,now,p.id,p.revision).run();if(!result.meta.changes)return fail('Please try again',409);const updated=await db.prepare('SELECT * FROM players WHERE id=?').bind(p.id).first();return Response.json({self:view(updated),event:`Arrived at ${to.name}`});
+ if(type==='bus-arrive'||type==='ride-exit'){
+  const trip=life.transit,route=transit.routes.find(r=>r.id===trip?.routeId);if(!trip||(!route&&!trip.coordinates)||type==='bus-arrive'&&(now<trip.endsAt||trip.progress!==undefined&&trip.progress<1))return fail('Your vehicle has not arrived');const to=route?transit.stops.find(s=>s.id===route.to)!:{id:'home',name:trip.name||'Your destination'},coords=trip.coordinates||route!.coordinates,point=type==='ride-exit'?routePoint(coords,trip.progress??Math.max(0,(now-trip.startedAt)/(trip.endsAt-trip.startedAt))).position:coords[coords.length-1];life.transit=null;
+  const result=await db.prepare('UPDATE players SET life_json=?,pos_lng=?,pos_lat=?,place_id=?,driving=0,last_move_at=?,last_action_at=?,last_seen_at=?,revision=revision+1 WHERE id=? AND revision=?').bind(JSON.stringify(life),point[0],point[1],type==='ride-exit'?'home':to.id==='ridge'?'home':to.id,now,now,now,p.id,p.revision).run();if(!result.meta.changes)return fail('Please try again',409);const updated=await db.prepare('SELECT * FROM players WHERE id=?').bind(p.id).first();return Response.json({self:view(updated),event:type==='ride-exit'?'You left the vehicle at the roadside':`Arrived at ${to.name}`});
  }
  const item=GOODS.find(g=>g.id===input.itemId);
  if(type==='buy'){
