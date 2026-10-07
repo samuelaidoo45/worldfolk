@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1791302390593,
+      "tag": "0000_clear_nomad",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1791322305820,
+      "tag": "0001_young_iceman",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1791357412430,
+      "tag": "0002_hard_dorian_gray",
+      "breakpoints": true
+    }
+  ]
+}

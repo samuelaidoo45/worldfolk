@@ -1,0 +1,1 @@
+ALTER TABLE `players` ADD `driving` integer DEFAULT 0 NOT NULL;

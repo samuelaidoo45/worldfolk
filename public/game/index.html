@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#e8f1ea" />
+  <meta name="description" content="Live your Accra story. Work, make friends, find your home and explore a shared virtual city." />
+  <title>AccraLife — your city, your story</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.32.0/mapbox-gl.css" rel="stylesheet" />
+  <link href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://api.mapbox.com/mapbox-gl-js/v3.32.0/mapbox-gl.js" defer></script>
+  <script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js" defer></script>
+  <script src="config.js" defer></script>
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <div id="map" aria-label="Interactive AccraLife city map"></div>
+  <div class="map-shade" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <button class="brand" id="brandBtn" aria-label="Return to Accra">
+      <span class="brand-emblem">✺</span><span>Accra<span class="brand-light">Life</span></span>
+    </button>
+    <div class="city-clock"><span class="clock-sun">☀</span><span id="clockText">Day 1 · 08:00</span></div>
+    <div class="top-right">
+      <span class="online-pill"><span class="online-dot"></span><strong id="onlineCount">0</strong><span class="online-word"> online</span></span>
+      <span class="cash-pill">₵ <strong id="moneyText">—</strong></span>
+      <button class="roam-toggle" id="roamToggle" type="button">▶ 3D play</button>
+      <button class="profile-pill" id="profileBtn"><span id="topAvatar">◇</span><span id="topName">Create your Sim</span></button>
+    </div>
+  </header>
+
+  <aside class="left-panel" id="leftPanel">
+    <div class="sim-header">
+      <span class="eyebrow">YOUR SIM IN ACCRA</span>
+      <div class="sim-row"><div class="sim-avatar" id="simAvatar">◇</div><div><h1 id="simName">Your story starts here</h1><p id="simSub">Create a Sim to enter the city</p></div></div>
+      <div class="level-track"><div class="level-track-fill" id="levelFill"></div></div>
+      <span class="level-label" id="levelLabel">Level 1 · 0 / 100 XP</span>
+    </div>
+    <nav class="panel-tabs" aria-label="Sim panels">
+      <button class="active" data-tab="life">Life</button><button data-tab="places">Places</button><button data-tab="career">Career</button><button data-tab="home">Home</button>
+    </nav>
+    <div class="panel-content" id="panelContent"></div>
+    <div class="panel-footer"><span>✦ Every day is a new chapter</span><button id="helpBtn" aria-label="How to play">?</button></div>
+  </aside>
+
+  <aside class="right-stack">
+    <section class="place-panel" id="placePanel">
+      <div class="place-top"><span class="eyebrow">AROUND YOU</span><span id="placeCategory" class="category-pill">HOME</span></div>
+      <div class="place-heading"><span class="place-emoji" id="placeEmoji">🏡</span><div><h2 id="placeName">Your home</h2><p id="placeArea">North Ridge</p></div></div>
+      <p class="place-desc" id="placeDesc">A place to rest and begin your story.</p>
+      <div class="place-status" id="placeStatus"></div>
+      <div class="activities-heading"><strong id="activitiesHeading">Things to do</strong><span id="activityCount"></span></div>
+      <div class="activities" id="activities"></div>
+    </section>
+    <section class="chat-panel" id="chatPanel">
+      <div class="chat-head"><div><span class="eyebrow">THE CITY IS LIVE</span><h2>People & chat <span id="chatCount"></span></h2></div><button id="chatCollapse" aria-label="Collapse chat">⌄</button></div>
+      <div class="chat-channels"><button class="active" data-channel="city">City chat</button><button data-channel="place">Here now</button><button id="unmuteAll" class="unmute-all hidden" type="button">Unmute all</button></div>
+      <div class="people-row" id="peopleRow"></div>
+      <div class="chat-messages" id="chatMessages" aria-live="polite"></div>
+      <form class="chat-form" id="chatForm"><input id="chatInput" maxlength="220" placeholder="Say hello to Accra..." autocomplete="off" aria-label="Chat message" /><button type="submit" aria-label="Send message">➤</button></form>
+    </section>
+  </aside>
+
+  <div class="map-tools"><button id="zoomIn" aria-label="Zoom in">+</button><button id="zoomOut" aria-label="Zoom out">−</button><button id="toggle3d" aria-label="Toggle 3D buildings">3D</button><button id="findMe" aria-label="Find my Sim">⌖</button></div>
+  <section class="roam-hud hidden" id="roamHud" aria-label="3D game controls">
+    <div class="roam-status"><span class="roam-kicker" id="roamKicker">FREE ROAM · ACCRA</span><strong id="roamLocation">Explore the city</strong><span id="roamNearby">Walk around to discover places</span><strong class="roam-speed" id="roamSpeed"></strong><div class="roam-meter"><span>Energy</span><i><b id="roamEnergy"></b></i></div><div class="roam-meter"><span>Hunger</span><i><b id="roamHunger"></b></i></div></div>
+    <div class="roam-prompt" id="roamPrompt" role="status"><span class="prompt-key">E</span><span id="roamPromptText">Walk toward a place to interact</span></div>
+    <button class="vehicle-button hidden" id="vehicleButton" type="button">F · Drive vehicle</button>
+    <button class="view-button hidden" id="viewButton" type="button">V · Driver view</button>
+    <div class="roam-instructions" id="roamInstructions">W A S D move · Shift run · Q / R turn · E interact · M map · C chat</div>
+    <button class="roam-chat-toggle" id="roamChatToggle" type="button" aria-label="Open chat">💬 Chat</button>
+    <div class="touch-controls"><div class="joystick-pad" id="joystickPad" aria-label="Movement joystick"><div class="joystick-knob" id="joystickKnob"></div></div><div class="touch-right"><div class="touch-turn"><button id="turnLeft" type="button" aria-label="Turn camera left">↶</button><button id="turnRight" type="button" aria-label="Turn camera right">↷</button></div><button class="touch-interact" id="touchInteract" type="button">Interact</button></div></div>
+  </section>
+  <div class="vehicle-cabin" id="vehicleCabin" aria-hidden="true"><div class="cabin-roof"></div><div class="cabin-post left"></div><div class="cabin-post right"></div><div class="cabin-dash"><div class="cabin-cluster"><span class="cabin-gauge">0<small>km/h</small></span><span class="cabin-wheel">◉</span><span class="cabin-nav">ACCRA<br>DRIVE</span></div></div></div>
+  <section class="roam-action-menu hidden" id="roamActionMenu" aria-label="Nearby activities"><div class="roam-action-head"><span class="eyebrow">INTERACT</span><button id="roamActionClose" type="button" aria-label="Close interactions">×</button></div><h2 id="roamActionTitle">Nearby place</h2><p>Choose an activity or press its number key.</p><div class="roam-action-list" id="roamActionList"></div></section>
+  <div class="map-caption"><span class="map-caption-diamond">◆</span><strong>Enter 3D play to explore</strong><span>Walk streets, meet players and interact with places.</span></div>
+
+  <nav class="mobile-dock" aria-label="Game navigation">
+    <button data-mobile="map" class="active"><span>⌖</span>Map</button><button data-mobile="sim"><span>◇</span>Sim</button><button data-mobile="places"><span>◈</span>Places</button><button data-mobile="chat"><span>☏</span>Chat</button>
+  </nav>
+
+  <div class="modal-scrim" id="modalScrim"></div>
+  <section class="welcome-modal" id="welcomeModal" role="dialog" aria-modal="true" aria-labelledby="welcomeTitle">
+    <div class="welcome-art"><span class="plumbob">◆</span><span class="welcome-art-person" id="welcomePreview">🧑🏾</span><span class="welcome-art-sun">✺</span></div>
+    <div class="welcome-copy"><span class="eyebrow">AKWAABA TO YOUR NEW LIFE</span><h2 id="welcomeTitle">Live your Accra story.</h2><p>Create your character, roam Accra in 3D, earn cedis and meet real people in the same city.</p></div>
+    <form id="joinForm"><label for="joinName">What should we call your Sim?</label><input id="joinName" required minlength="2" maxlength="24" placeholder="Your Sim's name" autocomplete="nickname" /><label>Choose your look</label><div class="avatar-choices" id="avatarChoices"></div><button class="join-button" type="submit">Enter Accra <span>→</span></button></form>
+    <small>Your Sim is saved in this browser. City chat is shared with other visitors. Please be kind.</small>
+  </section>
+  <section class="help-modal hidden" id="helpModal" role="dialog" aria-modal="true" aria-labelledby="helpTitle"><button id="helpClose" class="modal-close" aria-label="Close">×</button><span class="eyebrow">HOW TO PLAY</span><h2 id="helpTitle">A day in Accra</h2><ol><li><strong>Roam</strong> with W A S D or the touch joystick. Hold Shift to run and use Q / R to turn.</li><li><strong>Enter buildings</strong> at glowing doors with E or Interact. Walk inside, use furnishings, and return through the exit.</li><li><strong>Drive</strong> nearby vehicles with F or the vehicle button. W accelerates, S brakes, and A / D steer. Press V to see the driver's seat. Park and press F or E to get out.</li><li><strong>Explore</strong> the city map with M. Search Accra and travel to a destination, then return to 3D play.</li><li><strong>Connect</strong> with city or local chat using C or the Chat button. Work, rest and build your home.</li></ol></section>
+  <div class="toast hidden" id="toast" role="status"></div>
+</body>
+</html>
