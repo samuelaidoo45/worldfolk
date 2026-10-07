@@ -59,3 +59,21 @@ export function advanceRoad(path,distance,speed,dt,physics,actors=[],kind='bus')
  }
  return {distance,speed:nextSpeed,blocked, ...path.at(distance)};
 }
+
+// A stopped driver searches for a clear lane beside the obstruction. Every small
+// movement is swept against buildings and cars, so recovery cannot tunnel through them.
+export function recoverTraffic(npc,dt,physics,actors){
+ const heading=npc.roadHeading??npc.heading,r=heading*Math.PI/180,side=npc.side||0;
+ const limit=Math.max(1.2,(npc.width||7)/2-1.05);
+ const offsets=[npc.recoverySide??(npc.retired?limit+2.4:side>=0?-limit:limit)];
+ for(const goal of offsets){
+  const change=goal-side;if(Math.abs(change)<.12)continue;
+  const step=Math.sign(change)*Math.min(Math.abs(change),dt*1.2);
+  const target=offsetMetres(npc.position,Math.cos(r)*step,-Math.sin(r)*step);
+  const resolved=physics.moveVehicle(npc.position,target,heading);
+  if(resolved.blocked||distanceMetres(npc.position,resolved.position)<.001)continue;
+  if(actors.some(a=>a.id!==npc.id&&(a.driving?vehiclesOverlap(resolved.position,heading,a.position,a.heading):distanceMetres(resolved.position,a.position)<1.7)))continue;
+  return {position:resolved.position,side:side+step,goal};
+ }
+ return null;
+}

@@ -31,3 +31,20 @@ test('four-times playback covers more road using the same collision-safe steps',
  const run=rate=>{const path=makeRoadPath([origin,p(0,2000)]);let value={distance:0,speed:0};for(let frame=0;frame<600;frame++)for(let step=0;step<rate;step++)value=advanceRoad(path,value.distance,value.speed,1/60,null,[]);return value};
  const normal=run(1),fast=run(4);assert.ok(normal.speed>20);assert.ok(fast.distance>normal.distance*3.5);assert.ok(fast.speed<=22);
 });
+test('a stopped lead vehicle can be passed without overlap or crossing a building',async()=>{
+ const {recoverTraffic}=await import('../public/game/traffic-routing.js');const physics={moveVehicle:(a,b)=>({position:b,blocked:false})},leader={id:'leader',position:p(1.6,6),heading:0,driving:true};let npc={id:'follower',position:p(1.6,0),heading:0,roadHeading:0,side:1.6,width:7};
+ for(let i=0;i<240;i++){const result=recoverTraffic(npc,1/60,physics,[leader]);if(result)npc={...npc,position:result.position,side:result.side,recoverySide:result.goal};assert.equal(vehiclesOverlap(npc.position,0,leader.position,0),false)}
+ assert.ok(npc.side<-2);assert.ok(trafficSpeed(npc.position,0,0,12,[leader])>10);const stopped={moveVehicle:(a,b)=>({position:a,blocked:true})};assert.equal(recoverTraffic({...npc,recoverySide:2},.05,stopped,[]),null);
+});
+test('a vehicle at an unconnected road end pulls clear of the traffic lane',async()=>{
+ const {recoverTraffic}=await import('../public/game/traffic-routing.js');let npc={id:'end',position:p(1.6,0),heading:0,side:1.6,width:7,retired:true};const physics={moveVehicle:(a,b)=>({position:b,blocked:false})};
+ for(let i=0;i<240;i++){const result=recoverTraffic(npc,1/60,physics,[]);if(result)npc={...npc,...result,recoverySide:result.goal}}assert.ok(npc.side>4.3);
+});
+test('city traffic recovers behind a stationary vehicle instead of freezing its queue',async()=>{
+ const {createCityLife}=await import('../public/game/city-life.js');const line=[p(0,-150),p(0,150)],physics={count:1,collision:()=>null,move:(a,b)=>({position:b,blocked:false}),moveVehicle:(a,b)=>({position:b,blocked:false})};
+ const city=createCityLife({querySourceFeatures:()=>[{geometry:{type:'LineString',coordinates:line},properties:{class:'motorway',oneway:true}}]},physics);city.tick(.016,p(50,0),3000,'walk');const car=city.actors.find(a=>a.driving);assert.ok(car);
+ for(const a of city.actors)a.position=p(1000,1000);
+ Object.assign(car,{position:p(1.6,0),heading:0,side:1.6,line,index:1,direction:1,speed:0,width:7,maxSpeed:12});const stoppedPlayer=p(1.6,14);
+ for(let i=0;i<1800;i++){city.tick(1/60,stoppedPlayer,3001,'drive');assert.equal(vehiclesOverlap(car.position,car.heading,stoppedPlayer,0),false)}
+ assert.ok(car.position[1]>p(0,30)[1],'driver must pass the obstruction and continue forward');
+});
