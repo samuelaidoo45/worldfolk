@@ -6,6 +6,8 @@ Worldfolk is a multiplayer 3D life simulation beginning in Accra, Ghana. Explore
 
 Build the app, create a D1 database in your Cloudflare account, and prepare a separate Worker configuration. The generated configuration leaves the Sites configuration intact.
 
+The production Worker is live at [worldfolk.christianoronald567-039.workers.dev/game/](https://worldfolk.christianoronald567-039.workers.dev/game/). Its D1 database is `worldfolk-prod` (`46af10c4-77da-4be3-aae6-48b4d89ae86b`) in Cloudflare account `039c5077db7abd6f879e6f863c5e087e`. The initial three player records were copied on 7 October 2026. Browser sessions are bound to the old domain, so those players are not automatically signed in on the new address.
+
 ```sh
 npm run build
 node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js login
@@ -15,7 +17,7 @@ node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js d1
 node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js deploy --config dist/server/wrangler.cloudflare.json
 ```
 
-Cloudflare returns the public `workers.dev` URL after deployment. Keep the D1 database and Worker in the same account. A fresh D1 database has no existing player records; migrate player data before directing existing players to the new host. Future deployments reuse the database ID and apply only pending migrations before deploying.
+Cloudflare returns the public `workers.dev` URL after deployment. Keep the D1 database and Worker in the same account. A fresh D1 database has no existing player records; migrate player data before directing existing players to the new host. Future deployments reuse the database ID above and apply only pending migrations before deploying. Do not run `d1 create` again for updates.
 
 ## Prerequisites
 
