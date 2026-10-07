@@ -1,10 +1,12 @@
+import {roadRoute,type Ride} from './ride';
+import {rideFare} from '../../../public/game/life-catalog.js';
 import {pedestrianDamage} from '../../../public/game/street-safety.js';
 import transit from '../../../public/game/transit-routes.json';
 import {crashDamage} from '../../../public/game/motion.js';
 import {GOODS,HOMES,JOBS,TERMINALS,propertyId} from '../../../public/game/life-catalog.js';
 export type LifePlayer={id:string;name:string;life_json:string;revision:number;money:number;energy:number;hunger:number;fun:number;social:number;hygiene:number;xp:number;jobs_done:number;job:string;place_id:string;pos_lng:number|null;pos_lat:number|null;driving:number;last_action_at:number};
 type Flight={from:string;to:string;startedAt:number;endsAt:number};
-type Life={health:number;deaths:number;lastTrafficHitAt:number;lastVitalAt:number;lastCrashAt:number;drivingSince:number;transit:{routeId:string;startedAt:number;endsAt:number}|null;home:string;inventory:Record<string,number>;vehicles:string[];vehicle:string;properties:string[];job:string|null;shift:{jobId:string;endsAt:number}|null;flight:Flight|null;outfit:string|null;furnished:string[]};
+type Life={health:number;deaths:number;lastTrafficHitAt:number;lastVitalAt:number;lastCrashAt:number;drivingSince:number;transit:Ride|null;home:string;inventory:Record<string,number>;vehicles:string[];vehicle:string;properties:string[];job:string|null;shift:{jobId:string;endsAt:number;drove?:boolean}|null;flight:Flight|null;outfit:string|null;furnished:string[]};
 export function readLife(p:LifePlayer):Life {let saved;try{saved=JSON.parse(p.life_json||'{}')}catch{saved={}}return {health:100,deaths:0,lastTrafficHitAt:0,lastVitalAt:0,lastCrashAt:0,drivingSince:0,transit:null,home:'starter',inventory:{},vehicles:['car'],vehicle:'car',properties:['starter'],job:null,shift:null,flight:null,outfit:null,furnished:[],...saved}}
 export function lifeView(p:LifePlayer){const life=readLife(p);return {...life,homeId:propertyId(p.id,life.home),homeName:HOMES.find(h=>h.id===life.home)?.name,apartment:p.id.slice(0,6).toUpperCase()}}
 export const metres=(a:number[],b:number[])=>Math.hypot((a[0]-b[0])*111320*Math.cos(a[1]*Math.PI/180),(a[1]-b[1])*111320);
@@ -17,10 +19,10 @@ export async function residences(db:D1Database){const rows=await db.prepare('SEL
 async function hash(code:string){return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(code)))).map(x=>x.toString(16).padStart(2,'0')).join('')}
 export async function handleLife(db:D1Database,p:LifePlayer,input:Record<string,unknown>,view:(p:any)=>unknown):Promise<Response|null>{
  const type=String(input.type),life=readLife(p),now=Date.now();
- const kinds=['buy','consume','equip','furnish','vehicle-select','job-apply','shift-start','shift-complete','shift-cancel','property-buy','home-set','pass-create','pass-redeem','pass-revoke','flight-book','flight-arrive','cook-inventory','vitals','crash','respawn','recover','bus-board','bus-arrive','traffic-hit'];
+ const kinds=['buy','consume','equip','furnish','vehicle-select','job-apply','shift-start','shift-complete','shift-cancel','property-buy','home-set','pass-create','pass-redeem','pass-revoke','flight-book','flight-arrive','cook-inventory','vitals','crash','respawn','recover','ride-book','ride-social','bus-board','bus-arrive','traffic-hit'];
  if(!kinds.includes(type))return null;
  if(life.health<=0&&!['respawn','vitals'].includes(type))return fail('Restart at home to continue');
- if(life.transit&&!['bus-arrive','vitals'].includes(type))return fail('Your bus is travelling');
+ if(life.transit&&!['bus-arrive','ride-social','vitals'].includes(type))return fail('Your bus is travelling');
  if(life.flight&&!['flight-arrive','vitals'].includes(type))return fail('Finish your flight before doing this');
  const next={...p};let event='',extra:Record<string,unknown>={};
  async function homeAccess(){const property=await propertyInfo(db,p.place_id);return !!property&&!p.driving&&metres([p.pos_lng??0,p.pos_lat??0],property.coords)<=85&&await canEnter(db,p,p.place_id)}
@@ -46,13 +48,35 @@ export async function handleLife(db:D1Database,p:LifePlayer,input:Record<string,
   if(life.health>0)return fail('You are still alive');const home=HOMES.find(h=>h.id===life.home)!;life.health=100;life.shift=null;life.flight=null;life.transit=null;life.drivingSince=0;life.lastVitalAt=now;
   const result=await db.prepare('UPDATE players SET life_json=?,pos_lng=?,pos_lat=?,place_id=?,driving=0,energy=80,hunger=80,last_move_at=?,last_action_at=?,last_seen_at=?,revision=revision+1 WHERE id=? AND revision=?').bind(JSON.stringify(life),home.lng,home.lat,propertyId(p.id,home.id),now,now,now,p.id,p.revision).run();if(!result.meta.changes)return fail('Please try again',409);const updated=await db.prepare('SELECT * FROM players WHERE id=?').bind(p.id).first();return Response.json({self:view(updated),event:'A new day at home. Your belongings are safe.'});
  }
+ if(type==='ride-social'){
+  if(!life.transit)return fail('Board a vehicle first');if(now-p.last_action_at<8000)return fail('Give your fellow passenger a moment',429);
+  next.social=Math.min(100,p.social+5);next.fun=Math.min(100,p.fun+2);event='You shared a conversation with a fellow passenger';return save();
+ }
+ if(type==='ride-book'){
+  const kind=input.kind==='taxi'?'taxi':input.kind==='trotro'?'trotro':null,lng=Number(input.lng),lat=Number(input.lat),from=[p.pos_lng??0,p.pos_lat??0];
+  if(!kind||!Number.isFinite(lng)||!Number.isFinite(lat)||lng<-.36||lng>.05||lat<5.43||lat>5.8)return fail('Choose a destination in Accra');
+  if(p.driving||life.shift)return fail('Park or finish work before requesting pickup');
+  const distance=metres(from,[lng,lat]);if(distance<100)return fail('You are already close enough to walk');
+  const fare=rideFare(distance,kind);if(p.money<fare)return fail(`You need ₵${fare} for this ride`);
+  if(now-p.last_action_at<2000)return fail('Please wait a moment before booking',429);
+  const gate=await db.prepare('UPDATE players SET last_action_at=? WHERE id=? AND revision=? AND last_action_at<?').bind(now,p.id,p.revision,now-2000).run();if(!gate.meta.changes)return fail('A ride request is already being processed',429);
+  let route;try{route=await roadRoute(from,[lng,lat])}catch{return fail('No road pickup route is available here. Try a nearby street.',503)}
+  const name=String(input.name||'Your destination').slice(0,70),rideId=crypto.randomUUID();
+  life.transit={routeId:'pickup',rideId,kind,name,fare,coordinates:route.coordinates,startedAt:now+15000,endsAt:now+15000+route.seconds*1000};
+  // Nearby tro-tro bookings can share a vehicle while it is waiting for departure.
+  if(kind==='trotro'){
+   const waiting=await db.prepare("SELECT life_json FROM players WHERE last_seen_at>? AND place_id LIKE 'ride_%' LIMIT 50").bind(now-60000).all<LifePlayer>();
+   for(const other of waiting.results){const trip=readLife(other).transit,coords=trip?.coordinates;if(trip?.kind==='trotro'&&trip.startedAt>now+3000&&coords&&metres(from,coords[0])<40&&metres([lng,lat],coords[coords.length-1])<100){life.transit={...trip,fare};break}}
+  }
+  next.money-=fare;next.place_id=`ride_${life.transit.rideId}`;event=`${kind==='taxi'?'Taxi':'Tro-tro'} booked · ₵${fare}. Pickup in ${Math.ceil((life.transit.startedAt-now)/1000)} seconds.`;return save();
+ }
  if(type==='bus-board'){
   const route=transit.routes.find(r=>r.id===input.routeId);if(!route)return fail('Choose a bus route');const stop=transit.stops.find(s=>s.id===route.from)!;
   if(p.driving||life.shift||metres([p.pos_lng??0,p.pos_lat??0],[stop.lng,stop.lat])>85)return fail('Walk to this bus stop before boarding');if(p.money<route.fare)return fail('A ticket costs ₵10');
   next.money-=route.fare;const departure=Math.ceil((now+2000)/30000)*30000;life.transit={routeId:route.id,startedAt:departure,endsAt:departure+route.seconds*1000};event='Ticket purchased. Boarded the tro-tro; departure within 30 seconds.';return save();
  }
  if(type==='bus-arrive'){
-  const trip=life.transit,route=transit.routes.find(r=>r.id===trip?.routeId);if(!trip||!route||now<trip.endsAt)return fail('Your bus has not arrived');const to=transit.stops.find(s=>s.id===route.to)!,point=route.coordinates[route.coordinates.length-1];life.transit=null;
+  const trip=life.transit,route=transit.routes.find(r=>r.id===trip?.routeId);if(!trip||(!route&&!trip.coordinates)||now<trip.endsAt)return fail('Your vehicle has not arrived');const to=route?transit.stops.find(s=>s.id===route.to)!:{id:'home',name:trip.name||'Your destination'},coords=trip.coordinates||route!.coordinates,point=coords[coords.length-1];life.transit=null;
   const result=await db.prepare('UPDATE players SET life_json=?,pos_lng=?,pos_lat=?,place_id=?,driving=0,last_move_at=?,last_action_at=?,last_seen_at=?,revision=revision+1 WHERE id=? AND revision=?').bind(JSON.stringify(life),point[0],point[1],to.id==='ridge'?'home':to.id,now,now,now,p.id,p.revision).run();if(!result.meta.changes)return fail('Please try again',409);const updated=await db.prepare('SELECT * FROM players WHERE id=?').bind(p.id).first();return Response.json({self:view(updated),event:`Arrived at ${to.name}`});
  }
  const item=GOODS.find(g=>g.id===input.itemId);
@@ -72,8 +96,8 @@ export async function handleLife(db:D1Database,p:LifePlayer,input:Record<string,
  if(type==='cook-inventory'){if(p.driving)return fail('Leave the vehicle first');if(!await homeAccess())return fail('Use the kitchen inside an accessible home');if(!(life.inventory.groceries>0))return fail('Buy cooking ingredients at the market first');life.inventory.groceries--;life.inventory.jollof=(life.inventory.jollof||0)+2;event='Cooked two portions of jollof. Find them in your bag.';return save()}
  if(type==='vehicle-select'){const vehicle=String(input.vehicle);if(p.driving)return fail('Park before changing vehicles');if(!life.vehicles.includes(vehicle))return fail('You do not own that vehicle');life.vehicle=vehicle;event=`Selected your ${vehicle}`;return save()}
  if(type==='job-apply'){const job=JOBS.find(j=>j.id===input.jobId);if(!job)return fail('Choose a job');if(!here(p,job.place))return fail('Visit the workplace to apply');if(life.shift)return fail('Finish your current shift');life.job=job.id;next.job=job.name;next.place_id=job.place;event=`Hired as ${job.name}. You can start a shift here.`;return save()}
- if(type==='shift-start'){const job=JOBS.find(j=>j.id===life.job);if(!job||!here(p,job.place))return fail('Visit your workplace first');if(life.shift)return fail('A shift is already running');if(p.energy<job.energy+5)return fail('Rest before starting work');next.place_id=job.place;life.shift={jobId:job.id,endsAt:now+job.seconds*1000};event=job.task;return save()}
- if(type==='shift-complete'){const shift=life.shift,job=JOBS.find(j=>j.id===shift?.jobId);if(!shift||!job)return fail('Start a shift first');if(now<shift.endsAt)return fail('Your shift is still in progress');if(!here(p,job.place))return fail('Return to the workplace to collect your pay');life.shift=null;next.money+=job.wage;next.energy=Math.max(0,p.energy-job.energy);next.hunger=Math.max(0,p.hunger-8);next.xp+=20;next.jobs_done++;event=`Shift complete. Earned ₵${job.wage}.`;return save()}
+ if(type==='shift-start'){const job=JOBS.find(j=>j.id===life.job);if(!job||!here(p,job.place))return fail('Visit your workplace first');if(life.shift)return fail('A shift is already running');if(job.id==='driver'&&!life.vehicles.includes('car'))return fail('Buy a car before accepting taxi work');if(p.energy<job.energy+5)return fail('Rest before starting work');next.place_id=job.place;if(job.id==='driver')life.vehicle='car';life.shift={jobId:job.id,endsAt:now+job.seconds*1000};event=job.task;return save()}
+ if(type==='shift-complete'){const shift=life.shift,job=JOBS.find(j=>j.id===shift?.jobId);if(!shift||!job)return fail('Start a shift first');if(now<shift.endsAt)return fail('Your shift is still in progress');if(!here(p,job.id==='driver'?'osu':job.place))return fail(job.id==='driver'?'Drive to Oxford Street and park to finish this fare':'Return to the workplace to collect your pay');if(job.id==='driver'&&!shift.drove)return fail('Drive your passenger to Oxford Street first');life.shift=null;next.money+=job.wage;next.energy=Math.max(0,p.energy-job.energy);next.hunger=Math.max(0,p.hunger-8);next.xp+=20;next.jobs_done++;event=`Shift complete. Earned ₵${job.wage}.`;return save()}
  if(type==='shift-cancel'){life.shift=null;event='Shift cancelled. No wage was earned.';return save()}
  if(type==='property-buy'){const h=HOMES.find(h=>h.id===input.homeId);if(!h||!h.price)return fail('Choose a listed home');if(life.properties.includes(h.id))return fail('You already own this home');if(p.driving||metres([p.pos_lng??0,p.pos_lat??0],[h.lng,h.lat])>85)return fail('Visit the property to purchase it');if(p.money<h.price)return fail(`This home costs ₵${h.price}`);next.money-=h.price;life.properties.push(h.id);event=`You now own ${h.name}`;return save()}
  if(type==='home-set'){const id=String(input.homeId);if(!life.properties.includes(id))return fail('Choose a home you own');life.home=id;event='Your primary home is updated';return save()}

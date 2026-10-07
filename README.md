@@ -146,7 +146,10 @@ The portable build runs Vinext directly without a host `timeout` command. The ma
 
 - Street/scenic cameras: K; right mouse drag looks around. Shared fictional 48-minute day, weather every four minutes, crisp vector roads and building façades.
 - Forward driving has acceleration and braking without a fixed speed cap. Impacts above 8 m/s cause health damage; fatal impacts and starvation allow a home restart that keeps possessions. Recover inside your own home from My life → Bag. Needs pause after more than 90 seconds without a vital update.
-- T opens the five-stop public tro-tro service. ₵10 per road leg, departures every 30 seconds, saved journeys resume after reconnecting. Routes are game services, not real transit schedules.
+- T requests taxi or tro-tro pickup near your current location. Fares use direct distance; the server obtains the road route from Mapbox and saves the journey. Nearby matching tro-tro bookings can share a ride chat. These are game services, not real transit schedules.
+- Passenger controls offer a transparent 3D cabin, left/front/right/exterior views, NPC conversation and an original synthesized radio soundtrack. Radio starts only on tap.
+- New registrations receive a random saved background, starting location, wallet, household and garage. Existing characters retain their progress.
+- Taxi jobs require driving from Airport City to Oxford Street and parking before payment. Teaching, coding, retail and food-service jobs are timed shifts. My life → Leisure lists recreational destinations.
 - Opt-in WebRTC voice circle supports six people, starts muted, B is push-to-talk, with individual mute and Leave controls. Signaling uses authenticated, recipient-scoped D1 records with a 60-second delivery window. No voice recording. STUN is configured; restrictive networks need a TURN relay before universal connectivity can be promised.
 
 Run local integration tests **sequentially** because fixture helpers share the preview SQLite database with the running dev server:
@@ -197,3 +200,5 @@ With the built local server running on port 3000, run:
 ```sh
 node --test --test-concurrency=1 tests/game-motion.test.mjs tests/life-api.test.mjs tests/world-api.test.mjs tests/realtime-api.test.mjs
 ```
+
+Pickup verification: `node --test --test-concurrency=1 tests/*.test.mjs` against the local Wrangler server checks random starting lives, vehicle ownership, persisted pickup routes, shared tro-tros, duplicate arrival protection, affordability, and the new jobs. Integration fixtures modify local SQLite only.

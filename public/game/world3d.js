@@ -75,7 +75,7 @@ export function createWorld3D(map,mapboxgl){
   const own=createActor('🧑🏾');own.group.scale.setScalar(1);scene.add(own.group);
   let parkedCar=createCar(0xc34842);scene.add(parkedCar.group);const aircraft=createAircraft();scene.add(aircraft.group);aircraft.group.visible=false;let flying=false,altitude=0,vehicleKind='car';const architectureItems=new Map();let architectureKey="";const sceneryItems=new Map();let scenerySource=null;const others=new Map(),ambientActors=new Map(),beacons=[],doors=[];
   let frameTime=performance.now();
-  let renderer=null,enabled=false,driving=false,cabinView=false,position=[-0.1949,5.5682],carPosition=null,carHeading=0,heading=0,moving=false,actionUntil=0;
+  let renderer=null,enabled=false,driving=false,cabinView=false,position=[-0.1949,5.5682],carPosition=null,carHeading=0,heading=0,moving=false,ownsVehicle=true,actionUntil=0;
   const layer={id:'accralife-3d-people',type:'custom',renderingMode:'3d',onAdd(_map,gl){renderer=new THREE.WebGLRenderer({canvas:map.getCanvas(),context:gl,antialias:true});renderer.autoClear=false;renderer.outputColorSpace=THREE.SRGBColorSpace},render(_gl,matrix){if(!renderer||!enabled)return;
     const t=performance.now()/1000,ground=map.queryTerrainElevation?.(position)||0,mercator=mapboxgl.MercatorCoordinate.fromLngLat(position,ground),scale=mercator.meterInMercatorCoordinateUnits();
     const transform=new THREE.Matrix4().makeTranslation(mercator.x,mercator.y,mercator.z).scale(new THREE.Vector3(scale,-scale,scale)).multiply(new THREE.Matrix4().makeRotationX(Math.PI/2));
@@ -83,7 +83,7 @@ export function createWorld3D(map,mapboxgl){
     const now=performance.now(),dt=Math.min(.1,(now-frameTime)/1000);frameTime=now;
     own.group.visible=!driving&&!flying;aircraft.group.visible=flying;aircraft.group.position.y=altitude;aircraft.group.rotation.y=-heading*DEG;own.animate(t,moving||now<actionUntil);own.group.rotation.y=-heading*DEG;
     if(parkedCar.rider)parkedCar.rider.visible=driving;
-    if(carPosition){parkedCar.group.position.x=(carPosition[0]-position[0])*METERS_PER_DEGREE*Math.cos(position[1]*DEG);parkedCar.group.position.z=(position[1]-carPosition[1])*METERS_PER_DEGREE;parkedCar.group.rotation.y=-carHeading*DEG;parkedCar.group.visible=!cabinView&&!flying}else parkedCar.group.visible=false;
+    if(carPosition){parkedCar.group.position.x=(carPosition[0]-position[0])*METERS_PER_DEGREE*Math.cos(position[1]*DEG);parkedCar.group.position.z=(position[1]-carPosition[1])*METERS_PER_DEGREE;parkedCar.group.rotation.y=-carHeading*DEG;parkedCar.group.visible=(ownsVehicle||driving)&&!cabinView&&!flying}else parkedCar.group.visible=false;
     for(const item of others.values()){
       const previous=[...item.position];item.position=item.position.map((v,i)=>damp(v,item.target[i],4,dt));item.heading=turnToward(item.heading,item.targetHeading,5,dt);
       const [lng,lat]=item.position;item.model.group.position.x=(lng-position[0])*METERS_PER_DEGREE*Math.cos(position[1]*DEG);item.model.group.position.z=(position[1]-lat)*METERS_PER_DEGREE;item.model.group.visible=Math.hypot(item.model.group.position.x,item.model.group.position.z)<220;item.model.group.rotation.y=-item.heading*DEG;item.actor?.animate(t,distanceMetres(previous,item.position)>.003);
@@ -105,6 +105,7 @@ export function createWorld3D(map,mapboxgl){
     setSelf(icon){scene.remove(own.group);Object.assign(own,createActor(icon));scene.add(own.group);map.triggerRepaint()},
     setOutfit(id){own.outfit(id);map.triggerRepaint()},
     setAircraft(value,height=0){flying=value;altitude=height;map.triggerRepaint()},
+    setVehicleOwned(value){ownsVehicle=value},
     setVehicleKind(kind){if(kind===vehicleKind)return;vehicleKind=kind;scene.remove(parkedCar.group);disposeModel(parkedCar.group);parkedCar=kind==='bus'?createBus():kind==='motorcycle'?createMotorcycle():createCar(0xc34842);scene.add(parkedCar.group)},
     setDriving(value){driving=value;map.triggerRepaint()},
     setAmbient(actors){const ids=new Set();for(const data of actors){ids.add(data.id);let item=ambientActors.get(data.id);if(!item){const model=data.driving?createCar([0xd1b057,0x53696f,0xe5e3d8,0x495985][ambientActors.size%4]):createActor(data.avatar);item={model,actor:data.driving?null:model};ambientActors.set(data.id,item);scene.add(model.group)}item.data=data}for(const [id,item] of ambientActors){if(!ids.has(id)){scene.remove(item.model.group);disposeModel(item.model.group);ambientActors.delete(id)}}},

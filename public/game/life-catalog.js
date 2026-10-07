@@ -24,6 +24,9 @@ export const JOBS=[
  {id:'trader',name:'Market assistant',place:'makola',wage:75,seconds:45,energy:10,task:'Sort produce and serve customers'},
  {id:'cafe',name:'Café crew',place:'osu',wage:90,seconds:55,energy:12,task:'Prepare orders and serve the counter'},
  {id:'retail',name:'Retail assistant',place:'mall',wage:105,seconds:60,energy:12,task:'Restock shelves and assist shoppers'},
+ {id:'driver',name:'Taxi driver',place:'airport',wage:115,seconds:65,energy:11,task:'Drive a passenger from Airport City to Oxford Street, then park to collect pay (car required)'},
+ {id:'teacher',name:'Teaching assistant',place:'legon',wage:145,seconds:75,energy:13,task:'Prepare a lesson and help students learn'},
+ {id:'coder',name:'Software developer',place:'airport',wage:185,seconds:90,energy:16,task:'Build and test a client website'},
  {id:'office',name:'Office assistant',place:'airport',wage:130,seconds:75,energy:15,task:'Complete the office service desk shift'}
 ];
 export const TERMINALS=[
@@ -32,3 +35,12 @@ export const TERMINALS=[
  {id:'legon',name:'Legon game air terminal',lng:-.187211,lat:5.651}
 ];
 export const propertyId=(owner,home)=>`p_${owner}_${home}`;
+
+// Persisted once at registration; existing lives are never rerolled.
+export const STARTING_LIVES=[
+ {id:'humble',name:'Fresh start',money:80,home:'starter',inventory:{water:2,waakye:1},vehicles:[],furnished:[]},
+ {id:'comfortable',name:'Comfortable start',money:1200,home:'osu-flat',inventory:{water:4,groceries:3,phone:1},vehicles:['motorcycle'],furnished:['sofa']},
+ {id:'wealthy',name:'Wealthy start',money:18000,home:'coastal-villa',inventory:{water:8,groceries:8,phone:1,shirt:1},vehicles:['car','motorcycle'],furnished:['sofa','television','bed']}
+];
+export function startingLife(roll,spawnRoll){const start=STARTING_LIVES[roll<.5?0:roll<.85?1:2],spawn=HOMES[Math.min(HOMES.length-1,Math.floor(spawnRoll*HOMES.length))];return {money:start.money,lng:spawn.lng,lat:spawn.lat,life:{background:start.name,home:start.home,properties:[...new Set(['starter',start.home])],inventory:{...start.inventory},vehicles:[...start.vehicles],vehicle:start.vehicles[0]||'car',furnished:[...start.furnished]}}}
+export function rideFare(metres,kind){return Math.max(0,Math.ceil(kind==='taxi'?15+metres/1000*5:5+metres/1000*1.5))}
