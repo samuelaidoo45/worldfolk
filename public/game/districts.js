@@ -1,0 +1,23 @@
+import {distanceMetres} from './motion.js';
+export const VENUES=[
+ {id:'g_-2060_55414',name:'Holy Trinity Cathedral',lng:-.2060,lat:5.5414,type:'Church',emoji:'⛪',area:'High Street',description:'A quiet church setting with pews and a central aisle. Game interpretation of the mapped venue.',activities:['explore']},
+ {id:'g_-1896_55907',name:'Ghana National Mosque',lng:-.1896,lat:5.5907,type:'Mosque',emoji:'🕌',area:'Kanda',description:'A peaceful prayer hall and courtyard. Game interpretation of the mapped venue.',activities:['explore']}
+];
+export const DISTRICTS=[
+ {kind:'market',name:'Makola · market quarter',lng:-.2141,lat:5.5485,radius:420,color:'#df9c39',detail:'Market lanes · stalls, produce and shopfronts'},
+ {kind:'market',name:'Kaneshie · market quarter',lng:-.2346,lat:5.5724,radius:390,color:'#db8942',detail:'Market lanes · covered trading stalls'},
+ {kind:'beach',name:'La · coastal neighbourhood',lng:-.140846,lat:5.561955,radius:650,color:'#42b3bc',detail:'Coastal setting · shade, palms and beach cafés'},
+ {kind:'heritage',name:'Jamestown · old Accra',lng:-.2161,lat:5.5352,radius:650,color:'#d98665',detail:'Heritage streets · painted plaster and shutters'},
+ {kind:'office',name:'Airport City · business district',lng:-.1787,lat:5.6093,radius:750,color:'#5c9eb5',detail:'Business district · glass offices and hotels'},
+ {kind:'retail',name:'Osu · high street',lng:-.1819,lat:5.5598,radius:650,color:'#ba719d',detail:'High street · shops, cafés and terraces'},
+ {kind:'campus',name:'Legon · campus',lng:-.1874,lat:5.651,radius:850,color:'#75a96a',detail:'Campus · shaded paths and academic buildings'},
+ {kind:'retail',name:'Accra Mall · retail district',lng:-.1738,lat:5.6224,radius:450,color:'#bd8d58',detail:'Retail district · broad shopfronts and arcades'},
+];
+export function venueKind(place){const text=`${place?.name||''} ${place?.type||''}`.toLowerCase();if(/mosque|masjid/.test(text))return 'mosque';if(/church|cathedral|chapel/.test(text))return 'church';if(/market/.test(text))return 'market';if(/beach|coast/.test(text))return 'beach';return null}
+export function districtAt(position){for(const v of VENUES)if(distanceMetres(position,[v.lng,v.lat])<85)return {kind:venueKind(v),name:v.name,color:venueKind(v)==='mosque'?'#78aa98':'#aa888d',detail:'Quiet public space · enter respectfully'};return DISTRICTS.find(d=>distanceMetres(position,[d.lng,d.lat])<d.radius)||{kind:'residential',name:'Accra · neighbourhood',color:'#8fb7ac',detail:'Neighbourhood streets · homes, gardens and local shops'}}
+export function stableHash(value){let h=2166136261;for(const c of String(value)){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}return h>>>0}
+export function buildingStyle(feature){const ring=feature.geometry.type==='Polygon'?feature.geometry.coordinates[0]:feature.geometry.coordinates[0][0],coords=ring.slice(0,-1),center=[coords.reduce((s,p)=>s+p[0],0)/coords.length,coords.reduce((s,p)=>s+p[1],0)/coords.length],seed=stableHash(feature.id??ring[0].map(v=>v.toFixed(6)).join(',')),district=districtAt(center),type=String(feature.properties?.type||'').toLowerCase();
+ const options=district.kind==='market'?['market','shop','brick']:district.kind==='beach'?['coastal','veranda','pastel']:district.kind==='heritage'?['heritage','pastel','brick']:district.kind==='office'?['glass','office','apartment']:district.kind==='retail'?['shop','apartment','veranda']:district.kind==='campus'?['school','brick','veranda']:['plaster','pastel','brick','veranda','apartment'];
+ const style=/mosque/.test(type)?'mosque':/church|cathedral/.test(type)?'church':['church','mosque'].includes(district.kind)&&VENUES.some(v=>distanceMetres(center,[v.lng,v.lat])<32)?district.kind:/office|commercial/.test(type)?'office':options[seed%options.length];
+ const height=Math.max(4.5,Number(feature.properties?.height)||[4.5,6.5,9.5,12.5][seed%4]);const roof=['glass','office','apartment','market','shop','mosque'].includes(style)?'flat':'pitched';return {style,seed,center,height,roof,district:district.kind};
+}

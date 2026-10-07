@@ -21,3 +21,13 @@ test('public transport follows each road segment, with bounded endpoints',async(
  const {routePoint}=await import('../public/game/transit.js');const line=[[0,0],[.001,0],[.001,.001]];
  assert.deepEqual(routePoint(line,-1).position,line[0]);assert.deepEqual(routePoint(line,2).position,line[2]);const mid=routePoint(line,.75).position;assert.equal(mid[0],.001);assert.ok(mid[1]>0&&mid[1]<.001);
 });
+
+test('roadside clearance and traffic impact scale with road speed',async()=>{
+ const {roadWidth,isHighway,sweptHit,pedestrianDamage}=await import('../public/game/street-safety.js');
+ assert.ok(roadWidth('primary')/2+1.15>roadWidth('primary')/2);assert.equal(isHighway('motorway'),true);assert.equal(isHighway('street'),false);
+ assert.equal(sweptHit([0,0],[.001,0],[.0005,0]),true);assert.equal(sweptHit([0,0],[.001,0],[.0005,.0001]),false);assert.ok(pedestrianDamage(12)>pedestrianDamage(4));assert.equal(pedestrianDamage(22,true),100);
+});
+test('building styles are stable and varied by building and district',async()=>{
+ const {buildingStyle,districtAt}=await import('../public/game/districts.js');const feature=(x,y,id)=>({id,properties:{height:7},geometry:{type:'Polygon',coordinates:[[[x,y],[x+.0001,y],[x+.0001,y+.0001],[x,y+.0001],[x,y]]]}});
+ const styles=new Set(Array.from({length:20},(_,i)=>buildingStyle(feature(-.1949+i*.0002,5.57,i)).style));assert.ok(styles.size>=4);const a=buildingStyle(feature(-.2141,5.5485,20));assert.equal(a.district,'market');assert.equal(a.height,7);assert.deepEqual(a,buildingStyle(feature(-.2141,5.5485,20)));assert.equal(districtAt([-.140846,5.561955]).kind,'beach');assert.equal(districtAt([-.1896,5.5907]).kind,'mosque');
+});

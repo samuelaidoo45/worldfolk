@@ -1,10 +1,11 @@
+import {pedestrianDamage} from '../../../public/game/street-safety.js';
 import transit from '../../../public/game/transit-routes.json';
 import {crashDamage} from '../../../public/game/motion.js';
 import {GOODS,HOMES,JOBS,TERMINALS,propertyId} from '../../../public/game/life-catalog.js';
 export type LifePlayer={id:string;name:string;life_json:string;revision:number;money:number;energy:number;hunger:number;fun:number;social:number;hygiene:number;xp:number;jobs_done:number;job:string;place_id:string;pos_lng:number|null;pos_lat:number|null;driving:number;last_action_at:number};
 type Flight={from:string;to:string;startedAt:number;endsAt:number};
-type Life={health:number;deaths:number;lastVitalAt:number;lastCrashAt:number;drivingSince:number;transit:{routeId:string;startedAt:number;endsAt:number}|null;home:string;inventory:Record<string,number>;vehicles:string[];vehicle:string;properties:string[];job:string|null;shift:{jobId:string;endsAt:number}|null;flight:Flight|null;outfit:string|null;furnished:string[]};
-export function readLife(p:LifePlayer):Life {let saved;try{saved=JSON.parse(p.life_json||'{}')}catch{saved={}}return {health:100,deaths:0,lastVitalAt:0,lastCrashAt:0,drivingSince:0,transit:null,home:'starter',inventory:{},vehicles:['car'],vehicle:'car',properties:['starter'],job:null,shift:null,flight:null,outfit:null,furnished:[],...saved}}
+type Life={health:number;deaths:number;lastTrafficHitAt:number;lastVitalAt:number;lastCrashAt:number;drivingSince:number;transit:{routeId:string;startedAt:number;endsAt:number}|null;home:string;inventory:Record<string,number>;vehicles:string[];vehicle:string;properties:string[];job:string|null;shift:{jobId:string;endsAt:number}|null;flight:Flight|null;outfit:string|null;furnished:string[]};
+export function readLife(p:LifePlayer):Life {let saved;try{saved=JSON.parse(p.life_json||'{}')}catch{saved={}}return {health:100,deaths:0,lastTrafficHitAt:0,lastVitalAt:0,lastCrashAt:0,drivingSince:0,transit:null,home:'starter',inventory:{},vehicles:['car'],vehicle:'car',properties:['starter'],job:null,shift:null,flight:null,outfit:null,furnished:[],...saved}}
 export function lifeView(p:LifePlayer){const life=readLife(p);return {...life,homeId:propertyId(p.id,life.home),homeName:HOMES.find(h=>h.id===life.home)?.name,apartment:p.id.slice(0,6).toUpperCase()}}
 export const metres=(a:number[],b:number[])=>Math.hypot((a[0]-b[0])*111320*Math.cos(a[1]*Math.PI/180),(a[1]-b[1])*111320);
 const publicCoords:Record<string,number[]>={home:[-.1949,5.5682],makola:[-.2141,5.5485],kaneshie:[-.2346,5.5724],osu:[-.1819,5.5598],mall:[-.1738,5.6224],airport:[-.1787,5.6093],labadi:[-.140846,5.561955],legon:[-.1874,5.651]};
@@ -16,7 +17,7 @@ export async function residences(db:D1Database){const rows=await db.prepare('SEL
 async function hash(code:string){return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(code)))).map(x=>x.toString(16).padStart(2,'0')).join('')}
 export async function handleLife(db:D1Database,p:LifePlayer,input:Record<string,unknown>,view:(p:any)=>unknown):Promise<Response|null>{
  const type=String(input.type),life=readLife(p),now=Date.now();
- const kinds=['buy','consume','equip','furnish','vehicle-select','job-apply','shift-start','shift-complete','shift-cancel','property-buy','home-set','pass-create','pass-redeem','pass-revoke','flight-book','flight-arrive','cook-inventory','vitals','crash','respawn','recover','bus-board','bus-arrive'];
+ const kinds=['buy','consume','equip','furnish','vehicle-select','job-apply','shift-start','shift-complete','shift-cancel','property-buy','home-set','pass-create','pass-redeem','pass-revoke','flight-book','flight-arrive','cook-inventory','vitals','crash','respawn','recover','bus-board','bus-arrive','traffic-hit'];
  if(!kinds.includes(type))return null;
  if(life.health<=0&&!['respawn','vitals'].includes(type))return fail('Restart at home to continue');
  if(life.transit&&!['bus-arrive','vitals'].includes(type))return fail('Your bus is travelling');
@@ -32,6 +33,9 @@ export async function handleLife(db:D1Database,p:LifePlayer,input:Record<string,
   // Only active sessions consume needs. Returning after days away cannot kill a player.
   if(life.health>0){next.hunger=Math.max(0,p.hunger-elapsed/45);next.energy=Math.max(0,p.energy-elapsed/90);if(next.hunger===0)life.health=Math.max(0,life.health-elapsed/10);if(!life.health){life.deaths++;life.shift=null}}
   return save();
+ }
+ if(type==='traffic-hit'){
+  const speed=Number(input.speed);if(p.driving||life.shift||life.flight||life.transit||!Number.isFinite(speed)||speed<2||speed>30)return fail('Invalid traffic collision');if(now-life.lastTrafficHitAt<2500)return fail('Collision already recorded',429);life.lastTrafficHitAt=now;life.health=Math.max(0,life.health-pedestrianDamage(speed,input.highway===true));if(!life.health){life.deaths++;life.shift=null}event=life.health?'Hit by traffic. Move onto the pavement and recover at home.':'A fatal traffic collision. Restart at home.';return save();
  }
  if(type==='crash'){
   const speed=Number(input.speed);if(!p.driving||!Number.isFinite(speed)||speed<0||speed>12+Math.max(0,(now-(life.drivingSince||now))/1000)*6)return fail('Invalid collision');

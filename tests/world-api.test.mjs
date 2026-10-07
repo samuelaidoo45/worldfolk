@@ -35,3 +35,10 @@ test('voice opt-in, session ownership, recipient-only signaling and leaving',asy
  await voice(a.cookie,{type:'leave',sessionId:sa});assert.equal((await voice(a.cookie)).status,403);assert.equal((await voice(b.cookie)).body.peers.length,1);
  await voice(b.cookie,{type:'leave',sessionId:sb});await voice(c.cookie,{type:'leave',sessionId:sc});
 });
+
+test('pedestrian impacts persist, reject rapid duplicates and can be fatal',async()=>{
+ const p=await player('Traffic Test');let r=await call(p.cookie,{type:'traffic-hit',speed:8,highway:false});assert.equal(r.status,200);assert.ok(r.body.self.life.health<100&&r.body.self.life.health>0);
+ assert.equal((await call(p.cookie,{type:'traffic-hit',speed:8})).status,429);
+ let life=r.body.self.life;life.lastTrafficHitAt=Date.now()-4000;fixture(p.id,{life_json:JSON.stringify(life)});r=await call(p.cookie,{type:'traffic-hit',speed:22,highway:true});assert.equal(r.body.self.life.health,0);assert.equal(r.body.self.life.deaths,1);r=await call(p.cookie,{type:'respawn'});assert.equal(r.body.self.life.health,100);
+ assert.equal((await call(p.cookie,{type:'traffic-hit',speed:999})).status,400);
+});

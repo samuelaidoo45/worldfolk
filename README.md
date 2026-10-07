@@ -139,3 +139,13 @@ node --test --test-concurrency=1 tests/game-motion.test.mjs tests/life-api.test.
 ```
 
 The tests cover collision sweeps, frame-rate independence, no forward speed clamp, home permissions, purchase/wage atomicity, death/restart, timed fares/journeys, and voice-session isolation. Browser verification covers day/night/rain, a full tro-tro journey including reconnect, restart at home, and two WebRTC participants using synthetic silent tracks (no microphone access).
+
+## District architecture and street safety
+
+- Real Mapbox/OSM footprints receive stable, procedural façades: plaster, painted houses, brick, verandas, apartments, shopfronts, offices, coastal and heritage styles. Nearby roofs gain pitched forms, water tanks, rooftop equipment or venue details. These are game interpretations, not surveyed textures or authentic interiors.
+- Makola/Kaneshie, Osu, La coast, Jamestown, Airport City and Legon have distinct palettes and street props. Markets, beaches, churches and mosques open different explorable scenes. Holy Trinity Cathedral and Ghana National Mosque are included as destinations; venue coordinates are approximate.
+- Recorded Mapbox Satellite imagery streams through the map tile renderer as the camera moves. Press L to switch aerial imagery off/on. This is not a live camera feed; detail depends on available source imagery and network conditions.
+- Pedestrians follow road edges and avoid motorway/trunk routes. Walking navigation uses Mapbox walking directions and automatically recalculates for driving after entering a vehicle. Road warnings identify carriageways. Ambient traffic can injure pedestrians; fast highway impacts can be fatal. Health and restart state persist with duplicate impact protection. Ambient traffic is a local simulation.
+- Verification: 13 sequential automated tests, TypeScript check, source diff check; local browser inspection of varied façades, streamed satellite tiles, all four venue scenes and route UI.
+
+Map sources: [Mapbox Satellite](https://docs.mapbox.com/data/tilesets/reference/mapbox-satellite/). Venue references: [Holy Trinity Cathedral](https://www.wikidata.org/wiki/Q9710080), [Ghana National Mosque Complex](https://www.arc.gov.gh/portfolios/ghana-national-mosque-complex/).
