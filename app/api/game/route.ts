@@ -1,6 +1,9 @@
+import {readLife,lifeView,handleLife,propertyInfo,canEnter,residences} from './life';
+import {HOMES,propertyId} from '../../../public/game/life-catalog.js';
 import { env } from "cloudflare:workers";
 
 type Player = {
+  life_json:string; revision:number; session_token:string|null;
   id: string; name: string; avatar: string; place_id: string; money: number;
   pos_lng: number|null; pos_lat: number|null; heading: number; driving: number; last_move_at: number;
   energy: number; hunger: number; fun: number; social: number; hygiene: number;
@@ -12,7 +15,7 @@ type Player = {
 const PLACE_COORDS: Record<string, [number, number]> = {
   home: [-0.1949, 5.5682], square: [-0.1935, 5.5448], nkrumah: [-0.2024, 5.5446],
   jamestown: [-0.2161, 5.5352], makola: [-0.2141, 5.5485], osu: [-0.1819, 5.5598],
-  labadi: [-0.1397, 5.5596], arts: [-0.2033, 5.5464], theatre: [-0.2047, 5.5516],
+  labadi: [-0.140846, 5.561955], arts: [-0.2033, 5.5464], theatre: [-0.2047, 5.5516],
   dubois: [-0.1698, 5.5815], mall: [-0.1738, 5.6224], airport: [-0.1787, 5.6093],
   eastlegon: [-0.1572, 5.6357], legon: [-0.1874, 5.6510], kaneshie: [-0.2346, 5.5724],
 };
@@ -58,7 +61,7 @@ const cookieId = (request: Request) => request.headers.get("cookie")?.match(/(?:
 function view(p: Player) {
   const [lng,lat]=playerPosition(p);
   return {id:p.id,name:p.name,avatar:p.avatar,placeId:p.place_id,money:p.money,
-    lng,lat,heading:p.heading,driving:!!p.driving,
+    lng,lat,heading:p.heading,driving:!!p.driving,life:lifeView(p),
     energy:p.energy,hunger:p.hunger,fun:p.fun,social:p.social,hygiene:p.hygiene,
     xp:p.xp,level:Math.floor(p.xp/100)+1,day:p.day,minute:p.minute,
     homeTier:p.home_tier,job:p.job,jobsDone:p.jobs_done,chatsSent:p.chats_sent,visits:p.visits};
@@ -66,7 +69,7 @@ function view(p: Player) {
 function playerPosition(p:Player):[number,number]{return p.pos_lng!==null&&p.pos_lat!==null?[p.pos_lng,p.pos_lat]:placeCoords(p.place_id)??PLACE_COORDS.home}
 async function ownPlayer(db: D1Database, request: Request) {
   const id = cookieId(request);
-  return id ? await db.prepare("SELECT * FROM players WHERE id = ?").bind(id).first<Player>() : null;
+  return id ? await db.prepare("SELECT * FROM players WHERE session_token=? OR (id=? AND session_token IS NULL)").bind(id,id).first<Player>() : null;
 }
 function elapsed(p: Player, minutes: number) {
   const total = p.minute + minutes;
@@ -80,12 +83,13 @@ function distanceKm(a: [number,number], b: [number,number]) {
 export async function GET(request: Request) {
   const db=env.DB;if(!db)return json({error:"World storage is unavailable"},503);
   try {
-    const now=Date.now();const self=await ownPlayer(db,request);
-    const online=await db.prepare("SELECT id,name,avatar,place_id,pos_lng,pos_lat,heading,driving FROM players WHERE last_seen_at > ? ORDER BY last_seen_at DESC LIMIT 100").bind(now-120000).all<Pick<Player,"id"|"name"|"avatar"|"place_id"|"pos_lng"|"pos_lat"|"heading"|"driving">>();
+    const now=Date.now();const self=await ownPlayer(db,request);let sessionHeaders:HeadersInit={};
+    if(self&&!self.session_token){const token=crypto.randomUUID();const result=await db.prepare('UPDATE players SET session_token=? WHERE id=? AND session_token IS NULL').bind(token,self.id).run();if(result.meta.changes)sessionHeaders={"Set-Cookie":`accralife_session=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=2592000${new URL(request.url).protocol==='https:'?'; Secure':''}`}}
+    const online=await db.prepare("SELECT id,name,avatar,place_id,pos_lng,pos_lat,heading,driving,life_json FROM players WHERE last_seen_at > ? ORDER BY last_seen_at DESC LIMIT 100").bind(now-120000).all<Pick<Player,"id"|"name"|"avatar"|"place_id"|"pos_lng"|"pos_lat"|"heading"|"driving"|"life_json">>();
     const channel=new URL(request.url).searchParams.get("channel")||"city";
     const safeChannel=channel==="city"?"city":self?.place_id||"city";
     const messages=await db.prepare("SELECT m.id,m.channel,m.body,m.created_at,p.id AS player_id,p.name,p.avatar FROM messages m JOIN players p ON p.id=m.player_id WHERE m.channel=? ORDER BY m.created_at DESC LIMIT 40").bind(safeChannel).all();
-    return json({self:self?view(self):null,players:online.results.map((p)=>{const [lng,lat]=playerPosition(p as Player);return {id:p.id,name:p.name,avatar:p.avatar,placeId:p.place_id,lng,lat,heading:p.heading,driving:!!p.driving}}),messages:messages.results.reverse(),channel:safeChannel});
+    return json({self:self?view(self):null,players:online.results.map((p)=>{const [lng,lat]=playerPosition(p as Player);return {id:p.id,name:p.name,avatar:p.avatar,placeId:p.place_id,lng,lat,heading:p.heading,driving:!!p.driving,vehicle:readLife(p as Player).vehicle}}),messages:messages.results.reverse(),channel:safeChannel,residences:await residences(db),accessAllowed:!self?.place_id.startsWith("p_")||await canEnter(db,self!,self!.place_id)},200,sessionHeaders);
   } catch(error){console.error("world GET",error);return json({error:"Could not load the city"},500)}
 }
 
@@ -105,25 +109,31 @@ export async function POST(request: Request) {
       const name=String(input.name||"").trim().replace(/\s+/g," ");
       if(name.length<2||name.length>24||!/^[\p{L}\p{N} _'-]+$/u.test(name))return json({error:"Choose a name of 2–24 letters or numbers"},400);
       const avatar=String(input.avatar||"");if(!AVATARS.has(avatar))return json({error:"Choose an avatar"},400);
-      const id=crypto.randomUUID();
-      await db.prepare("INSERT INTO players (id,name,avatar,last_seen_at,created_at) VALUES (?,?,?,?,?)").bind(id,name,avatar,now,now).run();
+      const id=crypto.randomUUID(),token=crypto.randomUUID();
+      await db.prepare("INSERT INTO players (id,name,avatar,session_token,place_id,pos_lng,pos_lat,last_seen_at,created_at) VALUES (?,?,?,?,?,?,?,?,?)").bind(id,name,avatar,token,propertyId(id,'starter'),-.1949,5.5682,now,now).run();
       const p=await db.prepare("SELECT * FROM players WHERE id=?").bind(id).first<Player>();
       const secure=new URL(request.url).protocol==="https:"?"; Secure":"";
-      return json({self:view(p!)},201,{"Set-Cookie":`accralife_session=${id}; HttpOnly; SameSite=Lax; Path=/; Max-Age=2592000${secure}`});
+      return json({self:view(p!)},201,{"Set-Cookie":`accralife_session=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=2592000${secure}`});
     }
     const p=await ownPlayer(db,request);if(!p)return json({error:"Create your Sim to play"},401);
+    const lifeInput=type==='act'&&input.actionId==='cook'?{type:'cook-inventory'}:input;
+    const lifeResult=await handleLife(db,p,lifeInput,view);if(lifeResult)return lifeResult;
+    const life=readLife(p);
+    if(life.flight&&!["heartbeat","chat"].includes(type))return json({error:"Your flight is in progress"},400);
+    if(life.shift&&["vehicle","enter","travel","act"].includes(type))return json({error:"Finish or cancel your shift first"},400);
     if(type==="heartbeat"){
       await db.prepare("UPDATE players SET last_seen_at=? WHERE id=?").bind(now,p.id).run();
       return json({ok:true});
     }
     if(type==="move"){
+      if(life.shift)return json({error:"Finish or cancel your shift before leaving work"},400);
       const lng=Number(input.lng),lat=Number(input.lat),heading=Number(input.heading);
       if(!Number.isFinite(lng)||!Number.isFinite(lat)||!Number.isFinite(heading)||lng<ACCRA_BOUNDS.west||lng>ACCRA_BOUNDS.east||lat<ACCRA_BOUNDS.south||lat>ACCRA_BOUNDS.north)return json({error:"Stay inside Accra"},400);
       if(now-p.last_move_at<180)return json({error:"Slow down"},429);
       const seconds=p.last_move_at?Math.min(8,(now-p.last_move_at)/1000):8;
       const distance=distanceKm(playerPosition(p),[lng,lat])*1000;
       const spawnCorrection=input.spawnCorrection===true&&distance<=35&&(p.last_move_at===p.last_action_at||now-p.last_move_at>=8000);
-      if(!spawnCorrection&&distance>2.5+seconds*(p.driving?16:7))return json({error:"Move through the city to get there"},400);
+      if(!spawnCorrection&&distance>2.5+seconds*(p.driving?(life.vehicle==="motorcycle"?20:16):7))return json({error:"Move through the city to get there"},400);
       await db.prepare("UPDATE players SET pos_lng=?,pos_lat=?,heading=?,last_move_at=?,last_seen_at=? WHERE id=?").bind(lng,lat,((Math.round(heading)%360)+360)%360,now,now,p.id).run();
       return json({ok:true,lng,lat});
     }
@@ -138,30 +148,27 @@ export async function POST(request: Request) {
     }
     if(type==="enter"){
       if(p.driving)return json({error:"Park and leave the vehicle first"},400);
-      const place=String(input.placeId||"");const coords=placeCoords(place);
+      let place=String(input.placeId||"");if(place==='home')place=propertyId(p.id,life.home);
+      const property=place.startsWith('p_')?await propertyInfo(db,place):null;
+      if(place.startsWith('p_')&&!await canEnter(db,p,place))return json({error:"Private home. Ask its owner for an invitation pass.",requiresPass:true},403);
+      const coords=property?.coords||placeCoords(place);
+      if(place.startsWith('g_')&&coords&&HOMES.some(h=>Math.hypot((coords[0]-h.lng)*111000*Math.cos(coords[1]*Math.PI/180),(coords[1]-h.lat)*111000)<35))return json({error:'Private residential address. Choose its owner’s home and use a guest pass.',requiresPass:true},403);
       if(!coords||distanceKm(playerPosition(p),coords)>0.085)return json({error:"Move closer to interact here"},400);
       if(place!==p.place_id)await db.prepare("UPDATE players SET place_id=?,visits=visits+1,last_seen_at=? WHERE id=?").bind(place,now,p.id).run();
       const updated=await db.prepare("SELECT * FROM players WHERE id=?").bind(p.id).first<Player>();
       return json({self:view(updated!)});
     }
-    if(type==="travel"){
-      const place=String(input.placeId||"");const destination=placeCoords(place);
-      if(!destination)return json({error:"Choose a place in Accra"},400);
-      if(place===p.place_id&&distanceKm(playerPosition(p),destination)<0.01)return json({self:view(p),event:"You are already here."});
-      if(now-p.last_action_at<1000)return json({error:"Give your Sim a moment"},429);
-      const minutes=Math.min(75,Math.max(15,Math.round(15+distanceKm(playerPosition(p),destination)*4)));
-      const clock=elapsed(p,minutes);
-      await db.prepare("UPDATE players SET place_id=?,pos_lng=?,pos_lat=?,driving=0,energy=?,hunger=?,fun=?,day=?,minute=?,visits=visits+1,last_action_at=?,last_move_at=?,last_seen_at=? WHERE id=?")
-        .bind(place,destination[0],destination[1],clamp(p.energy-Math.ceil(minutes/12)),clamp(p.hunger-Math.ceil(minutes/16)),clamp(p.fun-1),clock.day,clock.minute,now,now,now,p.id).run();
-      const updated=await db.prepare("SELECT * FROM players WHERE id=?").bind(p.id).first<Player>();
-      return json({self:view(updated!),event:`You travelled for ${minutes} minutes.`});
-    }
+    if(type==="travel")return json({error:"Choose a route and walk, drive, or board a flight to travel"},400);
     if(type==="act"){
       if(p.driving)return json({error:"Leave the vehicle to do this activity"},400);
       const key=String(input.actionId||"");const action=ACTIONS[key];
+      if(["office","trade","cafe"].includes(key))return json({error:"Apply for a job and complete a timed shift through My life"},400);
+      const property=p.place_id.startsWith('p_')?await propertyInfo(db,p.place_id):null;
+      if(p.place_id.startsWith('p_')&&!await canEnter(db,p,p.place_id))return json({error:"Your guest pass has expired or been revoked"},403);
+      if(key==='upgrade'&&property&&property.ownerId!==p.id)return json({error:"Only the owner can upgrade this home"},403);
       const geoPlace=p.place_id.startsWith("g_")&&placeCoords(p.place_id)!==null;
-      if(!action||!(action.place.includes(p.place_id)||geoPlace&&["explore","stroll","connect"].includes(key)))return json({error:"That activity is not available here"},400);
-      if(distanceKm(playerPosition(p),placeCoords(p.place_id)??PLACE_COORDS.home)>0.085)return json({error:"Move closer to this place"},400);
+      if(!action||!(action.place.includes(p.place_id)||property&&action.place.includes('home')||geoPlace&&["explore","stroll","connect"].includes(key)))return json({error:"That activity is not available here"},400);
+      if(distanceKm(playerPosition(p),property?.coords??placeCoords(p.place_id)??PLACE_COORDS.home)>0.085)return json({error:"Move closer to this place"},400);
       if(now-p.last_action_at<1000)return json({error:"Give your Sim a moment"},429);
       if(p.energy<(action.minEnergy??0))return json({error:"Your Sim needs rest before doing this"},400);
       if(key==="upgrade"&&p.home_tier>=3)return json({error:"Your home is fully upgraded"},400);
@@ -175,8 +182,9 @@ export async function POST(request: Request) {
         social:clamp(p.social+(action.social??0)),hygiene:clamp(p.hygiene+(action.hygiene??0)-Math.floor(action.minutes/150)*2),
         xp:p.xp+(action.xp??3),day:clock.day,minute:clock.minute,homeTier:p.home_tier+(action.upgrade?1:0),
         job:action.job??p.job,jobsDone:p.jobs_done+(action.jobShift?1:0)};
-      await db.prepare("UPDATE players SET money=?,energy=?,hunger=?,fun=?,social=?,hygiene=?,xp=?,day=?,minute=?,home_tier=?,job=?,jobs_done=?,last_action_at=?,last_seen_at=? WHERE id=?")
-        .bind(values.money,values.energy,values.hunger,values.fun,values.social,values.hygiene,values.xp,values.day,values.minute,values.homeTier,values.job,values.jobsDone,now,now,p.id).run();
+      const result=await db.prepare("UPDATE players SET money=?,energy=?,hunger=?,fun=?,social=?,hygiene=?,xp=?,day=?,minute=?,home_tier=?,job=?,jobs_done=?,last_action_at=?,last_seen_at=?,revision=revision+1 WHERE id=? AND revision=?")
+        .bind(values.money,values.energy,values.hunger,values.fun,values.social,values.hygiene,values.xp,values.day,values.minute,values.homeTier,values.job,values.jobsDone,now,now,p.id,p.revision).run();
+      if(!result.meta.changes)return json({error:"Your state changed. Please try again."},409);
       const updated=await db.prepare("SELECT * FROM players WHERE id=?").bind(p.id).first<Player>();
       return json({self:view(updated!),event:action.upgrade?"Your home has a new upgrade!":`${action.label} complete.`});
     }

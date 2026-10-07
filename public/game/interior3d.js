@@ -10,7 +10,7 @@ const glass=new THREE.MeshStandardMaterial({color:0x8dd4ec,metalness:.12,roughne
 function box(scene,material,w,h,d,x,y,z){const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);mesh.position.set(x,y,z);mesh.castShadow=true;mesh.receiveShadow=true;scene.add(mesh);return mesh}
 function cylinder(scene,material,r,h,x,y,z){const mesh=new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,16),material);mesh.position.set(x,y,z);mesh.castShadow=true;scene.add(mesh);return mesh}
 function labelTexture(text){const canvas=document.createElement('canvas');canvas.width=512;canvas.height=128;const ctx=canvas.getContext('2d');ctx.fillStyle='#214436';ctx.fillRect(0,0,512,128);ctx.fillStyle='#f4dfaa';ctx.font='bold 49px sans-serif';ctx.textAlign='center';ctx.fillText(text.slice(0,18),256,78);return new THREE.CanvasTexture(canvas)}
-export function createInterior3D({avatar,kind,name,activities}){
+export function createInterior3D({avatar,kind,name,activities,furniture=[]}){
   const canvas=document.createElement('canvas');canvas.className='interior-canvas';canvas.setAttribute('aria-hidden','true');document.body.appendChild(canvas);
   const renderer=new THREE.WebGLRenderer({canvas,antialias:true});renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
   const scene=new THREE.Scene();scene.background=new THREE.Color(0x152b31);scene.fog=new THREE.Fog(0x152b31,22,45);
@@ -43,6 +43,11 @@ export function createInterior3D({avatar,kind,name,activities}){
   }else{
     box(scene,darkWood,4,1,1.1,0,.5,-3.6);block(0,-3.6,4,1.1);spot(0,-1.8,'Explore this place',activities.includes('explore')?'explore':activities[0]||'explore');
     for(const x of [-4.5,4.5]){cylinder(scene,new THREE.MeshStandardMaterial({color:0x287453}),.38,1.3,x,.65,-3);cylinder(scene,cream,.48,.45,x,.22,-3)}
+  }
+  if(kind==='home'){
+    if(furniture.includes('television')){box(scene,metal,2.1,1.3,.12,0,1.5,-5.62);box(scene,glass,1.9,1.1,.13,0,1.5,-5.52)}
+    if(furniture.includes('sofa')){box(scene,fabric,3,.65,1.2,3,.6,1.6);block(3,1.6,3,1.2)}
+    if(furniture.includes('bed'))box(scene,new THREE.MeshStandardMaterial({color:0xc7a454}),2.75,.12,1.5,-3,.94,-2.05);
   }
   const actor=createActor(avatar);actor.group.position.set(0,0,3.4);scene.add(actor.group);
   let x=0,z=3.4,width=0,height=0,actionStart=0,actionUntil=0,actionKind='';

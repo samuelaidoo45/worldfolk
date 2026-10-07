@@ -21,7 +21,7 @@ export function createActor(icon){
   for(const [pivot,sign] of [[leftArm,-1],[rightArm,1]]){pivot.position.set(sign*.34,1.28,0);const sleeve=new THREE.Mesh(new THREE.CylinderGeometry(.105,.09,.32,10),shirt);sleeve.position.y=-.15;pivot.add(sleeve);const forearm=new THREE.Mesh(new THREE.CylinderGeometry(.075,.07,.35,10),skin);forearm.position.y=-.47;pivot.add(forearm);group.add(pivot)}
   for(const [pivot,sign] of [[leftLeg,-1],[rightLeg,1]]){pivot.position.set(sign*.16,.72,0);const leg=new THREE.Mesh(new THREE.CylinderGeometry(.12,.095,.58,10),pants);leg.position.y=-.28;pivot.add(leg);const foot=new THREE.Mesh(new THREE.BoxGeometry(.2,.11,.33),shoes);foot.position.set(0,-.61,-.08);pivot.add(foot);group.add(pivot)}
   const shadow=new THREE.Mesh(new THREE.CircleGeometry(.42,24),new THREE.MeshBasicMaterial({color:0x10251c,transparent:true,opacity:.25,depthWrite:false}));shadow.rotation.x=-Math.PI/2;shadow.position.y=.025;group.add(shadow);
-  return {group,leftArm,rightArm,leftLeg,rightLeg,animate(t,moving){const step=moving?Math.sin(t*10)*.62:0;leftLeg.rotation.x=step;rightLeg.rotation.x=-step;leftArm.rotation.x=-step*.75;rightArm.rotation.x=step*.75;group.position.y=moving?Math.abs(Math.sin(t*10))*.05:Math.sin(t*2)*.018}};
+  return {group,leftArm,rightArm,leftLeg,rightLeg,outfit(id){shirt.color.setHex(id==='shirt'?0xcc993d:colors.shirt);shoes.color.setHex(id==='trainers'?0xeeeecc:0x1a2424)},animate(t,moving){const step=moving?Math.sin(t*10)*.62:0;leftLeg.rotation.x=step;rightLeg.rotation.x=-step;leftArm.rotation.x=-step*.75;rightArm.rotation.x=step*.75;group.position.y=moving?Math.abs(Math.sin(t*10))*.05:Math.sin(t*2)*.018}};
 }
 function createCar(color=0x236f91){
   const group=new THREE.Group(),paint=new THREE.MeshStandardMaterial({color,metalness:.42,roughness:.3}),glass=new THREE.MeshStandardMaterial({color:0x36515b,metalness:.25,roughness:.12}),rubber=new THREE.MeshStandardMaterial({color:0x1d2529,roughness:.9}),chrome=new THREE.MeshStandardMaterial({color:0xd4d8d3,metalness:.85,roughness:.23});
@@ -30,6 +30,22 @@ function createCar(color=0x236f91){
   part(new THREE.BoxGeometry(1.8,.14,.09),chrome,0,.53,-1.81);part(new THREE.BoxGeometry(1.8,.14,.09),chrome,0,.53,1.81);
   const shadow=new THREE.Mesh(new THREE.PlaneGeometry(2.3,4.1),new THREE.MeshBasicMaterial({color:0x071413,transparent:true,opacity:.25,depthWrite:false}));shadow.rotation.x=-Math.PI/2;shadow.position.y=.015;group.add(shadow);
   return {group};
+}
+function createMotorcycle(){
+  const group=new THREE.Group(),paint=new THREE.MeshStandardMaterial({color:0xd8ad3c,metalness:.4,roughness:.35}),dark=new THREE.MeshStandardMaterial({color:0x253336}),chrome=new THREE.MeshStandardMaterial({color:0xaabbbc,metalness:.8,roughness:.25});
+  const part=(geo,mat,x,y,z)=>{const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);group.add(m);return m};
+  for(const z of [-.85,.85]){part(new THREE.CylinderGeometry(.36,.36,.18,20),dark,0,.36,z).rotation.z=Math.PI/2;part(new THREE.CylinderGeometry(.18,.18,.19,16),chrome,0,.36,z).rotation.z=Math.PI/2}
+  part(new THREE.BoxGeometry(.38,.28,1.4),dark,0,.57,0);part(new THREE.BoxGeometry(.5,.33,.6),paint,0,.95,-.28);part(new THREE.BoxGeometry(.42,.16,.75),dark,0,1.02,.4);part(new THREE.BoxGeometry(.76,.07,.1),chrome,0,1.3,-.62);part(new THREE.BoxGeometry(.09,.85,.09),chrome,0,.77,-.82);
+  part(new THREE.SphereGeometry(.12,12,8),new THREE.MeshBasicMaterial({color:0xffecc1}),0,1.04,-.92);
+  const rider=createActor('🧑🏾');rider.group.scale.setScalar(.75);rider.group.position.set(0,.55,.25);rider.leftArm.rotation.x=1;rider.rightArm.rotation.x=1;rider.leftLeg.rotation.x=1.05;rider.rightLeg.rotation.x=1.05;group.add(rider.group);
+  return {group,rider:rider.group};
+}
+function createAircraft(){
+ const group=new THREE.Group(),body=new THREE.MeshStandardMaterial({color:0xf3eee1,metalness:.2,roughness:.4}),trim=new THREE.MeshStandardMaterial({color:0x26765c}),glass=new THREE.MeshStandardMaterial({color:0x234650});
+ const part=(g,m,x,y,z)=>{const o=new THREE.Mesh(g,m);o.position.set(x,y,z);group.add(o);return o};
+ part(new THREE.CylinderGeometry(.7,.58,9,20),body,0,0,0).rotation.x=Math.PI/2;part(new THREE.ConeGeometry(.7,1.8,20),body,0,0,-5.2).rotation.x=-Math.PI/2;part(new THREE.BoxGeometry(13,.15,1.65),trim,0,-.05,.2);part(new THREE.BoxGeometry(4.2,.12,1),trim,0,.35,3.7);part(new THREE.BoxGeometry(.12,1.8,1.5),trim,0,1,3.65);part(new THREE.BoxGeometry(1.04,.38,.5),glass,0,.44,-3.9);
+ for(const sign of [-1,1]){for(let z=-2.8;z<3;z+=1)part(new THREE.BoxGeometry(.04,.3,.45),glass,sign*.68,.2,z);part(new THREE.CylinderGeometry(.3,.3,1.5,12),body,sign*2,-.45,-.15).rotation.x=Math.PI/2;part(new THREE.BoxGeometry(.08,1.8,.08),trim,sign*2,-.45,-.94)}
+ return {group};
 }
 function createBeacon(color=0x67efa1){
   const group=new THREE.Group(),glow=new THREE.MeshBasicMaterial({color,transparent:true,opacity:.85,depthWrite:false});
@@ -53,7 +69,7 @@ export function createWorld3D(map,mapboxgl){
   const ambient=new THREE.AmbientLight(0xffffff,1.55);scene.add(ambient);
   const light=new THREE.DirectionalLight(0xffedcb,1.35);light.position.set(-8,18,10);scene.add(light);
   const own=createActor('🧑🏾');own.group.scale.setScalar(1);scene.add(own.group);
-  const parkedCar=createCar(0xc34842);scene.add(parkedCar.group);const others=new Map(),ambientActors=new Map(),beacons=[],doors=[];
+  let parkedCar=createCar(0xc34842);scene.add(parkedCar.group);const aircraft=createAircraft();scene.add(aircraft.group);aircraft.group.visible=false;let flying=false,altitude=0,vehicleKind='car';const others=new Map(),ambientActors=new Map(),beacons=[],doors=[];
   let frameTime=performance.now();
   let renderer=null,enabled=false,driving=false,cabinView=false,position=[-0.1949,5.5682],carPosition=null,carHeading=0,heading=0,moving=false,actionUntil=0;
   const layer={id:'accralife-3d-people',type:'custom',renderingMode:'3d',onAdd(_map,gl){renderer=new THREE.WebGLRenderer({canvas:map.getCanvas(),context:gl,antialias:true});renderer.autoClear=false;renderer.outputColorSpace=THREE.SRGBColorSpace},render(_gl,matrix){if(!renderer||!enabled)return;
@@ -61,8 +77,9 @@ export function createWorld3D(map,mapboxgl){
     const transform=new THREE.Matrix4().makeTranslation(mercator.x,mercator.y,mercator.z).scale(new THREE.Vector3(scale,-scale,scale)).multiply(new THREE.Matrix4().makeRotationX(Math.PI/2));
     camera.projectionMatrix=new THREE.Matrix4().fromArray(matrix).multiply(transform);
     const now=performance.now(),dt=Math.min(.1,(now-frameTime)/1000);frameTime=now;
-    own.group.visible=!driving;own.animate(t,moving||now<actionUntil);own.group.rotation.y=-heading*DEG;
-    if(carPosition){parkedCar.group.position.x=(carPosition[0]-position[0])*METERS_PER_DEGREE*Math.cos(position[1]*DEG);parkedCar.group.position.z=(position[1]-carPosition[1])*METERS_PER_DEGREE;parkedCar.group.rotation.y=-carHeading*DEG;parkedCar.group.visible=!cabinView}else parkedCar.group.visible=false;
+    own.group.visible=!driving&&!flying;aircraft.group.visible=flying;aircraft.group.position.y=altitude;aircraft.group.rotation.y=-heading*DEG;own.animate(t,moving||now<actionUntil);own.group.rotation.y=-heading*DEG;
+    if(parkedCar.rider)parkedCar.rider.visible=driving;
+    if(carPosition){parkedCar.group.position.x=(carPosition[0]-position[0])*METERS_PER_DEGREE*Math.cos(position[1]*DEG);parkedCar.group.position.z=(position[1]-carPosition[1])*METERS_PER_DEGREE;parkedCar.group.rotation.y=-carHeading*DEG;parkedCar.group.visible=!cabinView&&!flying}else parkedCar.group.visible=false;
     for(const item of others.values()){
       const previous=[...item.position];item.position=item.position.map((v,i)=>damp(v,item.target[i],4,dt));item.heading=turnToward(item.heading,item.targetHeading,5,dt);
       const [lng,lat]=item.position;item.model.group.position.x=(lng-position[0])*METERS_PER_DEGREE*Math.cos(position[1]*DEG);item.model.group.position.z=(position[1]-lat)*METERS_PER_DEGREE;item.model.group.visible=Math.hypot(item.model.group.position.x,item.model.group.position.z)<220;item.model.group.rotation.y=-item.heading*DEG;item.actor?.animate(t,distanceMetres(previous,item.position)>.003);
@@ -78,6 +95,9 @@ export function createWorld3D(map,mapboxgl){
   return {
     setEnabled(value){enabled=value;map.triggerRepaint()},
     setSelf(icon){scene.remove(own.group);Object.assign(own,createActor(icon));scene.add(own.group);map.triggerRepaint()},
+    setOutfit(id){own.outfit(id);map.triggerRepaint()},
+    setAircraft(value,height=0){flying=value;altitude=height;map.triggerRepaint()},
+    setVehicleKind(kind){if(kind===vehicleKind)return;vehicleKind=kind;scene.remove(parkedCar.group);disposeModel(parkedCar.group);parkedCar=kind==='motorcycle'?createMotorcycle():createCar(0xc34842);scene.add(parkedCar.group)},
     setDriving(value){driving=value;map.triggerRepaint()},
     setAmbient(actors){const ids=new Set();for(const data of actors){ids.add(data.id);let item=ambientActors.get(data.id);if(!item){const model=data.driving?createCar([0xd1b057,0x53696f,0xe5e3d8,0x495985][ambientActors.size%4]):createActor(data.avatar);item={model,actor:data.driving?null:model};ambientActors.set(data.id,item);scene.add(model.group)}item.data=data}for(const [id,item] of ambientActors){if(!ids.has(id)){scene.remove(item.model.group);disposeModel(item.model.group);ambientActors.delete(id)}}},
     setTimeOfDay(preset){ambient.intensity=preset==='night'?.8:preset==='dusk'||preset==='dawn'?1.1:1.55;light.intensity=preset==='night'?.45:preset==='dusk'||preset==='dawn'?.9:1.35;map.triggerRepaint()},
@@ -86,7 +106,7 @@ export function createWorld3D(map,mapboxgl){
     setPosition(lng,lat,direction=heading){position=[lng,lat];heading=direction;map.triggerRepaint()},
     setMoving(value){moving=value},
     playAction(){actionUntil=performance.now()+1300;map.triggerRepaint()},
-    setPlayers(players,selfId){const visible=new Set();for(const p of players){if(p.id===selfId||!Number.isFinite(p.lng)||!Number.isFinite(p.lat))continue;visible.add(p.id);let item=others.get(p.id);if(!item||item.driving!==!!p.driving){if(item){scene.remove(item.model.group);disposeModel(item.model.group)}const model=p.driving?createCar(0x40858c):createActor(p.avatar);item={model,actor:p.driving?null:model,driving:!!p.driving,position:[p.lng,p.lat],heading:p.heading||0};others.set(p.id,item);scene.add(model.group)}item.target=[p.lng,p.lat];item.targetHeading=p.heading||0}for(const [id,item] of others){if(!visible.has(id)){scene.remove(item.model.group);disposeModel(item.model.group);others.delete(id)}}map.triggerRepaint()},
+    setPlayers(players,selfId){const visible=new Set();for(const p of players){if(p.id===selfId||!Number.isFinite(p.lng)||!Number.isFinite(p.lat))continue;visible.add(p.id);let item=others.get(p.id);if(!item||item.driving!==!!p.driving||item.vehicle!==p.vehicle){if(item){scene.remove(item.model.group);disposeModel(item.model.group)}const model=p.driving?(p.vehicle==='motorcycle'?createMotorcycle():createCar(0x40858c)):createActor(p.avatar);item={model,actor:p.driving?null:model,driving:!!p.driving,vehicle:p.vehicle,position:[p.lng,p.lat],heading:p.heading||0};others.set(p.id,item);scene.add(model.group)}item.target=[p.lng,p.lat];item.targetHeading=p.heading||0}for(const [id,item] of others){if(!visible.has(id)){scene.remove(item.model.group);disposeModel(item.model.group);others.delete(id)}}map.triggerRepaint()},
     setBeacons(places){for(const item of beacons){scene.remove(item.beacon.group);disposeModel(item.beacon.group)}beacons.length=0;places.slice(0,8).forEach((p,index)=>{const beacon=createBeacon();beacons.push({beacon,lng:p.lng,lat:p.lat,phase:index});scene.add(beacon.group)});map.triggerRepaint()},
     setDoors(entries){entries.slice(0,3).forEach((p,index)=>{let item=doors[index];if(!item){const door=createDoorway();item={door};doors[index]=item;scene.add(door.group)}Object.assign(item,{lng:p.lng,lat:p.lat,heading:p.heading||0});item.door.group.visible=true});for(let i=entries.length;i<doors.length;i++)doors[i].door.group.visible=false;map.triggerRepaint()},
     destroy(){if(map.getLayer(layer.id))map.removeLayer(layer.id);renderer?.dispose()}

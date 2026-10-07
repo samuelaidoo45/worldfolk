@@ -8,13 +8,13 @@ export function stepWalker(velocity,x,y,bearing,running,dt){
   const rate=Math.hypot(x,y)>.05?10:15;
   return [damp(velocity[0],east,rate,dt),damp(velocity[1],north,rate,dt)];
 }
-export function stepCar(speed,steer,heading,throttle,turn,brake,dt){
+export function stepCar(speed,steer,heading,throttle,turn,brake,dt,motorcycle=false){
   steer=damp(steer,turn,7,dt);
-  const acceleration=throttle>0?(speed<-.1?9:4.4)*throttle:throttle<0?(speed>.1?10:2.8)*throttle:0;
+  const acceleration=throttle>0?(speed<-.1?9:motorcycle?5.5:4.4)*throttle:throttle<0?(speed>.1?10:2.8)*throttle:0;
   speed+=acceleration*dt;
   const drag=brake?13:Math.abs(throttle)<.05?.75:.16;
   speed=Math.sign(speed)*Math.max(0,Math.abs(speed)-drag*dt);
-  speed=Math.max(-3,Math.min(14,speed));
+  speed=Math.max(-3,Math.min(motorcycle?18:14,speed));
   // Bicycle steering: slower, wider turns at road speed; steering also works in reverse.
   const wheelAngle=steer*.48/(1+Math.abs(speed)*.065);
   heading=(heading+speed/2.6*Math.tan(wheelAngle)*180/Math.PI*dt+360)%360;

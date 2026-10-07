@@ -1,0 +1,34 @@
+// Shared game catalogue: virtual prices and facilities, not real-world offers.
+export const HOMES=[
+ {id:'starter',name:'Ridge starter apartment',area:'North Ridge',lng:-.1949,lat:5.5682,price:0},
+ {id:'osu-flat',name:'Osu courtyard apartment',area:'Osu',lng:-.1778,lat:5.5632,price:1800},
+ {id:'legon-house',name:'East Legon family house',area:'East Legon',lng:-.1535,lat:5.6372,price:6500},
+ {id:'coastal-villa',name:'La coastal villa',area:'La',lng:-.1345,lat:5.5637,price:14000}
+];
+export const GOODS=[
+ {id:'waakye',name:'Waakye takeaway',icon:'🍲',price:12,shops:['makola','kaneshie','osu'],kind:'food',hunger:35},
+ {id:'jollof',name:'Jollof and chicken',icon:'🥘',price:22,shops:['osu','mall'],kind:'food',hunger:55},
+ {id:'fruit',name:'Fresh fruit',icon:'🥭',price:8,shops:['makola','kaneshie','mall'],kind:'food',hunger:20},
+ {id:'water',name:'Bottled water',icon:'💧',price:4,shops:['makola','kaneshie','mall','osu','airport'],kind:'food',energy:8,hunger:6},
+ {id:'groceries',name:'Cooking ingredients',icon:'🧺',price:18,shops:['makola','kaneshie','mall'],kind:'groceries'},
+ {id:'shirt',name:'Kente shirt',icon:'👕',price:65,shops:['makola','mall'],kind:'clothing',fun:12},
+ {id:'trainers',name:'Trainers',icon:'👟',price:95,shops:['mall','kaneshie'],kind:'clothing',fun:10},
+ {id:'phone',name:'Smartphone',icon:'📱',price:260,shops:['mall','osu'],kind:'device',social:15},
+ {id:'sofa',name:'Living room sofa',icon:'🛋️',price:220,shops:['mall','kaneshie'],kind:'furniture',fun:18},
+ {id:'television',name:'Television',icon:'📺',price:380,shops:['mall'],kind:'furniture',fun:25},
+ {id:'bed',name:'Comfortable bed',icon:'🛏️',price:300,shops:['mall','kaneshie'],kind:'furniture',energy:20},
+ {id:'motorcycle',name:'City motorcycle',icon:'🏍️',price:550,shops:['mall','airport'],kind:'vehicle'},
+ {id:'car',name:'City compact car',icon:'🚗',price:1500,shops:['mall','airport'],kind:'vehicle'}
+];
+export const JOBS=[
+ {id:'trader',name:'Market assistant',place:'makola',wage:75,seconds:45,energy:10,task:'Sort produce and serve customers'},
+ {id:'cafe',name:'Café crew',place:'osu',wage:90,seconds:55,energy:12,task:'Prepare orders and serve the counter'},
+ {id:'retail',name:'Retail assistant',place:'mall',wage:105,seconds:60,energy:12,task:'Restock shelves and assist shoppers'},
+ {id:'office',name:'Office assistant',place:'airport',wage:130,seconds:75,energy:15,task:'Complete the office service desk shift'}
+];
+export const TERMINALS=[
+ {id:'airport',name:'Airport City game terminal',lng:-.178656,lat:5.60951},
+ {id:'labadi',name:'La game air terminal',lng:-.140846,lat:5.561955},
+ {id:'legon',name:'Legon game air terminal',lng:-.187211,lat:5.651}
+];
+export const propertyId=(owner,home)=>`p_${owner}_${home}`;

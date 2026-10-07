@@ -1,0 +1,59 @@
+import {HOMES,GOODS,JOBS,TERMINALS,propertyId} from './life-catalog.js';
+import {distanceMetres} from './motion.js';
+export function createLifeUI({state,action,navigate,enterHome,places}){
+ let open=false,tab='bag',signature='',busy=false,lastPass='';
+ const launch=document.createElement('button');launch.className='life-launch';launch.textContent='I · My life';document.body.append(launch);
+ const panel=document.createElement('section');panel.className='life-drawer hidden';panel.setAttribute('aria-label','My virtual life');panel.innerHTML='<header><div><small>YOUR LIFE IN ACCRA</small><h2>Make yourself at home</h2></div><button aria-label="Close my life">×</button></header><div class="life-wallet"></div><nav aria-label="Life sections"></nav><div class="life-content"></div><p class="life-note">All prices and ownership are part of the game. Progress saves automatically.</p>';document.body.append(panel);
+ const content=panel.querySelector('.life-content'),wallet=panel.querySelector('.life-wallet');
+ for(const [id,label] of [['bag','Bag'],['work','Work'],['shops','Shops'],['homes','Homes'],['transport','Transport']]){const b=document.createElement('button');b.textContent=label;b.onclick=()=>show(id);b.dataset.tab=id;panel.querySelector('nav').append(b)}
+ function show(section=tab){if(!state.self)return;tab=section;open=true;state.keys.clear();state.joystick={x:0,y:0};panel.classList.remove('hidden');render()}
+ function close(){open=false;panel.classList.add('hidden')}
+ launch.onclick=()=>open?close():show();panel.querySelector('header button').onclick=close;
+ const near=p=>state.position&&distanceMetres(state.position,[p.lng,p.lat])<85;
+ const place=id=>places.find(p=>p.id===id);
+ function route(p){close();navigate(p)}
+ function heading(text,detail){const h=document.createElement('h3');h.textContent=text;content.append(h);if(detail){const p=document.createElement('p');p.className='life-description';p.textContent=detail;content.append(p)}}
+ function row(title,detail){const el=document.createElement('article');el.className='life-item';const h=document.createElement('strong'),p=document.createElement('p'),buttons=document.createElement('div');h.textContent=title;p.textContent=detail;buttons.className='life-actions';el.append(h,p,buttons);content.append(el);return buttons}
+ function button(parent,label,fn,disabled=false){const b=document.createElement('button');b.textContent=label;b.disabled=disabled||busy;b.onclick=fn;parent.append(b);return b}
+ async function transact(input){if(busy)return null;busy=true;render();try{const result=await action(input);if(result?.pass)lastPass=`${result.pass} · valid for one guest, for 24 hours`;return result}finally{busy=false;render()}}
+ function render(){if(!open||!state.self)return;const p=state.self,life=p.life;content.replaceChildren();wallet.textContent=`₵${p.money.toLocaleString()} · ${life.homeName} · apartment ${life.apartment}`;panel.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
+ if(tab==='bag'){
+  heading('Your bag','Buy groceries and goods in the city. Eat food wherever you are; place furniture inside your own home.');let count=0;
+  for(const item of GOODS){const qty=life.inventory[item.id]||0;if(!qty)continue;count++;const buttons=row(`${item.icon} ${item.name} × ${qty}`,item.kind==='food'?`Restores hunger${item.energy?' and energy':''}`:item.kind==='groceries'?'Cook two meals in your kitchen':item.kind==='furniture'?'Use inside your home':life.outfit===item.id?'Currently using':'Owned');
+   if(item.kind==='food')button(buttons,'Eat / drink',()=>transact({type:'consume',itemId:item.id}));
+   if(['clothing','device'].includes(item.kind))button(buttons,life.outfit===item.id?'Equipped':'Equip',()=>transact({type:'equip',itemId:item.id}),life.outfit===item.id);
+   if(item.kind==='furniture')button(buttons,'Place in home',()=>transact({type:'furnish',itemId:item.id}),!p.placeId.startsWith(`p_${p.id}_`));
+   if(item.kind==='groceries')button(buttons,'Cook two meals',()=>transact({type:'cook-inventory'}),state.mode!=='indoor');
+  }
+  if(!count)heading('Your bag is empty','Visit Makola Market or Accra Mall to buy food, clothing, furniture and more.');
+  const b=row('Your household',life.furnished.length?life.furnished.map(id=>GOODS.find(g=>g.id===id)?.name).join(' · '):'Starter furnishings included with your home');button(b,'Find shops',()=>show('shops'));
+ }
+ if(tab==='shops'){
+  heading('City shops','Walk or drive to the shop, park, then purchase with your earned cedis.');
+  const nearby=places.filter(q=>['makola','kaneshie','osu','mall','airport'].includes(q.id)&&near(q));
+  if(!nearby.length){for(const id of ['makola','mall','osu','kaneshie']){const q=place(id),b=row(q.name,q.area);button(b,'Set route',()=>route(q))}}
+  for(const item of GOODS.filter(g=>!nearby.length||g.shops.some(id=>nearby.some(q=>q.id===id)))){const available=item.shops.some(id=>nearby.some(q=>q.id===id)),owned=item.kind==='vehicle'&&life.vehicles.includes(item.id);const b=row(`${item.icon} ${item.name}`,`₵${item.price} · ${item.shops.map(id=>place(id)?.name).join(' / ')}`);button(b,owned?'Owned':available?'Buy':'Visit shop to buy',()=>transact({type:'buy',itemId:item.id}),owned||!available||p.driving||p.money<item.price)}
+ }
+ if(tab==='work'){
+  heading('Earn your living','Apply at a workplace, complete a shift, and collect your wages. Leaving work requires cancelling the shift.');
+  if(life.shift){const job=JOBS.find(j=>j.id===life.shift.jobId),b=row(job.name,job.task),timer=document.createElement('p');timer.className='shift-timer';b.before(timer);timer.dataset.ends=life.shift.endsAt;button(b,Date.now()>=life.shift.endsAt?'Collect wages':'Working…',()=>transact({type:'shift-complete'}),Date.now()<life.shift.endsAt);button(b,'Cancel shift',()=>transact({type:'shift-cancel'}));}
+  for(const job of JOBS){const q=place(job.place),hired=life.job===job.id,b=row(job.name,`${q.name} · ₵${job.wage} per ${job.seconds}s shift · ${job.task}`);if(!near(q))button(b,'Go to workplace',()=>route(q));else button(b,hired?'Start shift':'Apply for job',async()=>{const result=await transact({type:hired?'shift-start':'job-apply',jobId:job.id});if(result&&hired)close()},!!life.shift||p.driving)}
+ }
+ if(tab==='homes'){
+  heading('Your private homes','Your starter apartment is assigned automatically. Owners can issue a one-guest invitation pass or revoke all passes.');
+  for(const id of life.properties){const home=HOMES.find(h=>h.id===id),property={...home,id:propertyId(p.id,id),name:`Your ${home.name}`,type:'Private home',emoji:'🏠',activities:['sleep','cook','shower','relax','upgrade']},b=row(home.name,`${home.area} · ${life.home===id?'Primary home':'Owned'} · private`);button(b,'Go home',()=>route(property));button(b,'Enter',()=>{close();enterHome(property)},!near(home)||p.driving);if(life.home!==id)button(b,'Make primary',()=>transact({type:'home-set',homeId:id}));button(b,'Create guest pass',()=>transact({type:'pass-create',propertyId:property.id}));button(b,'Revoke passes',()=>transact({type:'pass-revoke',propertyId:property.id}));}
+  if(lastPass){const box=document.createElement('p');box.className='life-pass';box.textContent=lastPass;content.append(box)}
+  heading('Use a guest pass');const form=document.createElement('form'),input=document.createElement('input'),submit=document.createElement('button');input.placeholder='16-character invitation pass';input.setAttribute('aria-label','Invitation pass');input.maxLength=16;submit.textContent='Redeem pass';submit.disabled=busy;form.append(input,submit);form.onsubmit=async e=>{e.preventDefault();const code=input.value;const result=await transact({type:'pass-redeem',code});if(result?.propertyId){const h=state.residences.find(h=>h.id===result.propertyId);if(h)route({...h,type:'Private home',emoji:'🏠',activities:['sleep','cook','relax']})}};content.append(form);
+  heading('Homes for sale','Visit the address to buy. Each purchase is your own private residence.');for(const h of HOMES.filter(h=>h.price&&!life.properties.includes(h.id))){const b=row(h.name,`₵${h.price.toLocaleString()} · ${h.area}`);button(b,'View address',()=>route({...h,id:`estate_${h.id}`,emoji:'🏠'}));button(b,'Buy home',()=>transact({type:'property-buy',homeId:h.id}),!near(h)||p.money<h.price||p.driving)}
+  heading('Visit a neighbour','Private residences require their owner’s pass.');for(const h of state.residences.filter(h=>h.ownerId!==p.id).slice(0,20)){const b=row(h.name,h.area+' · pass required');button(b,'Set route',()=>route({...h,type:'Private home',emoji:'🔐',activities:['sleep','cook','relax']}));button(b,'Enter with pass',()=>{close();enterHome({...h,type:'Private home',emoji:'🔐',activities:['sleep','cook','relax']})},!near(h)||p.driving)}
+ }
+ if(tab==='transport'){
+  heading('Your garage','Your starter car is included. Buy a motorcycle in the city, then select it beside your parked vehicle.');for(const id of life.vehicles){const b=row(id==='motorcycle'?'🏍️ City motorcycle':'🚗 City compact car',life.vehicle===id?'Selected vehicle':'Owned');button(b,life.vehicle===id?'Selected':'Use vehicle',()=>transact({type:'vehicle-select',vehicle:id}),p.driving||life.vehicle===id||!state.nearCar)}
+  heading('✈ City air shuttle','Fictional game terminals connect Airport City, La and Legon. Tickets cost ₵65; flights take 60 seconds and continue after reconnecting.');
+  const from=TERMINALS.find(t=>near(t));for(const t of TERMINALS){if(t.id===from?.id)continue;const b=row(t.name,from?`From ${from.name} · ₵65`:'Visit a terminal to board');button(b,from?'Board flight':'Go to terminal',async()=>{if(from){const r=await transact({type:'flight-book',destination:t.id});if(r)close()}else route(place(t.id))},from&&(p.money<65||p.driving||!!life.shift)||!!life.flight)}
+ }
+ }
+ function sync(){launch.classList.toggle('hidden',!state.self);const s=JSON.stringify([state.self?.life,state.self?.money,state.self?.driving,state.mode,state.residences?.length]);if(signature!==s){signature=s;render()}}
+ let lastReady=false;function tick(){if(!open)return;const shift=state.self?.life?.shift,ready=!!shift&&Date.now()>=shift.endsAt;if(ready!==lastReady){lastReady=ready;render()}const timer=panel.querySelector('.shift-timer');if(timer)timer.textContent=ready?'Shift finished. Collect your wages.':`${Math.max(0,Math.ceil((shift.endsAt-Date.now())/1000))} seconds remaining`}
+ return {show,close,sync,tick,get isOpen(){return open}};
+}

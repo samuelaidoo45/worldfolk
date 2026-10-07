@@ -1,4 +1,4 @@
-import { integer, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { integer, real, sqliteTable, text, index, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 export const players = sqliteTable("players", {
   id: text("id").primaryKey(),
@@ -10,6 +10,9 @@ export const players = sqliteTable("players", {
   heading: integer("heading").notNull().default(0),
   driving: integer("driving").notNull().default(0),
   lastMoveAt: integer("last_move_at").notNull().default(0),
+  sessionToken: text("session_token"),
+  lifeJson: text("life_json").notNull().default("{}"),
+  revision: integer("revision").notNull().default(0),
   money: integer("money").notNull().default(120),
   energy: integer("energy").notNull().default(80),
   hunger: integer("hunger").notNull().default(80),
@@ -28,7 +31,7 @@ export const players = sqliteTable("players", {
   lastChatAt: integer("last_chat_at").notNull().default(0),
   lastSeenAt: integer("last_seen_at").notNull().default(0),
   createdAt: integer("created_at").notNull().default(0),
-});
+}, table => [uniqueIndex("players_session_token_unique").on(table.sessionToken)]);
 
 export const messages = sqliteTable("messages", {
   id: text("id").primaryKey(),
@@ -37,3 +40,12 @@ export const messages = sqliteTable("messages", {
   body: text("body").notNull(),
   createdAt: integer("created_at").notNull(),
 });
+
+export const propertyInvites = sqliteTable("property_invites", {
+  id: text("id").primaryKey(),
+  propertyId: text("property_id").notNull(),
+  ownerId: text("owner_id").notNull().references(() => players.id),
+  codeHash: text("code_hash").notNull(),
+  guestId: text("guest_id"),
+  expiresAt: integer("expires_at").notNull(),
+}, table => [uniqueIndex("property_invites_code_unique").on(table.codeHash),index("property_invites_property_guest").on(table.propertyId,table.guestId),index("property_invites_owner_expiry").on(table.ownerId,table.expiresAt)]);
