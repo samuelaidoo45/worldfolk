@@ -124,3 +124,18 @@ The portable build runs Vinext directly without a host `timeout` command. The ma
 
 - [vinext Documentation](https://github.com/cloudflare/vinext)
 - [Drizzle D1 Guide](https://orm.drizzle.team/docs/get-started/d1-new)
+
+## AccraLife world systems
+
+- Street/scenic cameras: K; right mouse drag looks around. Shared fictional 48-minute day, weather every four minutes, crisp vector roads and building façades.
+- Forward driving has acceleration and braking without a fixed speed cap. Impacts above 8 m/s cause health damage; fatal impacts and starvation allow a home restart that keeps possessions. Recover inside your own home from My life → Bag. Needs pause after more than 90 seconds without a vital update.
+- T opens the five-stop public tro-tro service. ₵10 per road leg, departures every 30 seconds, saved journeys resume after reconnecting. Routes are game services, not real transit schedules.
+- Opt-in WebRTC voice circle supports six people, starts muted, B is push-to-talk, with individual mute and Leave controls. Signaling uses authenticated, recipient-scoped D1 records with a 60-second delivery window. No voice recording. STUN is configured; restrictive networks need a TURN relay before universal connectivity can be promised.
+
+Run local integration tests **sequentially** because fixture helpers share the preview SQLite database with the running dev server:
+
+```sh
+node --test --test-concurrency=1 tests/game-motion.test.mjs tests/life-api.test.mjs tests/world-api.test.mjs
+```
+
+The tests cover collision sweeps, frame-rate independence, no forward speed clamp, home permissions, purchase/wage atomicity, death/restart, timed fares/journeys, and voice-session isolation. Browser verification covers day/night/rain, a full tro-tro journey including reconnect, restart at home, and two WebRTC participants using synthetic silent tracks (no microphone access).

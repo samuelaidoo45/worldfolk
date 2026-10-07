@@ -1,3 +1,5 @@
+import transit from '../../../public/game/transit-routes.json';
+import {routePoint} from '../../../public/game/transit.js';
 import {readLife,lifeView,handleLife,propertyInfo,canEnter,residences} from './life';
 import {HOMES,propertyId} from '../../../public/game/life-catalog.js';
 import { env } from "cloudflare:workers";
@@ -89,7 +91,7 @@ export async function GET(request: Request) {
     const channel=new URL(request.url).searchParams.get("channel")||"city";
     const safeChannel=channel==="city"?"city":self?.place_id||"city";
     const messages=await db.prepare("SELECT m.id,m.channel,m.body,m.created_at,p.id AS player_id,p.name,p.avatar FROM messages m JOIN players p ON p.id=m.player_id WHERE m.channel=? ORDER BY m.created_at DESC LIMIT 40").bind(safeChannel).all();
-    return json({self:self?view(self):null,players:online.results.map((p)=>{const [lng,lat]=playerPosition(p as Player);return {id:p.id,name:p.name,avatar:p.avatar,placeId:p.place_id,lng,lat,heading:p.heading,driving:!!p.driving,vehicle:readLife(p as Player).vehicle}}),messages:messages.results.reverse(),channel:safeChannel,residences:await residences(db),accessAllowed:!self?.place_id.startsWith("p_")||await canEnter(db,self!,self!.place_id)},200,sessionHeaders);
+    return json({self:self?view(self):null,players:online.results.map((p)=>{const life=readLife(p as Player),trip=life.transit,route=transit.routes.find(r=>r.id===trip?.routeId),ride=trip&&route?routePoint(route.coordinates,(now-trip.startedAt)/(trip.endsAt-trip.startedAt)):null,[lng,lat]=ride?.position||playerPosition(p as Player);return {id:p.id,name:p.name,avatar:p.avatar,placeId:p.place_id,lng,lat,heading:ride?.heading??p.heading,driving:!!p.driving||!!ride,vehicle:ride?'bus':life.vehicle,health:life.health}}),messages:messages.results.reverse(),channel:safeChannel,residences:await residences(db),accessAllowed:!self?.place_id.startsWith("p_")||await canEnter(db,self!,self!.place_id)},200,sessionHeaders);
   } catch(error){console.error("world GET",error);return json({error:"Could not load the city"},500)}
 }
 
@@ -115,10 +117,13 @@ export async function POST(request: Request) {
       const secure=new URL(request.url).protocol==="https:"?"; Secure":"";
       return json({self:view(p!)},201,{"Set-Cookie":`accralife_session=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=2592000${secure}`});
     }
-    const p=await ownPlayer(db,request);if(!p)return json({error:"Create your Sim to play"},401);
+    let p=await ownPlayer(db,request);if(!p)return json({error:"Create your Sim to play"},401);
+    if(p.driving&&!readLife(p).drivingSince){const migrated={...readLife(p),drivingSince:now-30000};await db.prepare("UPDATE players SET life_json=?,revision=revision+1 WHERE id=? AND revision=?").bind(JSON.stringify(migrated),p.id,p.revision).run();const updated=await db.prepare("SELECT * FROM players WHERE id=?").bind(p.id).first<Player>();if(updated)p=updated;}
     const lifeInput=type==='act'&&input.actionId==='cook'?{type:'cook-inventory'}:input;
     const lifeResult=await handleLife(db,p,lifeInput,view);if(lifeResult)return lifeResult;
     const life=readLife(p);
+    if(life.health<=0&&!["heartbeat","chat"].includes(type))return json({error:"Restart at home to continue"},400);
+    if(life.transit&&!["heartbeat","chat"].includes(type))return json({error:"Your bus journey is in progress"},400);
     if(life.flight&&!["heartbeat","chat"].includes(type))return json({error:"Your flight is in progress"},400);
     if(life.shift&&["vehicle","enter","travel","act"].includes(type))return json({error:"Finish or cancel your shift first"},400);
     if(type==="heartbeat"){
@@ -133,7 +138,7 @@ export async function POST(request: Request) {
       const seconds=p.last_move_at?Math.min(8,(now-p.last_move_at)/1000):8;
       const distance=distanceKm(playerPosition(p),[lng,lat])*1000;
       const spawnCorrection=input.spawnCorrection===true&&distance<=35&&(p.last_move_at===p.last_action_at||now-p.last_move_at>=8000);
-      if(!spawnCorrection&&distance>2.5+seconds*(p.driving?(life.vehicle==="motorcycle"?20:16):7))return json({error:"Move through the city to get there"},400);
+      if(!spawnCorrection&&distance>2.5+seconds*(p.driving?(12+Math.max(0,(now-(life.drivingSince||now))/1000)*6):7))return json({error:"Move through the city to get there"},400);
       await db.prepare("UPDATE players SET pos_lng=?,pos_lat=?,heading=?,last_move_at=?,last_seen_at=? WHERE id=?").bind(lng,lat,((Math.round(heading)%360)+360)%360,now,now,p.id).run();
       return json({ok:true,lng,lat});
     }
@@ -142,7 +147,7 @@ export async function POST(request: Request) {
       if(entering&&p.driving||!entering&&!p.driving)return json({error:entering?"You are already driving":"You are already on foot"},400);
       if(!Number.isFinite(lng)||!Number.isFinite(lat)||lng<ACCRA_BOUNDS.west||lng>ACCRA_BOUNDS.east||lat<ACCRA_BOUNDS.south||lat>ACCRA_BOUNDS.north)return json({error:"Choose a spot in Accra"},400);
       if(distanceKm(playerPosition(p),[lng,lat])>(entering?0.008:0.004))return json({error:"Move closer to the vehicle"},400);
-      await db.prepare("UPDATE players SET driving=?,pos_lng=?,pos_lat=?,last_move_at=?,last_seen_at=? WHERE id=?").bind(entering?1:0,lng,lat,now,now,p.id).run();
+      await db.prepare("UPDATE players SET driving=?,pos_lng=?,pos_lat=?,last_move_at=?,last_seen_at=?,life_json=?,revision=revision+1 WHERE id=? AND revision=?").bind(entering?1:0,lng,lat,now,now,JSON.stringify({...life,drivingSince:entering?now:0}),p.id,p.revision).run();
       const updated=await db.prepare("SELECT * FROM players WHERE id=?").bind(p.id).first<Player>();
       return json({self:view(updated!)});
     }

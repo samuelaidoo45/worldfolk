@@ -14,7 +14,7 @@ export function stepCar(speed,steer,heading,throttle,turn,brake,dt,motorcycle=fa
   speed+=acceleration*dt;
   const drag=brake?13:Math.abs(throttle)<.05?.75:.16;
   speed=Math.sign(speed)*Math.max(0,Math.abs(speed)-drag*dt);
-  speed=Math.max(-3,Math.min(motorcycle?18:14,speed));
+  speed=Math.max(-3,speed); // Forward speed grows with acceleration; there is no fixed top-speed clamp.
   // Bicycle steering: slower, wider turns at road speed; steering also works in reverse.
   const wheelAngle=steer*.48/(1+Math.abs(speed)*.065);
   heading=(heading+speed/2.6*Math.tan(wheelAngle)*180/Math.PI*dt+360)%360;
@@ -28,3 +28,5 @@ export function projectOnSegment(point,a,b){
   const t=Math.max(0,Math.min(1,-(ax*dx+ay*dy)/(dx*dx+dy*dy||1)));
   return {position:[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t],distance:Math.hypot(ax+dx*t,ay+dy*t),t};
 }
+
+export const crashDamage=speed=>Math.min(100,Math.max(0,Math.round((Math.abs(speed)-8)*3.5)));

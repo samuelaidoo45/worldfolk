@@ -11,3 +11,13 @@ test('car brakes to rest, steering requires motion, reverse turns correctly',()=
 test('swept walking and vehicle collision cannot tunnel across a thin wall',()=>{const p=physics();assert.ok(p.move(point(-5,0),point(5,0)).blocked);assert.ok(p.move(point(-5,0),point(5,0)).position[0]<origin[0]);assert.ok(p.moveVehicle(point(-5,0),point(5,0),90).blocked)});
 test('walking slides along a wall and doorway stays at its midpoint',()=>{const p=physics(),result=p.move(point(-.7,-3),point(.7,3));assert.ok(result.blocked);assert.ok(distanceMetres(point(-.7,-3),result.position)>3);const a=p.nearestDoor(point(-3,-1)),b=p.nearestDoor(point(-3,1));assert.ok(distanceMetres(a.position,b.position)<.01)});
 test('route progress reports road distance and off-route distance',()=>{const route=[point(0,0),point(0,100),point(100,100)],p=routeProgress(route,point(5,40));assert.ok(Math.abs(p.remaining-160)<.1);assert.ok(Math.abs(p.distance-5)<.1);assert.ok(Math.abs(turnToward(359,1,10,.1)-359)<2)});
+
+test('forward acceleration has no fixed cap and impact damage scales with speed',async()=>{
+ const {crashDamage}=await import('../public/game/motion.js');let car={speed:0,steer:0,heading:0};
+ for(let i=0;i<60*60;i++)car=stepCar(car.speed,car.steer,car.heading,1,0,false,1/60);
+ assert.ok(car.speed>200);assert.equal(crashDamage(5),0);assert.ok(crashDamage(20)>crashDamage(12));assert.equal(crashDamage(40),100);
+});
+test('public transport follows each road segment, with bounded endpoints',async()=>{
+ const {routePoint}=await import('../public/game/transit.js');const line=[[0,0],[.001,0],[.001,.001]];
+ assert.deepEqual(routePoint(line,-1).position,line[0]);assert.deepEqual(routePoint(line,2).position,line[2]);const mid=routePoint(line,.75).position;assert.equal(mid[0],.001);assert.ok(mid[1]>0&&mid[1]<.001);
+});

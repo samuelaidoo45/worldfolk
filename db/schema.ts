@@ -49,3 +49,17 @@ export const propertyInvites = sqliteTable("property_invites", {
   guestId: text("guest_id"),
   expiresAt: integer("expires_at").notNull(),
 }, table => [uniqueIndex("property_invites_code_unique").on(table.codeHash),index("property_invites_property_guest").on(table.propertyId,table.guestId),index("property_invites_owner_expiry").on(table.ownerId,table.expiresAt)]);
+
+export const voiceSessions = sqliteTable('voice_sessions', {
+  playerId: text('player_id').primaryKey().references(() => players.id),
+  sessionId: text('session_id').notNull(),
+  lastSeen: integer('last_seen').notNull(),
+  lastSignal: integer('last_signal').notNull().default(0),
+});
+export const voiceSignals = sqliteTable('voice_signals', {
+  id: integer('id').primaryKey({autoIncrement:true}),
+  fromSession: text('from_session').notNull(),
+  toSession: text('to_session').notNull(),
+  payload: text('payload').notNull(),
+  createdAt: integer('created_at').notNull(),
+}, table => [index('voice_signals_recipient').on(table.toSession,table.id),index('voice_signals_expiry').on(table.createdAt)]);
