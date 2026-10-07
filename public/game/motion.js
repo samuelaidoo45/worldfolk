@@ -29,4 +29,5 @@ export function projectOnSegment(point,a,b){
   return {position:[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t],distance:Math.hypot(ax+dx*t,ay+dy*t),t};
 }
 
-export const crashDamage=speed=>Math.min(100,Math.max(0,Math.round((Math.abs(speed)-8)*3.5)));
+// Minor bumps are harmless; even a severe driving impact removes at most 25 health.
+export const crashDamage=speed=>Math.min(25,Math.max(0,Math.round((Math.abs(speed)-8)*1.1)));

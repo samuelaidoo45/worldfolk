@@ -15,7 +15,7 @@ test('route progress reports road distance and off-route distance',()=>{const ro
 test('forward acceleration has no fixed cap and impact damage scales with speed',async()=>{
  const {crashDamage}=await import('../public/game/motion.js');let car={speed:0,steer:0,heading:0};
  for(let i=0;i<60*60;i++)car=stepCar(car.speed,car.steer,car.heading,1,0,false,1/60);
- assert.ok(car.speed>200);assert.equal(crashDamage(5),0);assert.ok(crashDamage(20)>crashDamage(12));assert.equal(crashDamage(40),100);
+ assert.ok(car.speed>200);assert.equal(crashDamage(5),0);assert.ok(crashDamage(20)>crashDamage(12));assert.equal(crashDamage(40),25);assert.equal(crashDamage(200),25);assert.equal(crashDamage(-40),25);
 });
 test('public transport follows each road segment, with bounded endpoints',async()=>{
  const {routePoint}=await import('../public/game/transit.js');const line=[[0,0],[.001,0],[.001,.001]];

@@ -12,7 +12,9 @@ test('health, unlimited-speed movement validation, death and bus journey persist
  assert.equal(life.health,100);assert.equal((await call(p.cookie,{type:'respawn'})).status,400);
  fixture(p.id,{driving:1,life_json:JSON.stringify({...life,drivingSince:Date.now()-30000}),last_move_at:Date.now()-1000});
  r=await call(p.cookie,{type:'move',lng:p.self.lng+.0005,lat:p.self.lat,heading:90});assert.equal(r.status,200,'driving faster than the old cap is accepted');
- r=await call(p.cookie,{type:'crash',speed:38});assert.equal(r.status,200);assert.equal(r.body.self.life.health,0);assert.equal(r.body.self.life.deaths,1);
+ r=await call(p.cookie,{type:'crash',speed:38});assert.equal(r.status,200);assert.equal(r.body.self.life.health,75);assert.equal(r.body.self.life.deaths,0);
+ assert.equal((await call(p.cookie,{type:'crash',speed:38})).status,429,'one impact cannot be charged twice');assert.equal((await call(p.cookie)).body.self.life.health,75);
+ for(const health of [50,25,0]){life=(await call(p.cookie)).body.self.life;life.lastCrashAt=0;fixture(p.id,{life_json:JSON.stringify(life)});r=await call(p.cookie,{type:'crash',speed:38});assert.equal(r.status,200);assert.equal(r.body.self.life.health,health)}assert.equal(r.body.self.life.deaths,1);
  assert.equal((await call(p.cookie,{type:'buy',itemId:'water'})).status,400);assert.equal((await call(p.cookie,{type:'move',lng:p.self.lng,lat:p.self.lat,heading:0})).status,400);
  r=await call(p.cookie,{type:'respawn'});assert.equal(r.status,200);assert.equal(r.body.self.life.health,100);assert.equal(r.body.self.driving,false);assert.equal(r.body.self.money,120);assert.equal(r.body.self.lng,p.self.lng);
  assert.equal((await call(p.cookie,{type:'bus-board',routeId:'airport-mall'})).status,400,'must be at the origin stop');

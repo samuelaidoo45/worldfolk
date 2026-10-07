@@ -47,7 +47,7 @@ export async function handleLife(db:D1Database,p:LifePlayer,input:Record<string,
  }
  if(type==='crash'){
   const speed=Number(input.speed);if(!p.driving||!Number.isFinite(speed)||speed<0||speed>12+Math.max(0,(now-(life.drivingSince||now))/1000)*6)return fail('Invalid collision');
-  if(now-life.lastCrashAt<2000)return fail('Collision already recorded',429);life.lastCrashAt=now;life.health=Math.max(0,life.health-crashDamage(speed));if(!life.health){life.deaths++;life.shift=null}event=life.health?'Collision · slow down and recover at home':'Your character died. Restart at home.';return save();
+  if(now-life.lastCrashAt<2000)return fail('Collision already recorded',429);life.lastCrashAt=now;const damage=crashDamage(speed);life.health=Math.max(0,life.health-damage);if(!life.health){life.deaths++;life.shift=null}event=life.health?(damage?`Collision · −${damage} health · ${life.health}/100 remaining. Rest at home to recover.`:'Minor bump · no health lost'):'Your character died. Restart at home.';return save();
  }
  if(type==='recover'){if(!p.place_id.startsWith(`p_${p.id}_`)||!await homeAccess())return fail('Rest inside your own home to recover');if(life.health>=100)return fail('You are already healthy');life.health=100;event='Rested and recovered at home';return save()}
  if(type==='respawn'){
