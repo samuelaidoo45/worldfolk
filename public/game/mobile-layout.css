@@ -128,3 +128,12 @@ body.touch-device.roam-mode[data-interface-size='compact'] .ride-summary {min-he
 body.touch-device.roam-mode[data-interface-size='compact'][data-display-orientation='landscape'] .vehicle-button {bottom:calc(var(--safe-bottom) + 60px)}
 
 .navigation-card .nav-drive-tools{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}.navigation-card .nav-drive-tools.hidden{display:none}.nav-drive-tools button{flex:1;min-height:40px;padding:6px;border:1px solid #91b7a5;border-radius:8px;background:#21493e;color:white;font:600 11px inherit}.nav-drive-tools button:disabled{opacity:.5}.touch-device .nav-drive-tools button{min-height:44px}
+
+/* The city map uses a clear cartographic surface, without the 3D vignette. */
+.roam-mode.map-play .map-shade{display:none}
+.roam-mode.map-play .poi-marker{display:none!important}
+.roam-mode.map-play .overhead-tools{gap:0;padding:4px;border:1px solid #d2dedb;border-radius:16px;background:#fffdf5;box-shadow:0 4px 16px #173e3526}
+.map-play .overhead-tools button{background:transparent;border:0;border-radius:11px;color:#22565b;font-size:22px}
+.map-play .overhead-tools button:hover{background:#e1efeb}
+.map-play .overhead-tools button:focus-visible{outline:3px solid #e4b249;outline-offset:0}
+.map-play .roam-status{box-shadow:0 4px 18px #173e3526;border:1px solid #ffffff80}

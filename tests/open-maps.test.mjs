@@ -22,3 +22,20 @@ test('self-hosted style is valid and preserves tile/glyph URL placeholders',asyn
  globalThis.window={ACCRALIFE_CONFIG:{mapData:'/maps/accra-v1'}};globalThis.location={origin:'https://worldfolk.example'};
  const style=cityMapStyle();assert.deepEqual(validateStyleMin(style).map(e=>e.message),[]);assert.match(style.glyphs,/\{fontstack\}\/\{range\}/);assert.match(style.sources['accralife-streets'].tiles[0],/\{z\}\/\{x\}\/\{y\}/);delete globalThis.window;delete globalThis.location;
 });
+
+test('2D map layers validate with collision-aware places and buildings below roads',async()=>{
+ const {validateStyleMin}=await import('@maplibre/maplibre-gl-style-spec');
+ const {cityMapStyle,setMapPresentation}=await import('../public/game/map-style.js');
+ const {installOverheadMap,updateOverheadPlaces}=await import('../public/game/overhead-map.js');
+ globalThis.window={ACCRALIFE_CONFIG:{mapData:'/maps/accra-v1'}};globalThis.location={origin:'https://worldfolk.example'};
+ try{
+  const style=cityMapStyle(),map={getLayer:id=>style.layers.find(l=>l.id===id),getSource:id=>style.sources[id],addLayer(layer,before){style.layers.splice(style.layers.findIndex(l=>l.id===before),0,layer)},addSource(id,value){style.sources[id]={...value,setData(data){this.data=data}}},setLayoutProperty(id,key,value){const l=this.getLayer(id);(l.layout??={})[key]=value},setPaintProperty(id,key,value){this.getLayer(id).paint[key]=value},setFilter(id,value){if(value)this.getLayer(id).filter=value;else delete this.getLayer(id).filter}};
+  installOverheadMap(map);setMapPresentation(map,true);updateOverheadPlaces(map,[{id:'mall',name:'Accra Mall',type:'mall',lng:-.1738,lat:5.6224}],null);
+  assert.equal(map.getLayer('worldfolk-road-labels').layout['symbol-placement'],'line');
+  assert.ok(style.layers.findIndex(l=>l.id==='worldfolk-overhead-buildings')<style.layers.findIndex(l=>l.id==='worldfolk-roads'));
+  assert.equal(map.getSource('worldfolk-map-places').data.features[0].properties.placeId,'mall');
+  const {setData,...source}=style.sources['worldfolk-map-places'];style.sources['worldfolk-map-places']=source;
+  assert.deepEqual(validateStyleMin(style).map(e=>e.message),[]);
+  setMapPresentation(map,false);assert.equal(map.getLayer('worldfolk-overhead-buildings').layout.visibility,'none');assert.deepEqual(validateStyleMin(style).map(e=>e.message),[]);
+ }finally{delete globalThis.window;delete globalThis.location}
+});

@@ -30,6 +30,6 @@ test('new jobs resolve to unique mapped destinations across requested categories
  const jobs=JOBS.filter(j=>j.place.startsWith('g_'));assert.ok(jobs.length>=6);for(const job of jobs)assert.ok(CITY_DESTINATIONS.some(p=>p.id===job.place));
 });
 test('2D presentation retains land use and separates roads from ground',()=>{
- const values=new Map(),map={getLayer:()=>true,setPaintProperty:(id,key,v)=>values.set(`${id}:${key}`,v),setLayoutProperty:(id,key,v)=>values.set(`${id}:${key}`,v)};setMapPresentation(map,true);assert.equal(values.get('worldfolk-background:background-color'),'#e7ebe5');assert.equal(values.get('worldfolk-ground-texture:visibility'),'none');setMapPresentation(map,false);assert.equal(values.get('worldfolk-ground-texture:visibility'),'visible');
+ const values=new Map(),map={getLayer:()=>true,setPaintProperty:(id,key,v)=>values.set(`${id}:${key}`,v),setLayoutProperty:(id,key,v)=>values.set(`${id}:${key}`,v)};setMapPresentation(map,true);assert.equal(values.get('worldfolk-background:background-color'),'#e9e5dc');assert.equal(values.get('worldfolk-ground-texture:visibility'),'none');setMapPresentation(map,false);assert.equal(values.get('worldfolk-ground-texture:visibility'),'visible');
 });
 test('hipped roof has a raised ridge while retaining footprint eaves',()=>{const vertices=hipRoofVertices([[-4,-8],[4,-8],[4,8],[-4,8]],2);assert.equal(vertices.length,54);assert.equal(Math.max(...vertices.filter((_,i)=>i%3===1)),2);assert.equal(hipRoofVertices([[0,0],[1,0],[0,1]],2),null)});

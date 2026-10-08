@@ -1,3 +1,4 @@
+import {setOverheadPlacesMode} from './overhead-map.js';
 import {placeIconExpression} from './place-icons.js';
 export function cityMapStyle(){
  const root=window.ACCRALIFE_CONFIG.mapData,source='accralife-streets',layer=(id,type,name,paint,extra={})=>({id,type,source,'source-layer':name,paint,...extra}),font=['Noto Sans Regular'];
@@ -18,14 +19,25 @@ export function cityMapStyle(){
 }
 
 export function setMapPresentation(map,overhead){
+ setOverheadPlacesMode(map,overhead);
  if(map.getLayer('worldfolk-poi-dots'))map.setLayoutProperty('worldfolk-poi-dots','visibility',overhead?'none':'visible');
- if(map.getLayer('worldfolk-poi-labels')){map.setLayoutProperty('worldfolk-poi-labels','icon-size',overhead?1:0);map.setLayoutProperty('worldfolk-poi-labels','text-offset',overhead?[0,1.8]:[0,1]);}
+ if(map.getLayer('worldfolk-poi-labels')){map.setLayoutProperty('worldfolk-poi-labels','icon-size',overhead?.85:0);map.setLayoutProperty('worldfolk-poi-labels','text-offset',overhead?[0,1.6]:[0,1]);}
+ for(const id of ['worldfolk-overhead-shadow','worldfolk-overhead-buildings','worldfolk-overhead-markings','worldfolk-map-places'])if(map.getLayer(id))map.setLayoutProperty(id,'visibility',overhead?'visible':'none');
+ if(map.getLayer('worldfolk-road-labels')){
+  map.setLayoutProperty('worldfolk-road-labels','symbol-placement',overhead?'line':'point');
+  map.setLayoutProperty('worldfolk-road-labels','text-rotation-alignment',overhead?'map':'viewport');
+  map.setLayoutProperty('worldfolk-road-labels','symbol-spacing',overhead?420:250);
+  map.setLayoutProperty('worldfolk-road-labels','text-size',overhead?11:12);
+  map.setLayoutProperty('worldfolk-road-labels','text-padding',overhead?20:2);
+ }
  const paint=(id,key,value)=>{if(map.getLayer(id))map.setPaintProperty(id,key,value)};
- paint('worldfolk-background','background-color',overhead?'#e7ebe5':'#aaa494');
- paint('worldfolk-ground-cover','fill-color',overhead?['match',['get','class'],['park','grass','garden','pitch'],'#c5d9b9','wood','#a9c8a0','water','#8bc6d1','sand','#e2d9be','parking','#d2d6d3','#e0e5dd']:['match',['get','class'],['park','grass','garden'],'#849869','wood','#526e44','scrub','#929061','agriculture','#9e9763','sand','#c5b58f','pitch','#738962','parking','#777b7b',['residential','commercial'],'#a3a397','#a8a698']);
- paint('worldfolk-roads','line-color',overhead?['case',['==',['get','surface'],'unpaved'],'#d6caba','#fcfcf6']:['case',['==',['get','surface'],'unpaved'],'#a99982','#292e32']);
- paint('worldfolk-road-casing','line-color',overhead?'#b3bfb6':'#828786');
- paint('worldfolk-road-labels','text-color',overhead?'#4b6058':'#f8f3e8');paint('worldfolk-road-labels','text-halo-color',overhead?'#ffffff':'#333b3c');
- paint('worldfolk-water','fill-color',overhead?'#8dcbd7':'#57a7b9');
+ paint('worldfolk-background','background-color',overhead?'#e9e5dc':'#aaa494');
+ paint('worldfolk-ground-cover','fill-color',overhead?['match',['get','class'],['park','grass','garden'],'#b9d2a4','pitch','#94bc8d','wood','#93b48e','scrub','#c5d1ad','agriculture','#d3d5a5','water','#80bfcb','sand','#ecdfbc','parking','#cbd0cc','industrial','#dbdcd5','commercial','#e4e1d9','#e9e5dc']:['match',['get','class'],['park','grass','garden'],'#849869','wood','#526e44','scrub','#929061','agriculture','#9e9763','sand','#c5b58f','pitch','#738962','parking','#777b7b',['residential','commercial'],'#a3a397','#a8a698']);
+ paint('worldfolk-roads','line-color',overhead?['case',['==',['get','surface'],'unpaved'],'#c1ac8d','#4c5961']:['case',['==',['get','surface'],'unpaved'],'#a99982','#292e32']);
+ paint('worldfolk-road-casing','line-color',overhead?'#fcfaf2':'#828786');
+ paint('worldfolk-road-labels','text-color',overhead?'#ffffff':'#f8f3e8');paint('worldfolk-road-labels','text-halo-color',overhead?'#4c5961':'#333b3c');
+ paint('worldfolk-paths','line-color',overhead?'#b2ab96':'#8d918b');
+ paint('worldfolk-waterways','line-color',overhead?'#7fbfcb':'#57a7b9');
+ paint('worldfolk-water','fill-color',overhead?'#7fbfcb':'#57a7b9');
  if(map.getLayer('worldfolk-ground-texture'))map.setLayoutProperty('worldfolk-ground-texture','visibility',overhead?'none':'visible');
 }
