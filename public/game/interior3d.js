@@ -1,4 +1,5 @@
 import {createVenueScene} from './venue-scenes.js';
+import {PAINTS} from './building-design.js';
 import {LARGE_VENUES} from './venue-layouts.js';
 import {batchStaticMeshes,interiorRenderer,disposeScene} from './render-utils.js';
 import {createRoomPhysics} from './room-physics.js';
@@ -6,19 +7,14 @@ import * as THREE from './three.module.js';
 import {createActor} from './world3d.js';
 import {worldAtmosphere} from './atmosphere.js';
 
-const wood=new THREE.MeshStandardMaterial({color:0x8e6044,roughness:.77});
-const darkWood=new THREE.MeshStandardMaterial({color:0x5a3e30,roughness:.78});
-const cream=new THREE.MeshStandardMaterial({color:0xe9ddc7,roughness:.95});
-const fabric=new THREE.MeshStandardMaterial({color:0x297d77,roughness:.9});
-const metal=new THREE.MeshStandardMaterial({color:0x394d51,metalness:.45,roughness:.48});
-const glass=new THREE.MeshStandardMaterial({color:0x8dd4ec,metalness:.12,roughness:.18,emissive:0x326c8b,emissiveIntensity:.25});
 function box(scene,material,w,h,d,x,y,z){const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);mesh.position.set(x,y,z);mesh.castShadow=true;mesh.receiveShadow=true;scene.add(mesh);return mesh}
 function cylinder(scene,material,r,h,x,y,z){const mesh=new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,16),material);mesh.position.set(x,y,z);mesh.castShadow=true;scene.add(mesh);return mesh}
 function roomFloor(kind){const canvas=document.createElement('canvas');canvas.width=256;canvas.height=256;const c=canvas.getContext('2d');const tiled=['clinic','shop','cafe'].includes(kind);c.fillStyle=tiled?'#c9d3cc':kind==='library'?'#806346':'#b19b7e';c.fillRect(0,0,256,256);c.strokeStyle=tiled?'#eef1e9':'#6d57413a';c.lineWidth=2;for(let y=0;y<256;y+=tiled?64:32){c.strokeRect(0,y,256,tiled?64:32);for(let x=(y/32%2)*64;x<256;x+=tiled?64:128)c.strokeRect(x,y,tiled?64:128,tiled?64:32)}const texture=new THREE.CanvasTexture(canvas);texture.wrapS=texture.wrapT=THREE.RepeatWrapping;texture.repeat.set(4,4);texture.colorSpace=THREE.SRGBColorSpace;return texture}
 function labelTexture(text){const canvas=document.createElement('canvas');canvas.width=512;canvas.height=128;const ctx=canvas.getContext('2d');ctx.fillStyle='#214436';ctx.fillRect(0,0,512,128);ctx.fillStyle='#f4dfaa';ctx.font='bold 49px sans-serif';ctx.textAlign='center';ctx.fillText(text.slice(0,18),256,78);return new THREE.CanvasTexture(canvas)}
-export function createInterior3D({avatar,kind,name,activities=[],furniture=[]}){
-  if(LARGE_VENUES[kind])return createVenueScene({avatar,kind,name,activities});
-  const canvas=document.createElement('canvas');canvas.className='interior-canvas';canvas.setAttribute('aria-hidden','true');document.body.appendChild(canvas);
+export function createInterior3D({avatar,kind,name,activities=[],furniture=[],design={}}){
+  if(LARGE_VENUES[kind])return createVenueScene({avatar,kind,name,activities,design});
+  const palette=design.palette||PAINTS[0],cream=new THREE.MeshStandardMaterial({color:palette.wall,roughness:.88}),fabric=new THREE.MeshStandardMaterial({color:palette.accent,roughness:.8}),darkWood=new THREE.MeshStandardMaterial({color:palette.roof,roughness:.75}),wood=new THREE.MeshStandardMaterial({color:palette.roof,roughness:.8}),metal=new THREE.MeshStandardMaterial({color:0x394d51,metalness:.45,roughness:.48}),glass=new THREE.MeshStandardMaterial({color:0x8dd4ec,roughness:.18,emissive:0x326c8b,emissiveIntensity:.25});
+  const canvas=document.createElement('canvas');canvas.className='interior-canvas';canvas.setAttribute('aria-label',`${name} · ${kind} interior`);canvas.dataset.design=design.style||kind;canvas.dataset.paint=palette.wall;document.body.appendChild(canvas);
   const renderer=interiorRenderer(canvas);
   const outdoors=['market','beach'].includes(kind);const scene=new THREE.Scene();scene.background=new THREE.Color(outdoors?0x8fbfd2:kind==='church'?0x302a31:kind==='mosque'?0x173a3b:0x152b31);scene.fog=new THREE.Fog(scene.background,25,outdoors?140:55);
   const camera=new THREE.PerspectiveCamera(58,1,.1,100);camera.position.set(0,3.2,10.1);camera.lookAt(0,1.2,1.4);
@@ -27,16 +23,17 @@ export function createInterior3D({avatar,kind,name,activities=[],furniture=[]}){
   const floorMaterial=new THREE.MeshStandardMaterial({color:kind==='beach'?0xe4c58d:kind==='mosque'?0xbac0b3:kind==='church'?0xaba293:kind==='market'?0xad9979:0x8e6044,roughness:.92,map:!outdoors&&kind!=='mosque'?roomFloor(kind):null});const floor=box(scene,floorMaterial,kind==='market'?160:kind==='beach'?160:14,.28,kind==='market'?160:kind==='beach'?18:12,0,-.14,kind==='beach'?3:0);floor.receiveShadow=true;
   if(!outdoors){for(let x=-6.7;x<7;x+=1.35)box(scene,darkWood,.022,.006,12,x,.006,0);
   for(let z=-5.5;z<6;z+=1.5)box(scene,darkWood,14,.006,.022,0,.007,z);
-  box(scene,cream,14,3.6,.25,0,1.8,-6);box(scene,cream,.25,3.6,12,-7,1.8,0);box(scene,cream,.25,3.6,12,7,1.8,0);
+  const ceiling=design.ceiling||3.6;box(scene,cream,14,ceiling,.25,0,ceiling/2,-6);box(scene,cream,.25,ceiling,12,-7,ceiling/2,0);box(scene,cream,.25,ceiling,12,7,ceiling/2,0);
   box(scene,darkWood,14,.2,.35,0,3.5,-6);box(scene,darkWood,.2,3.6,.2,-7,1.8,0);box(scene,darkWood,.2,3.6,.2,7,1.8,0);
   for(const x of [-4.6,4.6]){box(scene,darkWood,2.55,1.75,.09,x,2,-5.77);box(scene,glass,2.28,1.48,.1,x,2,-5.71);box(scene,cream,.06,1.55,.13,x,2,-5.64);box(scene,cream,2.3,.06,.13,x,2,-5.64)}
   }
   const sign=new THREE.Mesh(new THREE.PlaneGeometry(3.2,.8),new THREE.MeshBasicMaterial({map:labelTexture(kind==='home'?'WELCOME HOME':kind==='cafe'?'ACCRA CAFÉ':kind==='shop'?'LOCAL SHOP':kind==='office'?'CITY OFFICE':kind==='market'?'MARKET COURT':kind==='beach'?'COASTAL RETREAT':kind==='church'?'QUIET REFLECTION':kind==='mosque'?'PRAYER HALL':'ACCRA LIFE')}));sign.position.set(0,2.8,-5.85);scene.add(sign);if(outdoors)for(const x of [-1.5,1.5])box(scene,wood,.08,3.25,.08,x,1.6,-5.9);
+  if(!outdoors){const art=document.createElement('canvas');art.width=256;art.height=192;const c=art.getContext('2d');c.fillStyle=palette.trim;c.fillRect(0,0,256,192);for(let i=0;i<8;i++){c.fillStyle=[palette.wall,palette.accent,palette.roof][i%3];c.beginPath();c.moveTo(i*40-50,192);c.lineTo(i*40+60,20+(design.seed||0)%65);c.lineTo(i*40+150,192);c.fill()}const tex=new THREE.CanvasTexture(art);tex.colorSpace=THREE.SRGBColorSpace;for(const side of [-1,1]){box(scene,darkWood,.1,1.6,2.1,side*6.82,2,1);const painting=new THREE.Mesh(new THREE.PlaneGeometry(1.9,1.4),new THREE.MeshBasicMaterial({map:tex}));painting.position.set(side*6.75,2,1);painting.rotation.y=-side*Math.PI/2;scene.add(painting)}}
   const exitMat=new THREE.MeshStandardMaterial({color:0x58d6a1,emissive:0x16804e,emissiveIntensity:.55});box(scene,exitMat,1.8,.035,.65,0,.025,4.65);
   const blockers=[],hotspots=[],residents=[],waves=[];let lastSky='';
   const block=(x,z,w,d)=>blockers.push({x,z,w,d});
   const spot=(x,z,label,actionId)=>hotspots.push({x,z,label,actionId});
-  const accent=new THREE.MeshStandardMaterial({color:kind==='clinic'?0x74aba7:kind==='library'?0xb98a4b:0xb26f48,roughness:.8});
+  const accent=new THREE.MeshStandardMaterial({color:palette.accent,roughness:.8});
   const plaque=(text,x,z,w=2)=>{const material=new THREE.MeshBasicMaterial({map:labelTexture(text)}),mesh=new THREE.Mesh(new THREE.PlaneGeometry(w,.4),material);mesh.position.set(x,2.6,z);scene.add(mesh)};
   const plant=(x,z)=>{cylinder(scene,cream,.25,.45,x,.225,z);const leaves=new THREE.Mesh(new THREE.SphereGeometry(.48,10,8),fabric);leaves.position.set(x,1,z);leaves.scale.set(.8,1.4,.8);scene.add(leaves);block(x,z,.55,.55)};
   const chair=(x,z)=>{box(scene,fabric,.65,.15,.65,x,.48,z);box(scene,fabric,.65,.7,.13,x,.87,z+.3);for(const dx of [-.25,.25])for(const dz of [-.25,.25])box(scene,metal,.06,.45,.06,x+dx,.225,z+dz);block(x,z,.7,.7)};

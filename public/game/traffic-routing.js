@@ -42,8 +42,8 @@ export function makeRoadPath(coordinates,lane=0){
  return {total,at,get lane(){return lane},set lane(value){lane=value}};
 }
 // Never sweep a diagonal across a corner, even after a slow frame.
-export function advanceRoad(path,distance,speed,dt,physics,actors=[],kind='bus'){
- let current=path.at(distance),allowed=trafficSpeed(current.position,current.heading,speed,22,actors),ahead=path.at(distance+Math.max(8,speed*2));
+export function advanceRoad(path,distance,speed,dt,physics,actors=[],kind='bus',speedLimit=Infinity){
+ let current=path.at(distance),allowed=Math.min(speedLimit,trafficSpeed(current.position,current.heading,speed,22,actors)),ahead=path.at(distance+Math.max(8,speed*2));
  if(angleDifference(current.heading,ahead.heading)>25)allowed=Math.min(allowed,4);
  let nextSpeed=Math.max(0,speed+Math.max(-6*dt,Math.min(3.2*dt,allowed-speed))),left=nextSpeed*dt,blocked=false;
  while(left>1e-7&&distance<path.total){current=path.at(distance);const step=Math.min(left,.25,current.remaining>1e-6?current.remaining+.000001:.25,path.total-distance),next=path.at(distance+step);

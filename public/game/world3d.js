@@ -1,6 +1,7 @@
 import {batchStaticMeshes,disposeScene} from './render-utils.js';
 import {potholeImpact} from './road-surface.js';
-import {createBuildingFacade} from './building-facades.js';
+import {createStreetLight} from './street-lighting.js';
+import {createBuildingFacade,setFacadeLighting} from './building-facades.js';
 import {damp,turnToward,distanceMetres} from './motion.js';
 import * as THREE from './three.module.js';
 
@@ -90,6 +91,7 @@ export function createWorld3D(map,mapboxgl){
   let parkedCar=createCar(0xc34842);scene.add(parkedCar.group);const aircraft=createAircraft();scene.add(aircraft.group);aircraft.group.visible=false;let flying=false,altitude=0,vehicleKind='car';const architectureItems=new Map();let architectureKey="";const sceneryItems=new Map();let scenerySource=null;const others=new Map(),ambientActors=new Map(),beacons=[],doors=[];
   let beaconKey='',architectureSource=null,pendingArchitecture=[];
   let frameTime=performance.now(),roadBounce=0,roadRoll=0,roadHoles=[];
+  let preset='day';
   let renderer=null,enabled=false,driving=false,cabinView=false,position=[-0.1949,5.5682],carPosition=null,carHeading=0,heading=0,moving=false,ownsVehicle=true,actionUntil=0;
   const layer={id:'accralife-3d-people',type:'custom',renderingMode:'3d',onAdd(_map,gl){renderer=new THREE.WebGLRenderer({canvas:map.getCanvas(),context:gl,antialias:true});renderer.autoClear=false;renderer.outputColorSpace=THREE.SRGBColorSpace},render(_gl,matrix){if(!renderer||!enabled)return;
     const t=performance.now()/1000,ground=map.queryTerrainElevation?.(position)||0,mercator=mapboxgl.MercatorCoordinate.fromLngLat(position,ground),scale=mercator.meterInMercatorCoordinateUnits();
@@ -104,7 +106,7 @@ export function createWorld3D(map,mapboxgl){
       const [lng,lat]=item.position;item.model.group.position.x=(lng-position[0])*METERS_PER_DEGREE*Math.cos(position[1]*DEG);item.model.group.position.z=(position[1]-lat)*METERS_PER_DEGREE;item.model.group.visible=Math.hypot(item.model.group.position.x,item.model.group.position.z)<220;item.model.group.rotation.y=-item.heading*DEG;item.actor?.animate(t,distanceMetres(previous,item.position)>.003);
     }
     for(const item of architectureItems.values()){item.model.group.position.x=(item.data.position[0]-position[0])*METERS_PER_DEGREE*Math.cos(position[1]*DEG);item.model.group.position.z=(position[1]-item.data.position[1])*METERS_PER_DEGREE;}
-    for(const item of sceneryItems.values()){item.model.group.position.x=(item.data.position[0]-position[0])*METERS_PER_DEGREE*Math.cos(position[1]*DEG);item.model.group.position.z=(position[1]-item.data.position[1])*METERS_PER_DEGREE;}
+    for(const item of sceneryItems.values()){item.model.update?.(preset);item.model.group.rotation.y=-(item.data.heading||0)*DEG;item.model.group.position.x=(item.data.position[0]-position[0])*METERS_PER_DEGREE*Math.cos(position[1]*DEG);item.model.group.position.z=(position[1]-item.data.position[1])*METERS_PER_DEGREE;}
     for(const item of ambientActors.values()){
       const npc=item.data;if(npc.driving){const hit=potholeImpact(roadHoles,item.roadPrevious||npc.position,npc.position,npc.speed||0);if(hit&&hit.id!==item.lastRoadHole){item.roadHitAt=now;item.roadStrength=Math.min(.19,.035+(npc.speed||0)*.004)}item.lastRoadHole=hit?.id;item.roadPrevious=[...npc.position];const age=(now-(item.roadHitAt||-10000))/1000,bounce=age<1?Math.sin(age*32)*(item.roadStrength||0)*Math.exp(-age*5):0;item.model.group.position.y=bounce;item.model.group.rotation.z=bounce*.35;}item.model.group.position.x=(npc.position[0]-position[0])*METERS_PER_DEGREE*Math.cos(position[1]*DEG);item.model.group.position.z=(position[1]-npc.position[1])*METERS_PER_DEGREE;item.model.group.rotation.y=-npc.heading*DEG;item.actor?.animate(t,npc.moving);
     }
@@ -114,8 +116,8 @@ export function createWorld3D(map,mapboxgl){
   }};
   map.addLayer(layer);
   return {
-    setArchitecture(items){if(items!==architectureSource){architectureSource=items;const ids=new Set(items.map(i=>i.id));pendingArchitecture=items.filter(i=>!architectureItems.has(i.id));for(const [id,item] of architectureItems)if(!ids.has(id)){scene.remove(item.model.group);disposeModel(item.model.group);architectureItems.delete(id)}}const start=performance.now();while(pendingArchitecture.length&&performance.now()-start<2){const data=pendingArchitecture.shift(),model=createBuildingFacade(data);architectureItems.set(data.id,{data,model});scene.add(model.group)}},
-    setScenery(items){if(items===scenerySource)return;scenerySource=items;const ids=new Set(items.map(i=>i.id));for(const data of items)if(!sceneryItems.has(data.id)){const model=createStreetProp(data.kind);sceneryItems.set(data.id,{data,model});batchStaticMeshes(model.group);scene.add(model.group)}for(const [id,item] of sceneryItems)if(!ids.has(id)){scene.remove(item.model.group);disposeModel(item.model.group);sceneryItems.delete(id)}},
+    setArchitecture(items){if(items!==architectureSource){architectureSource=items;const ids=new Set(items.map(i=>i.id));for(const data of items){const old=architectureItems.get(data.id);if(old&&old.data.style!==data.style){scene.remove(old.model.group);disposeModel(old.model.group);architectureItems.delete(data.id)}}pendingArchitecture=items.filter(i=>!architectureItems.has(i.id));for(const [id,item] of architectureItems)if(!ids.has(id)){scene.remove(item.model.group);disposeModel(item.model.group);architectureItems.delete(id)}}const start=performance.now();while(pendingArchitecture.length&&performance.now()-start<2){const data=pendingArchitecture.shift(),model=createBuildingFacade(data);architectureItems.set(data.id,{data,model});scene.add(model.group)}},
+    setScenery(items){if(items===scenerySource)return;scenerySource=items;const ids=new Set(items.map(i=>i.id));for(const data of items)if(!sceneryItems.has(data.id)){const model=['lamp','signal'].includes(data.kind)?createStreetLight(data):createStreetProp(data.kind);sceneryItems.set(data.id,{data,model});batchStaticMeshes(model.group);scene.add(model.group)}for(const [id,item] of sceneryItems)if(!ids.has(id)){scene.remove(item.model.group);disposeModel(item.model.group);sceneryItems.delete(id)}},
     setEnabled(value){enabled=value;map.triggerRepaint()},
     setSelf(icon){scene.remove(own.group);disposeModel(own.group);Object.assign(own,createActor(icon));scene.add(own.group);map.triggerRepaint()},
     setOutfit(id){own.outfit(id);map.triggerRepaint()},
@@ -124,7 +126,7 @@ export function createWorld3D(map,mapboxgl){
     setVehicleKind(kind){if(kind===vehicleKind)return;vehicleKind=kind;scene.remove(parkedCar.group);disposeModel(parkedCar.group);parkedCar=kind==='bus'?createBus():kind==='motorcycle'?createMotorcycle():createCar(0xc34842);scene.add(parkedCar.group)},
     setDriving(value){driving=value;map.triggerRepaint()},
     setAmbient(actors){const ids=new Set();for(const data of actors){ids.add(data.id);let item=ambientActors.get(data.id);if(!item){const model=data.driving?(data.vehicle==='bus'?createBus():createCar(data.vehicle==='taxi'?0xe5b13a:[0xd1b057,0x53696f,0xe5e3d8,0x495985][ambientActors.size%4])):createActor(data.avatar);item={model,actor:data.driving?null:model};ambientActors.set(data.id,item);scene.add(model.group)}item.data=data}for(const [id,item] of ambientActors){if(!ids.has(id)){scene.remove(item.model.group);disposeModel(item.model.group);ambientActors.delete(id)}}},
-    setTimeOfDay(preset){ambient.intensity=preset==='night'?.8:preset==='dusk'||preset==='dawn'?1.1:1.55;light.intensity=preset==='night'?.45:preset==='dusk'||preset==='dawn'?.9:1.35;map.triggerRepaint()},
+    setTimeOfDay(value){preset=value;setFacadeLighting(preset);ambient.intensity=preset==='night'?.8:preset==='dusk'||preset==='dawn'?1.1:1.55;light.intensity=preset==='night'?.45:preset==='dusk'||preset==='dawn'?.9:1.35;map.triggerRepaint()},
     setCabinView(value){cabinView=value;map.triggerRepaint()},
     setPotholes(holes){roadHoles=holes},
     setRoadJolt(bounce,roll){roadBounce=bounce;roadRoll=roll},

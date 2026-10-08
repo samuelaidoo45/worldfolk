@@ -1,3 +1,4 @@
+import {signalPhase} from './traffic-signals.js';
 // A lightweight moving-actor overlay on the same Mapbox map and simulation.
 export function createOverheadView({state}){
  const canvas=document.createElement('canvas');canvas.className='overhead-actors';canvas.setAttribute('aria-label','Live overhead view of players, pedestrians and vehicles');canvas.setAttribute('role','img');document.body.append(canvas);const ctx=canvas.getContext('2d');let width=0,height=0,lastLabel='';
@@ -10,6 +11,7 @@ export function createOverheadView({state}){
   ctx.restore();if(self){const label=person.driving?'You · driving':person.moving?(person.running?'You · running':'You · walking'):'You';ctx.font='700 11px sans-serif';ctx.textAlign='center';ctx.lineWidth=3;ctx.strokeStyle='#fff';ctx.strokeText(label,x,y+29);ctx.fillStyle='#123945';ctx.fillText(label,x,y+29);if(label!==lastLabel){lastLabel=label;canvas.setAttribute('aria-label',`2D gameplay. ${label}. Pedestrians and traffic are moving in the same city.`)}}
  }
  function update(now){if(!state.roam||state.view!=='2d'||!state.position)return;if(width!==innerWidth||height!==innerHeight){width=innerWidth;height=innerHeight;const ratio=Math.min(devicePixelRatio||1,2);canvas.width=Math.round(width*ratio);canvas.height=Math.round(height*ratio);ctx.setTransform(ratio,0,0,ratio,0,0)}ctx.clearRect(0,0,width,height);const t=now/1000;
+  for(const signal of state.scenery?.items||[]){if(signal.kind!=='signal')continue;const p=state.map.project(signal.position);ctx.beginPath();ctx.arc(p.x,p.y,3.5,0,Math.PI*2);ctx.fillStyle={red:'#e8493c',amber:'#efb532',green:'#28a86b'}[signalPhase(signal)];ctx.fill();ctx.strokeStyle='#ffffff';ctx.lineWidth=1;ctx.stroke()}
   for(const npc of state.cityLife?.actors||[])drawActor(npc,t);
   for(const player of state.players){if(player.id!==state.self?.id)drawActor({position:[player.lng,player.lat],heading:player.heading,driving:player.driving,vehicle:player.vehicle,moving:true},t)}
   if(state.carPosition&&state.mode==='walk'&&state.self?.life?.vehicles?.includes(state.self.life.vehicle))drawActor({position:state.carPosition,heading:state.carHeading,driving:true,vehicle:state.self.life.vehicle},t);
