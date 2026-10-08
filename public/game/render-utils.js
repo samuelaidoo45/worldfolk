@@ -1,8 +1,9 @@
 import * as THREE from './three.module.js';
+import {enhanceMaterials} from './graphics-materials.js';
 // Combine static meshes that share a material into a single draw call.
 // Call before adding animated actors. This preserves each vertex's world transform.
 export function batchStaticMeshes(root){
- root.updateMatrixWorld(true);const groups=new Map();
+ enhanceMaterials(root);root.updateMatrixWorld(true);const groups=new Map();
  root.traverse(o=>{if(!o.isMesh||o.isInstancedMesh||o.userData.dynamic||Array.isArray(o.material)||!o.visible)return;const key=`${o.material.uuid}:${o.castShadow}:${o.receiveShadow}`;if(!groups.has(key))groups.set(key,[]);groups.get(key).push(o)});
  let before=0,after=0;const inverse=root.matrixWorld.clone().invert();
  for(const meshes of groups.values()){const material=meshes[0].material;before+=meshes.length;after++;if(meshes.length<2)continue;const arrays={position:[],normal:[],uv:[]};

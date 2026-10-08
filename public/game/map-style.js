@@ -39,5 +39,5 @@ export function setMapPresentation(map,overhead){
  paint('worldfolk-paths','line-color',overhead?'#b2ab96':'#8d918b');
  paint('worldfolk-waterways','line-color',overhead?'#7fbfcb':'#57a7b9');
  paint('worldfolk-water','fill-color',overhead?'#7fbfcb':'#57a7b9');
- if(map.getLayer('worldfolk-ground-texture'))map.setLayoutProperty('worldfolk-ground-texture','visibility',overhead?'none':'visible');
+ for(const id of ['worldfolk-ground-texture','worldfolk-asphalt-texture'])if(map.getLayer(id))map.setLayoutProperty(id,'visibility',overhead?'none':'visible');
 }
