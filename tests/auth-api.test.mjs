@@ -1,3 +1,4 @@
+import {HOMES,propertyId} from '../public/game/life-catalog.js';
 import test from 'node:test';import assert from 'node:assert/strict';import {spawnSync} from 'node:child_process';import WebSocket from 'ws';
 const base='http://127.0.0.1:3000',tag=Date.now().toString(36),username=`auth_${tag}`,password='A private test passphrase 902!';
 async function call(path,cookie,body,origin=base){const r=await fetch(base+path,{method:body?'POST':'GET',headers:{...(cookie?{Cookie:cookie}:{}),...(body?{'Content-Type':'application/json',Origin:origin}:{})},body:body?JSON.stringify(body):undefined});return {status:r.status,body:await r.json(),cookie:r.headers.get('set-cookie')?.split(';')[0],setCookie:r.headers.get('set-cookie')}}
@@ -5,7 +6,7 @@ function sql(statement,params=[]){const script=`import sqlite3,json,sys\nfrom pa
 async function guest(name){const r=await call('/api/game',null,{type:'join',name,avatar:'🧑🏾'});assert.equal(r.status,201);return {cookie:r.cookie,self:r.body.self}}
 function socket(cookie){const ws=new WebSocket(base.replace('http','ws')+'/api/realtime',{headers:{Cookie:cookie,Origin:base}});return {ws,welcome:new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('No welcome')),5000);ws.once('message',m=>{clearTimeout(timer);resolve(JSON.parse(m))});ws.on('error',reject)})}}
 test('guest upgrades, resumes on another session, and can recover without losing their life', {timeout:60000},async()=>{
- sql('DELETE FROM auth_rate_limits');const g=await guest('Auth Guest');sql('UPDATE players SET money=4321,xp=99 WHERE id=?',[g.self.id]);
+ sql('DELETE FROM auth_rate_limits');const g=await guest('Auth Guest');const home=HOMES.find(h=>h.id===g.self.life.home);assert.ok(home);assert.equal(g.self.placeId,propertyId(g.self.id,home.id));assert.deepEqual([g.self.lng,g.self.lat],[home.lng,home.lat]);assert.ok(g.self.life.properties.includes(home.id));assert.equal((await call('/api/game',g.cookie,{type:'enter',placeId:g.self.life.homeId})).status,200);sql('UPDATE players SET money=4321,xp=99 WHERE id=?',[g.self.id]);
  assert.equal((await call('/api/auth',g.cookie)).body.mode,'guest');assert.equal((await call('/api/auth',null)).body.mode,'none');
  assert.equal((await call('/api/auth',g.cookie,{action:'register',username,password:'short'})).status,400);
  assert.equal((await call('/api/auth',g.cookie,{action:'register',username,password},'https://attacker.example')).status,403);

@@ -87,3 +87,20 @@ test('physical car footprints permit close parallel passing but stop actual cont
  const hit=moveAroundObstacles(point(2.2,-5),point(2.2,5),[obstacle],(a,b)=>({position:b,blocked:false}),false);assert.equal(hit.blocked,true);
  const escape=moveAroundObstacles(point(2.2,-3.5),point(2.2,-5),[obstacle],(a,b)=>({position:b,blocked:false}),false);assert.equal(escape.blocked,false);
 });
+
+test('a vehicle glances along a wall and can reverse after head-on contact',()=>{
+ const p=physics(),from=point(-1.3,-5),to=point(.2,3),slide=p.moveVehicle(from,to,0);
+ assert.ok(distanceMetres(from,slide.position)>5,'glancing contact retains forward travel');
+ assert.equal(p.vehicleCollision(slide.position,0),false);
+ const stopped=p.moveVehicle(point(-4,0),point(2,0),90);
+ const reverse=p.moveVehicle(stopped.position,point(-5,0),90);
+ assert.ok(distanceMetres(reverse.position,point(-5,0))<.02,'reverse must free the car');
+});
+test('tangent escape works from a slightly overlapping vehicle footprint',async()=>{
+ const {moveAroundObstacles,footprintGap}=await import('../public/game/obstacle-motion.js');
+ const obstacle={position:origin,driving:true,heading:0,vehicle:'bus'};
+ const from=point(1.5,0),to=point(1.5,8);
+ const box={position:origin,radius:9,gap:position=>footprintGap({position,heading:0,radius:.3},obstacle)};
+ const r=moveAroundObstacles(from,to,[box],(a,b)=>({position:b,blocked:false}));
+ assert.ok(distanceMetres(r.position,to)<.01,'parallel motion can escape an existing overlap');
+});

@@ -7,10 +7,10 @@ export function moveAroundObstacles(from,to,circles,resolve,slide=true){
  const obstacles=circles.filter(c=>distanceMetres(from,c.position)<length+c.radius+1);
  for(let i=0;i<steps;i++){
   const dx=delta[0]*fraction/steps,dy=delta[1]*fraction/steps;
-  const allowed=point=>obstacles.every(c=>{const before=c.gap?c.gap(current):distanceMetres(current,c.position)-c.radius,after=c.gap?c.gap(point):distanceMetres(point,c.position)-c.radius;return after>=-1e-6||before<0&&after>before+1e-7});
+  const allowed=point=>obstacles.every(c=>{const before=c.gap?c.gap(current):distanceMetres(current,c.position)-c.radius,after=c.gap?c.gap(point):distanceMetres(point,c.position)-c.radius;return after>=-1e-6||before<0&&after>=before-1e-7});
   const attempt=(x,y)=>{const desired=offsetMetres(current,x,y),result=resolve(current,desired);if(distanceMetres(current,result.position)<1e-7||!allowed(result.position))return null;return result};
   let next=attempt(dx,dy);
-  if(!next&&slide){const hit=obstacles.find(c=>distanceMetres(offsetMetres(current,dx,dy),c.position)<c.radius);if(hit){const nx=(current[0]-hit.position[0])*scale*cos,ny=(current[1]-hit.position[1])*scale,n=Math.hypot(nx,ny)||1,into=(dx*nx+dy*ny)/n;next=attempt(dx-Math.min(0,into)*nx/n,dy-Math.min(0,into)*ny/n)}if(!next)next=attempt(dx,0)||attempt(0,dy)}
+  if(!next&&slide){const hit=obstacles.find(c=>{const p=offsetMetres(current,dx,dy);return (c.gap?c.gap(p):distanceMetres(p,c.position)-c.radius)<0});if(hit){const nx=(current[0]-hit.position[0])*scale*cos,ny=(current[1]-hit.position[1])*scale,n=Math.hypot(nx,ny)||1,into=(dx*nx+dy*ny)/n;next=attempt(dx-Math.min(0,into)*nx/n,dy-Math.min(0,into)*ny/n)}if(!next)next=attempt(dx,0)||attempt(0,dy)}
   if(!next){blocked=length>1e-7;break}current=next.position;
  }
  return {position:current,blocked};

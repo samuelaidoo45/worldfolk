@@ -29,6 +29,7 @@ export function createPublicVenueScene({kind,name,avatar,design={}}){
   for(const x of [-w*.3,w*.3])for(let z=-d/2+5;z<d/2-3;z+=7)box(new THREE.MeshBasicMaterial({color:0xffe5ba}),2.4,.04,.35,x,height-.15,z);
  }
  sign(name.toUpperCase(),0,3.2,d/2-.4,Math.min(w-5,20)).rotation.y=Math.PI;
+ if(!spec.outdoor){const h=['church','mosque'].includes(kind)?7:5.5;const roof=box(mat.trim,w,.12,d,0,h,0);roof.castShadow=false;box(mat.stone,w,h,.25,0,h/2,d/2);box(mat.wood,2.4,2.8,.14,layout.exit[0],1.4,d/2-.2)}
  const venueLights=[];
  if(spec.outdoor){
   const earth=kind==='beach'?floorMat:mat.green;box(earth,w+180,.12,d+180,0,-.3,0);
@@ -60,7 +61,7 @@ export function createPublicVenueScene({kind,name,avatar,design={}}){
   people.forEach((p,i)=>{let moving=false;if(!p.staff&&t>p.pause){if(Math.hypot(p.goal[0]-p.x,p.goal[1]-p.z)<.5||p.stuck>2){p.goal=clearPoint();p.pause=t+1+i%3;p.stuck=0}else{const a=Math.atan2(p.goal[0]-p.x,p.goal[1]-p.z),speed=kind==='field'?2.8:.85,delta=[Math.sin(a)*dt*speed,Math.cos(a)*dt*speed],next=physics.move([p.x,p.z],delta);if(people.some(other=>other!==p&&Math.hypot(other.x-next[0],other.z-next[1])<.65)){next[0]=p.x;next[1]=p.z}moving=Math.hypot(next[0]-p.x,next[1]-p.z)>.001;p.stuck=moving?0:p.stuck+dt;p.x=next[0];p.z=next[1];p.model.group.rotation.y=a+Math.PI}}
    p.model.animate(t+i,moving);p.model.group.position.set(p.x,p.model.group.position.y,p.z);if(kind==='nightclub'&&!p.staff&&Math.abs(p.x)<6){p.model.leftArm.rotation.z=Math.sin(t*3+i);p.model.rightArm.rotation.z=-Math.sin(t*3+i)}});crowd.update();
   for(const e of effects){if(e.kind==='spin')e.mesh.rotation.y=t*.3;if(e.kind==='wave'){e.mesh.position.z=e.z+Math.sin(t*.5+e.phase)*.8}if(e.kind==='ball'){const age=t-kickAt;e.mesh.position.set(Math.sin(Math.min(age,2)*2)*.4,.3+(age<2?Math.sin(age*Math.PI/2)*1.6:0),age<3?6-Math.min(age,2.5)*12:6);e.mesh.rotation.x=t*2}}
-  const a=yaw*Math.PI/180;let distance=6.4;for(;distance>1.2;distance-=.25){const cx=x-Math.sin(a)*distance,cz=z+Math.cos(a)*distance;if(physics.clear(cx,cz)&&physics.visible([x,z],[cx,cz]))break}cameraTarget.set(x-Math.sin(a)*distance,2.5+distance*.16+pitch,z+Math.cos(a)*distance);lookTarget.set(x+Math.sin(a)*4,1.5,z-Math.cos(a)*4);camera.position.lerp(cameraTarget,1-Math.exp(-dt*8));camera.lookAt(lookTarget);renderer.render(scene,camera);
+  const a=yaw*Math.PI/180;let distance=6.4;for(;distance>1.2;distance-=.25){const cx=x-Math.sin(a)*distance,cz=z+Math.cos(a)*distance;if(physics.clear(cx,cz)&&physics.visible([x,z],[cx,cz]))break}cameraTarget.set(x-Math.sin(a)*distance,Math.min(spec.outdoor?20:4.7,2.3+distance*.12+pitch),z+Math.cos(a)*distance);lookTarget.set(x+Math.sin(a)*4,1.5,z-Math.cos(a)*4);camera.position.lerp(cameraTarget,1-Math.exp(-dt*8));camera.lookAt(lookTarget);renderer.render(scene,camera);
  }
  return {move,nearby,interact,render,look(a,b=0){yaw+=a;pitch=Math.max(-.6,Math.min(1.5,pitch+b*.03))},playAction(id){action=id;activeUntil=performance.now()/1000+2.5},get bearing(){return yaw},get position(){return [x,z]},get name(){return name},get isActing(){return false},description:spec.hint,stats,debug:{blockers,hotspots,layout,people:people.length},destroy(){disposeScene(scene);people.forEach(p=>disposeScene(p.model.group));renderer.dispose();renderer.forceContextLoss();canvas.remove()}};
 }

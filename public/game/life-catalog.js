@@ -1,3 +1,4 @@
+import {HOME_LOCATIONS} from './home-locations.js';
 // Shared game catalogue: virtual prices and facilities, not real-world offers.
 export const HOMES=[
  {id:'starter',name:'Ridge starter apartment',area:'North Ridge',lng:-.1949,lat:5.5682,price:0},
@@ -5,6 +6,7 @@ export const HOMES=[
  {id:'legon-house',name:'East Legon family house',area:'East Legon',lng:-.1535,lat:5.6372,price:6500},
  {id:'coastal-villa',name:'La coastal villa',area:'La',lng:-.1345,lat:5.5637,price:14000}
 ];
+HOMES.forEach((home,index)=>Object.assign(home,HOME_LOCATIONS[index]));
 export const GOODS=[
  {id:'waakye',name:'Waakye takeaway',icon:'🍲',price:12,shops:['makola','kaneshie','osu'],kind:'food',hunger:35},
  {id:'jollof',name:'Jollof and chicken',icon:'🥘',price:22,shops:['osu','mall'],kind:'food',hunger:55},

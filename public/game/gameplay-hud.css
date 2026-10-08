@@ -98,3 +98,7 @@
 .roam-mode .roam-status .roam-kicker{display:block;font-size:8px;line-height:1.4;letter-spacing:.08em;color:#a7e2d0;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;margin-bottom:4px}
 .touch-device.roam-mode .roam-status .roam-kicker{font-size:7px;margin-bottom:3px}
 .game-minimap .minimap-caption{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.scene-loading{position:fixed;z-index:160;top:max(12px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:10px;max-width:min(430px,70vw);padding:10px 16px;border:1px solid #9bbeb54d;border-radius:14px;background:#132f35eb;color:#f4f7ed;box-shadow:0 6px 24px #0003;font-size:13px;pointer-events:auto}
+.scene-loading[hidden]{display:none}.scene-loading button{background:#efd08a;color:#15352e;border:0;border-radius:8px;padding:7px 10px;cursor:pointer}
+@media(max-height:480px){.scene-loading{font-size:11px;padding:6px 10px;max-width:55vw}}

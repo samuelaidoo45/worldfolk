@@ -10,3 +10,14 @@ test('every background starts at its randomly assigned, owned home',()=>{
  }
  assert.notEqual(propertyId('owner-a','starter'),propertyId('owner-b','starter'));
 });
+
+test('assigned homes reference residential footprints with clear exterior entrances',async()=>{
+ const {insideBuilding}=await import('../public/game/building-design.js');
+ const {buildingDesign}=await import('../public/game/building-design.js');
+ for(const home of HOMES){
+  assert.ok(home.buildingId);assert.equal(home.mappedType,'house');
+  assert.equal(insideBuilding([home.lng,home.lat],[home.footprint]),false);
+  const design=buildingDesign({id:home.buildingId,geometry:{type:'Polygon',coordinates:[home.footprint]},properties:{class:'house',height:4.5}},[{...home,type:'Private home'}]);
+  assert.equal(design.kind,'home');
+ }
+});

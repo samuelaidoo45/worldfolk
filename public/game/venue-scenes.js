@@ -33,7 +33,7 @@ export function createVenueScene({kind,name,avatar,design={}}){
   const {bounds:b}=layout;box(floor,b.right-b.left+2,.25,b.front-b.back+2,0,-.13,0);
   for(let x=b.left;x<b.right;x+=3)box(stone,.025,.01,b.front-b.back,x,.015,0);for(let z=b.back;z<b.front;z+=3)box(stone,b.right-b.left,.01,.025,0,.015,z);
   box(stone,b.right-b.left,8,.35,0,4,b.back-.4);for(const x of [b.left-.4,b.right+.4])box(stone,.35,8,b.front-b.back,x,4,0);
-  sign(name.toUpperCase(),0,4,b.back+.1,14);sign('EXIT / CITY',b.left+5,2.8,b.front-.3,5).rotation.y=Math.PI;
+  const ceiling=box(white,b.right-b.left+1,.12,b.front-b.back+1,0,8,0);ceiling.castShadow=false;box(stone,b.right-b.left,8,.35,0,4,b.front+.4);sign(name.toUpperCase(),0,4,b.back+.1,14);sign('EXIT / CITY',b.left+5,2.8,b.front-.3,5).rotation.y=Math.PI;
   if(kind==='mall'){
    const ceilingLight=new THREE.MeshBasicMaterial({color:0xfaf0d9});const stores=['FASHION','HOME & LIVING','TECH & GADGETS','SUPERMARKET','BOOKSHOP','SPORT & STYLE'];
    for(const side of [-1,1])for(let i=0;i<3;i++){const x=side*20,z=-20+i*20,n=i+(side>0?3:0);box(i%2?gold:dark,17,.45,17,x,4.8,z);box(stone,17,4.8,.25,x,2.4,z-8.4,true);box(stone,17,4.8,.25,x,2.4,z+8.4,true);
