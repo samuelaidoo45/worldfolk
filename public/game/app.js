@@ -248,7 +248,7 @@ function followCamera(force=false,dt=1/60){
   if(force||!state.cameraPosition){state.cameraPosition=[...state.position];state.cameraHeading=state.cameraBearing}
   state.cameraPosition=state.cameraPosition.map((v,i)=>damp(v,state.position[i],12,dt));
   state.cameraHeading=turnToward(state.cameraHeading,state.cameraBearing+(state.lookOffset||0),6,dt);
-  const pose=chaseCamera({position:state.position,heading:state.cameraHeading,physics:state.physics,driving:['drive','transit'].includes(state.mode),scenic:state.scenicCamera,street:state.cameraMode==='street',cabin:state.cabinView||state.cameraMode==='first',speed:state.carSpeed,previousDistance:force?undefined:state.cameraDistance,dt});
+  const pose=chaseCamera({position:state.position,heading:state.cameraHeading,physics:state.physics,driving:['drive','transit'].includes(state.mode),scenic:state.scenicCamera,street:state.cameraMode==='street',cabin:state.mode==='transit'?state.cabinView:state.cabinView||state.cameraMode==='first',speed:state.carSpeed,previousDistance:force?undefined:state.cameraDistance,dt});
   state.cameraDistance=pose.distance;state.world3d?.setCameraDistance(pose.distance);
   const bump=['drive','transit'].includes(state.mode)?state.roadSurface?.sample():null;state.world3d?.setRoadJolt(bump?.bounce||0,bump?.roll||0);
   const camera=state.map.calculateCameraOptionsFromTo(pose.from,pose.altitude+(bump?.bounce||0)*.4,pose.to,pose.targetAltitude);

@@ -50,6 +50,20 @@
       "when": 1791458237124,
       "tag": "0006_past_nightshade",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1791481235854,
+      "tag": "0007_friends_calls",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1791481714830,
+      "tag": "0008_voice_room_indexes",
+      "breakpoints": true
     }
   ]
 }

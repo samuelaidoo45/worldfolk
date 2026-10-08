@@ -54,9 +54,10 @@ export const propertyInvites = sqliteTable("property_invites", {
 export const voiceSessions = sqliteTable('voice_sessions', {
   playerId: text('player_id').primaryKey().references(() => players.id),
   sessionId: text('session_id').notNull(),
+  roomId: text('room_id').notNull().default('city'),
   lastSeen: integer('last_seen').notNull(),
   lastSignal: integer('last_signal').notNull().default(0),
-});
+}, table => [index('voice_sessions_room').on(table.roomId,table.lastSeen),index('voice_sessions_id').on(table.sessionId)]);
 export const voiceSignals = sqliteTable('voice_signals', {
   id: integer('id').primaryKey({autoIncrement:true}),
   fromSession: text('from_session').notNull(),
@@ -78,3 +79,20 @@ export const authRateLimits = sqliteTable('auth_rate_limits', {
   count: integer('count').notNull(),
   expiresAt: integer('expires_at').notNull(),
 }, table => [index('auth_rate_expiry').on(table.expiresAt)]);
+
+export const friendships = sqliteTable('friendships', {
+ id: text('id').primaryKey(),
+ playerA: text('player_a').notNull().references(() => players.id),
+ playerB: text('player_b').notNull().references(() => players.id),
+ requestedBy: text('requested_by').notNull(),
+ status: text('status').notNull().default('pending'),
+ createdAt: integer('created_at').notNull(),
+}, t => [uniqueIndex('friendships_pair').on(t.playerA,t.playerB),index('friendships_b').on(t.playerB)]);
+export const friendCalls = sqliteTable('friend_calls', {
+ id: text('id').primaryKey(),
+ caller: text('caller').notNull().references(() => players.id),
+ callee: text('callee').notNull().references(() => players.id),
+ status: text('status').notNull().default('ringing'),
+ createdAt: integer('created_at').notNull(),
+ expiresAt: integer('expires_at').notNull(),
+}, t => [index('friend_calls_caller').on(t.caller,t.expiresAt),index('friend_calls_callee').on(t.callee,t.expiresAt)]);
