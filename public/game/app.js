@@ -248,7 +248,7 @@ function followCamera(force=false,dt=1/60){
   if(force||!state.cameraPosition){state.cameraPosition=[...state.position];state.cameraHeading=state.cameraBearing}
   state.cameraPosition=state.cameraPosition.map((v,i)=>damp(v,state.position[i],12,dt));
   state.cameraHeading=turnToward(state.cameraHeading,state.cameraBearing+(state.lookOffset||0),6,dt);
-  const pose=chaseCamera({position:state.position,heading:state.cameraHeading,physics:state.physics,driving:['drive','transit'].includes(state.mode),scenic:state.scenicCamera,street:state.cameraMode==='street',cabin:state.mode==='transit'?state.cabinView:state.cabinView||state.cameraMode==='first',speed:state.carSpeed,previousDistance:force?undefined:state.cameraDistance,dt});
+  const pose=chaseCamera({position:state.position,heading:state.cameraHeading,physics:state.physics,driving:['drive','transit'].includes(state.mode),scenic:state.scenicCamera,street:state.cameraMode==='street',cabin:state.mode==='transit'?state.cabinView:state.cabinView||state.cameraMode==='first',speed:state.carSpeed,viewScale:state.mobileCameraScale||1,previousDistance:force?undefined:state.cameraDistance,dt});
   state.cameraDistance=pose.distance;state.world3d?.setCameraDistance(pose.distance);
   const bump=['drive','transit'].includes(state.mode)?state.roadSurface?.sample():null;state.world3d?.setRoadJolt(bump?.bounce||0,bump?.roll||0);
   const camera=state.map.calculateCameraOptionsFromTo(pose.from,pose.altitude+(bump?.bounce||0)*.4,pose.to,pose.targetAltitude);
@@ -274,7 +274,7 @@ function setPlayView(view){
  for(const id of ['accralife-real-buildings','worldfolk-pavement','worldfolk-asphalt','worldfolk-road-edges','worldfolk-footpaths','worldfolk-road-markings'])if(state.map.getLayer(id))state.map.setLayoutProperty(id,'visibility',view==='2d'?'none':'visible');
  if(!state.map.getLayer('worldfolk-overhead-buildings')&&state.map.getSource('accralife-streets'))state.map.addLayer({id:'worldfolk-overhead-buildings',type:'fill',source:'accralife-streets','source-layer':'building',paint:{'fill-color':'#c4cdc5','fill-outline-color':'#a2b2a7','fill-opacity':.9}},'worldfolk-road-labels');
  if(state.map.getLayer('worldfolk-overhead-buildings'))state.map.setLayoutProperty('worldfolk-overhead-buildings','visibility',view==='2d'?'visible':'none');
- if(view==='2d'){state.map.dragPan.enable();state.map.touchZoomRotate.enable();state.map.touchZoomRotate.disableRotation();state.map.jumpTo({center:state.position,pitch:0,bearing:0,zoom:16.8})}else{state.map.dragPan.disable();state.map.touchZoomRotate.disable();state.cameraBearing=state.heading;followCamera(true)}
+ if(view==='2d'){state.map.dragPan.enable();state.map.touchZoomRotate.enable();state.map.touchZoomRotate.disableRotation();state.map.jumpTo({center:state.position,pitch:0,bearing:0,zoom:16.8-Math.log2(state.mobileCameraScale||1)})}else{state.map.dragPan.disable();state.map.touchZoomRotate.disable();state.cameraBearing=state.heading;followCamera(true)}
  $('roamToggle').textContent=view==='2d'?'▶ 3D view':'◫ 2D map';$('viewModeToggle').textContent=view==='2d'?'3D':'2D';$('viewModeToggle').setAttribute('aria-label',view==='2d'?'Switch to 3D view':'Switch to 2D map');renderMapMarkers();updateRoamHud();
 }
 function exitRoam(){setPlayView(state.view==='2d'?'3d':'2d')}

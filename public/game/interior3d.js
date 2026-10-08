@@ -1,3 +1,4 @@
+import {mobileFieldOfView} from './display-settings.js';
 import {PUBLIC_VENUES} from './public-venues.js';
 import {createPublicVenueScene} from './public-venue-scene.js';
 import {createVenueScene} from './venue-scenes.js';
@@ -107,7 +108,7 @@ export function createInterior3D({avatar,kind,name,activities=[],furniture=[],de
   waves.forEach(o=>o.userData.dynamic=true);marker.userData.dynamic=true;batchStaticMeshes(scene);renderer.shadowMap.needsUpdate=true;
   const actor=createActor(avatar);actor.group.traverse(o=>o.castShadow=false);actor.group.position.set(0,0,3.4);scene.add(actor.group);
   let yaw=0,lookPitch=0;let x=0,z=3.4,width=0,height=0,actionStart=0,actionUntil=0,actionKind='';
-  function resize(){const w=window.innerWidth,h=window.innerHeight;if(w===width&&h===height)return;width=w;height=h;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}
+  function resize(){const w=window.innerWidth,h=window.innerHeight;if(w===width&&h===height)return;width=w;height=h;renderer.setSize(w,h,false);camera.aspect=w/h;camera.fov=mobileFieldOfView(58,w,h,matchMedia('(any-pointer: coarse)').matches||navigator.maxTouchPoints>0);camera.updateProjectionMatrix()}
   const physics=createRoomPhysics(blockers),cameraPhysics=createRoomPhysics(blockers,{left:-6.6,right:6.6,back:-5.6,front:5.6});
   function move(dx,dz){if(performance.now()/1000<actionUntil)return;[x,z]=physics.move([x,z],[dx,dz]);actor.group.position.set(x,0,z);if(Math.hypot(dx,dz)>.0001)actor.group.rotation.y=Math.atan2(-dx,-dz)}
   function nearby(){if(z>3.7&&Math.abs(x)<1.8)return {kind:'exit',label:'Leave building'};const resident=residents.find(a=>Math.hypot(x-a.group.position.x,z-a.group.position.z)<1.8&&physics.visible([x,z],[a.group.position.x,a.group.position.z]));if(resident)return {kind:'local',actionId:'talk',label:'Talk to a visitor'};let best=null,distance=1.65;for(const spot of hotspots){const d=Math.hypot(x-spot.x,z-spot.z);if(d<distance&&physics.visible([x,z],[spot.x,spot.z])){best={kind:spot.actionId==='shopping'?'local':'activity',...spot};distance=d}}return best}

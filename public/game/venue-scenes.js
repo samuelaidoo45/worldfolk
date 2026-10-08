@@ -1,3 +1,4 @@
+import {mobileFieldOfView} from './display-settings.js';
 import * as THREE from './three.module.js';
 import {createActor} from './world3d.js';
 import {createRoomPhysics} from './room-physics.js';
@@ -84,7 +85,7 @@ export function createVenueScene({kind,name,avatar,design={}}){
  function move(dx,dz){if(watching)return;[x,z]=physics.move([x,z],[dx,dz]);if(Math.hypot(dx,dz)>.001)actor.group.rotation.y=Math.atan2(-dx,-dz)}
  for(const a of [actor,...animated,...residents])a.group.traverse(o=>o.castShadow=false);
  const crowd=instanceAnimatedModels([...animated,...residents].map(a=>a.group));scene.add(crowd.group);
- function render(t,moving,cameraMode='third'){const dt=last?Math.min(.1,t-last):1/60;last=t;if(width!==innerWidth||height!==innerHeight){width=innerWidth;height=innerHeight;renderer.setSize(width,height,false);camera.aspect=width/height;camera.updateProjectionMatrix()}
+ function render(t,moving,cameraMode='third'){const dt=last?Math.min(.1,t-last):1/60;last=t;if(width!==innerWidth||height!==innerHeight){width=innerWidth;height=innerHeight;renderer.setSize(width,height,false);camera.aspect=width/height;camera.fov=mobileFieldOfView(64,width,height,matchMedia('(any-pointer: coarse)').matches||navigator.maxTouchPoints>0);camera.updateProjectionMatrix()}
   actor.animate(t,moving&&!watching);actor.group.position.set(x,actor.group.position.y,z);
   if(kind==='stadium'){
    const bx=Math.sin(t*.23)*23,bz=Math.sin(t*.16)*42;ball.position.set(bx,.25+Math.abs(Math.sin(t*2))*.4,bz);

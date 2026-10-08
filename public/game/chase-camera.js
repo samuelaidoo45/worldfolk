@@ -1,9 +1,9 @@
 import {offsetMetres,damp} from './motion.js';
 // Resolve the physical camera position before asking MapLibre for its projection.
 // Fixed zoom/pitch values can put the camera inside a roof beside a doorway.
-export function chaseCamera({position,heading,physics,driving=false,scenic=false,street=false,cabin=false,speed=0,previousDistance,dt=1/60}){
+export function chaseCamera({position,heading,physics,driving=false,scenic=false,street=false,cabin=false,speed=0,previousDistance,viewScale=1,dt=1/60}){
  const angle=heading*Math.PI/180,back=[-Math.sin(angle),-Math.cos(angle)];
- const wanted=cabin?0:scenic?34:street?(driving?11:8):driving?16+Math.min(5,Math.abs(speed)*.1):13;
+ const wanted=(cabin?0:scenic?34:street?(driving?11:8):driving?16+Math.min(5,Math.abs(speed)*.1):13)*Math.max(1,Math.min(1.55,viewScale));
  let clearance=wanted;
  for(let d=.4;d<=wanted+.1;d+=.4){if(physics?.collision(offsetMetres(position,back[0]*d,back[1]*d),.28)){clearance=Math.max(.35,d-.45);break}}
  const distance=previousDistance===undefined||clearance<previousDistance?clearance:damp(previousDistance,clearance,4,dt);

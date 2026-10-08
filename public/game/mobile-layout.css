@@ -91,3 +91,21 @@ body.touch-device.roam-mode.transit-mode[data-display-orientation='landscape'] .
  body.touch-device.roam-mode .touch-turn button {width:48px;height:48px}
 }
 @media(prefers-reduced-motion:reduce) {body.touch-device .mobile-game-menu,body.touch-device .ride-console {animation:none;transition:none}}
+/* Display preferences live together in the menu, away from the playing field. */
+.mobile-display-settings{display:none;grid-column:1/-1;min-width:0;padding:8px;border:1px solid #ffffff25;border-radius:12px;background:#ffffff08}
+.mobile-display-settings fieldset{display:flex;gap:6px;border:0;padding:0;margin:0;min-width:0}
+.mobile-display-settings legend{font-size:12px;font-weight:700;color:#e9f0e9;padding:0;margin-bottom:8px}
+.mobile-game-menu .mobile-display-settings button{display:block;flex:1;min-width:0;min-height:44px;padding:8px 4px;text-align:center;font-size:12px}
+.mobile-display-settings button[aria-pressed='true']{background:#e9c97d;color:#153a30;border-color:#ffdf91}
+.mobile-display-settings .display-hint{font-size:11px;line-height:1.5;color:#c6ddcf;margin:8px 0 14px;min-height:32px}
+body.touch-device.roam-mode[data-interface-size='compact']{--thumb-size:96px;--radar-size:96px;--toolbar-bottom:calc(var(--safe-bottom) + 116px)}
+body.touch-device.roam-mode[data-interface-size='compact'] .roam-status{width:148px;padding:6px}
+body.touch-device.roam-mode[data-interface-size='compact'] .roam-status .roam-meter{display:inline-flex;width:46%;margin-right:3%;gap:3px}
+body.touch-device.roam-mode[data-interface-size='compact'] .roam-status .roam-meter span{width:28px;font-size:7px}
+body.touch-device.roam-mode[data-interface-size='compact'] .roam-status strong{font-size:11px}
+body.touch-device.roam-mode[data-interface-size='compact'] .roam-status .roam-speed{font-size:16px}
+body.touch-device.roam-mode[data-interface-size='compact'] .game-minimap .minimap-caption{font-size:9px}
+body.touch-device.roam-mode[data-interface-size='compact'] .player-handle{font-size:10px;padding:2px 5px;max-width:120px}
+@media(min-width:600px) and (min-height:600px){body.touch-device.roam-mode[data-interface-size='compact']{--thumb-size:112px;--radar-size:112px}}
+
+.touch-device .mobile-display-settings{display:block}
