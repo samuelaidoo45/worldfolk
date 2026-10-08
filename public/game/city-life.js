@@ -1,3 +1,4 @@
+import {driveWithContacts} from './vehicle-contacts.js';
 import {signalSpeedLimit} from './traffic-signals.js';
 import {roadFeatures} from './road-cache.js';
 import {trafficSpeed,roadContinuation,angleDifference,vehiclesOverlap,recoverTraffic} from './traffic-routing.js';
@@ -7,7 +8,7 @@ const names=['Ama','Kojo','Abena','Kofi','Adwoa','Yaw','Akosua','Kwame','Efua','
 const looks=['👩🏾','👨🏾','👩🏿','👨🏽','👩🏽','🧑🏾'];
 // Ambient residents are simulated locally and are never included in live-player counts.
 export function createCityLife(map,physics,onHit=()=>{},getSignals=()=>[]){
-  let people=[],traffic=[],lastSeed=0,serial=0;const junctions=new Map(),roadCells=new Map();
+  let people=[],traffic=[],lastSeed=0,serial=0,priority=null;const junctions=new Map(),roadCells=new Map();
   function roads(position){
     const key=position.map(v=>Math.floor(v*3500)).join(','),now=performance.now(),cached=roadCells.get(key);if(cached&&now-cached.at<1000)return cached.roads;
     let features=[];try{features=roadFeatures(map)}catch{return []}
@@ -24,6 +25,7 @@ export function createCityLife(map,physics,onHit=()=>{},getSignals=()=>[]){
       const index=serial++,road=options[(index*7+attempt)%options.length],line=road.line,seg=Math.max(0,Math.min(line.length-2,road.best.index+(index%5)-2)),a=line[seg],b=line[seg+1],length=distanceMetres(a,b);if(length<3)continue;
       const direction=isCar&&(road.oneway===-1||!road.oneway&&index%2)?-1:1,t=.2+(index%7)*.1,base=[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t],heading=direction===1?bearingTo(a,b):bearingTo(b,a),angle=heading*Math.PI/180,side=isCar?road.width*.23:(index%2?1:-1)*(road.width/2+1.15),point=offsetMetres(base,Math.cos(angle)*side,-Math.sin(angle)*side);
       const distance=distanceMetres(position,point);if(isCar&&(distanceMetres(base,a)<9||distanceMetres(base,b)<9))continue;
+      if(priority&&distanceMetres(priority.position,point)<65)continue;
       if(distance<10||distance>150||physics.collision(point,isCar?1.2:.5)||[...people,...traffic].some(n=>distanceMetres(n.position,point)<10))continue;
       return {id:`ambient-${index}`,name:names[index%names.length],avatar:looks[index%looks.length],driving:isCar,vehicle:isCar?(road.width>=9&&index%5===0?'bus':index%3===0?'taxi':'car'):null,position:point,heading,line,width:road.width,layer:road.layer,index:direction===1?seg+1:seg,direction,side,speed:0,roadClass:road.roadClass,highway:road.highway,maxSpeed:isCar?(road.highway?25+index%9:12+index%5):1.05+(index%4)*.12,pauseUntil:0,blockedFor:0,moving:false};
     }return null;
@@ -37,8 +39,11 @@ export function createCityLife(map,physics,onHit=()=>{},getSignals=()=>[]){
     maintain(position,now);for(const [key,entry] of junctions){const owner=traffic.find(n=>n.id===entry.id);if(!owner||distanceMetres(owner.position,entry.position)>15||now-entry.at>15000)junctions.delete(key)}
     traffic=traffic.filter(n=>!n.cleared);for(const npc of [...people,...traffic]){
       npc.moving=false;
+      if(npc.impactVelocity){const v=npc.impactVelocity,next=offsetMetres(npc.position,v[0]*dt,v[1]*dt),result=npc.driving?driveWithContacts(npc.position,next,npc,v,[...traffic,...people].filter(other=>other!==npc),physics,now):physics.move(npc.position,next,.28);npc.position=result.position;npc.moving=true;npc.impactVelocity=(result.velocity||v).map(x=>x*Math.exp(-dt*(npc.driving?1.7:3)));npc.speed=0;if(result.blocked||Math.hypot(...npc.impactVelocity)<.12){npc.impactVelocity=null}else continue;}
+      if(priority&&now-priority.at<250&&npc.driving){const dist=distanceMetres(priority.position,npc.position),relative=(bearingTo(priority.position,npc.position)-priority.heading)*Math.PI/180,forward=dist*Math.cos(relative),side=Math.abs(dist*Math.sin(relative));if(forward>-5&&forward<65&&side<5){const goal=npc.width/2+.15,change=Math.min(dt*2.1,Math.max(0,goal-npc.side)),a=npc.heading*Math.PI/180,target=offsetMetres(npc.position,Math.cos(a)*change,-Math.sin(a)*change),result=physics.moveVehicle(npc.position,target,npc.heading,npc.vehicle);if(!result.blocked&&!traffic.some(other=>other!==npc&&vehiclesOverlap(result.position,npc.heading,other.position,other.heading,npc.vehicle,other.vehicle))){npc.position=result.position;npc.side+=change;npc.priorityYield=true;npc.speed=Math.max(0,npc.speed-dt*8);npc.stalled=0;npc.progressAnchor=[...npc.position];npc.moving=change>.001;continue;}}}
+      if(npc.priorityYield){const change=Math.max(-dt*1.3,Math.min(dt*1.3,npc.width*.23-npc.side)),a=npc.heading*Math.PI/180,target=offsetMetres(npc.position,Math.cos(a)*change,-Math.sin(a)*change),result=physics.moveVehicle(npc.position,target,npc.heading,npc.vehicle);if(!result.blocked&&!traffic.some(other=>other!==npc&&vehiclesOverlap(result.position,npc.heading,other.position,other.heading,npc.vehicle,other.vehicle))){npc.position=result.position;npc.side+=change}if(Math.abs(npc.side-npc.width*.23)<.1)npc.priorityYield=false;}
       // A pedestrian yields instead of pinning the player against a wall/car.
-      const clearance=playerMode==='drive'?2.6:.8;
+      const clearance=playerMode==='drive'?0:playerMode==='transit'?2.8:.8;
       if(!npc.driving&&distanceMetres(npc.position,position)<clearance){const away=bearingTo(position,npc.position)*Math.PI/180;let best=npc.position;for(const turn of [0,Math.PI/2,-Math.PI/2]){const candidate=offsetMetres(npc.position,Math.sin(away+turn)*dt*1.8,Math.cos(away+turn)*dt*1.8),resolved=physics.move(npc.position,candidate,.42);if(distanceMetres(resolved.position,position)>distanceMetres(best,position))best=resolved.position}npc.moving=distanceMetres(best,npc.position)>.002;npc.position=best;npc.speed=0;continue}
       const signalLimit=npc.driving?signalSpeedLimit(npc.position,npc.heading,getSignals()):Infinity;
       if(npc.driving&&Number.isFinite(signalLimit)){if(npc.speed<.25){npc.stalled=0;npc.progressAnchor=[...npc.position]}for(const [key,entry] of junctions)if(entry.id===npc.id)junctions.delete(key)}
@@ -84,5 +89,5 @@ export function createCityLife(map,physics,onHit=()=>{},getSignals=()=>[]){
   function nearby(position){return people.map(p=>({...p,distance:distanceMetres(position,p.position)})).filter(p=>p.distance<4.2).sort((a,b)=>a.distance-b.distance)[0]||null}
   function greet(id,position){const p=people.find(x=>x.id===id);if(!p)return '';p.pauseUntil=performance.now()+6000;p.heading=bearingTo(p.position,position);return `${p.name} · resident: ${['Akwaaba! Open Destinations to find a place, then follow the gold route.','Looking for a ride? Walk to the red car and press F.','Osu is lively. Set Oxford Street as your destination.','Take your time around the corners. Space is your handbrake.'][names.indexOf(p.name)%4]}`}
   function collides(position,driving=false){return (driving?[...people,...traffic]:people).some(p=>distanceMetres(position,p.position)<(p.driving?(driving?3.4:1.7):(driving?2.5:.65)))}
-  return {takeVehicle(id){const npc=traffic.find(n=>n.id===id);if(!npc)return false;traffic=traffic.filter(n=>n.id!==id);return true},nearVehicle(position){return traffic.filter(n=>!n.cleared&&n.vehicle!=='bus'&&n.speed<2&&distanceMetres(position,n.position)<5).sort((a,b)=>distanceMetres(position,a.position)-distanceMetres(position,b.position))[0]||null},tick,nudgePedestrians,nearby,greet,collides,roads,get actors(){return [...people,...traffic.filter(n=>!n.cleared)]},get count(){return people.length}};
+  return {setPriority(position,heading,now){priority={position:[...position],heading,at:now}},takeVehicle(id){const npc=traffic.find(n=>n.id===id);if(!npc)return false;traffic=traffic.filter(n=>n.id!==id);return true},nearVehicle(position){return traffic.filter(n=>!n.cleared&&n.vehicle!=='bus'&&n.speed<2&&distanceMetres(position,n.position)<5).sort((a,b)=>distanceMetres(position,a.position)-distanceMetres(position,b.position))[0]||null},tick,nudgePedestrians,nearby,greet,collides,roads,get actors(){return [...people,...traffic.filter(n=>!n.cleared)]},get count(){return people.length}};
 }

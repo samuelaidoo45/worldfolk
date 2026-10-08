@@ -70,7 +70,7 @@ class Extract(osmium.SimpleHandler):
   if g.is_empty:return
   p=g.representative_point();poi(a.id,t,(p.x,p.y))
   if building:
-   feature('building',a.id,g,{'height':max(3,number(t.get('height'),number(t.get('building:levels'),1.5)*3)),'min_height':number(t.get('min_height'),0),'class':t['building'],'name':t.get('name',''),'amenity':t.get('amenity',''),'shop':t.get('shop',''),'religion':t.get('religion','')})
+   feature('building',a.id,g,{'height':max(3,number(t.get('height'),number(t.get('building:levels'),1.5)*3)),'min_height':number(t.get('min_height'),0),'class':t['building'],'name':t.get('name',''),'amenity':t.get('amenity',''),'shop':t.get('shop',''),'religion':t.get('religion',''),'building:colour':t.get('building:colour',''),'roof:colour':t.get('roof:colour',''),'roof:shape':t.get('roof:shape',''),'building:levels':t.get('building:levels','')})
   elif water:feature('water',a.id,g,{'class':'water','name':t.get('name','')})
   elif land:
    kind={'forest':'wood','meadow':'grass','farmland':'agriculture','beach':'sand','recreation_ground':'park'}.get(land,land)
