@@ -1,8 +1,9 @@
+import {CITY_PLACES,startingPlace} from './city-places.js';
+import {createCityWelcome} from './city-welcome.js';
 import {createGameAudio} from './game-audio.js';
 import {EXPERIENCES,shiftCanMove,canUseVehicle,workStep,workReady} from './work-catalog.js';
 import {installPlaceIcons,placeEmoji} from './place-icons.js';
 import {movementFailure,correctedPosition,newestPlayer} from './movement-sync.js';
-import {CITY_DESTINATIONS} from './city-destinations.js';
 import {trafficSpeed} from './traffic-routing.js';
 import {signalSpeedLimit} from './traffic-signals.js';
 import {driveWithContacts} from './vehicle-contacts.js';
@@ -44,25 +45,7 @@ import {createBuildingPhysics} from './building-physics.js';
 import {createInterior3D} from './interior3d.js';
 import {installRealBuildings,createArchitecture} from './real-buildings.js';
 const $ = id => document.getElementById(id);
-const PLACES = [
- ...CITY_DESTINATIONS,
-  {id:'home',name:'Your home',area:'North Ridge',type:'Home',emoji:'🏡',lng:-0.1949,lat:5.5682,description:'Your own corner of Accra. Rest, cook, recharge and grow your space.',activities:['sleep','cook','shower','relax','upgrade']},
-  {id:'square',name:'Independence Square',area:'Osu',type:'Landmark',emoji:'🇬🇭',lng:-0.1935,lat:5.5448,description:'Walk the wide civic square and take in the sea breeze.',activities:['stroll']},
-  {id:'nkrumah',name:'Nkrumah Memorial Park',area:'Accra Central',type:'Culture',emoji:'🏛️',lng:-0.2024,lat:5.5446,description:'A place for history, gardens and Ghanaian stories.',activities:['museum']},
-  {id:'jamestown',name:'Jamestown',area:'Coastal Accra',type:'Culture',emoji:'🗼',lng:-0.2161,lat:5.5352,description:'Explore the lighthouse, street art and coastal community.',activities:['stroll']},
-  {id:'makola',name:'Makola Market',area:'Accra Central',type:'Work & food',emoji:'🧺',lng:-0.2141,lat:5.5485,description:'Trade, bargain, eat and feel the pulse of the market.',activities:['trade','marketfood']},
-  {id:'osu',name:'Oxford Street',area:'Osu',type:'Food & nightlife',emoji:'🥘',lng:-0.1819,lat:5.5598,description:'A city hotspot for food, cafés and late nights.',activities:['cafe','meal','nightlife']},
-  {id:'labadi',name:'Labadi Beach',area:'La',type:'Outdoors',emoji:'🌊',lng:-0.140846,lat:5.561955,description:'Leave the day behind at the beach.',activities:['beach']},
-  {id:'arts',name:'Arts Centre',area:'Accra Central',type:'Culture',emoji:'🎨',lng:-0.2033,lat:5.5464,description:'Find craft, colour and creativity by the coast.',activities:['browse']},
-  {id:'theatre',name:'National Theatre',area:'Victoriaborg',type:'Culture',emoji:'🎭',lng:-0.2047,lat:5.5516,description:'Take a stroll past one of Accra’s cultural landmarks.',activities:['stroll']},
-  {id:'dubois',name:'W. E. B. Du Bois Centre',area:'Cantonments',type:'Learning',emoji:'📚',lng:-0.1698,lat:5.5815,description:'Reflect, learn and discover ideas that travelled the world.',activities:['museum','study']},
-  {id:'mall',name:'Accra Mall',area:'Tetteh Quarshie',type:'Shopping',emoji:'🛍️',lng:-0.1738,lat:5.6224,description:'A lively place to shop and meet up.',activities:['shopping']},
-  {id:'airport',name:'Airport City',area:'Airport Residential',type:'Work',emoji:'🏢',lng:-0.1787,lat:5.6093,description:'Offices, hotels and a chance to make career moves.',activities:['office']},
-  {id:'eastlegon',name:'East Legon',area:'East Legon',type:'Neighbourhood',emoji:'🌳',lng:-0.1572,lat:5.6357,description:'Explore cafés, shops and residential streets.',activities:['shopping','stroll']},
-  {id:'legon',name:'University of Ghana',area:'Legon',type:'Learning',emoji:'🎓',lng:-0.1874,lat:5.6510,description:'Spend some time learning on the green campus.',activities:['study']},
-  {id:'kaneshie',name:'Kaneshie Market',area:'Kaneshie',type:'Food',emoji:'🥭',lng:-0.2346,lat:5.5724,description:'Follow the market energy and grab a bite.',activities:['marketfood']},
-];
-PLACES.push(...VENUES);
+const PLACES=CITY_PLACES.map(p=>({...p}));
 const placeById = Object.fromEntries(PLACES.map(p=>[p.id,p]));
 const ACCRA_BOUNDS={west:-0.36,south:5.43,east:0.07,north:5.78};
 function inAccra(lng,lat){return Number.isFinite(lng)&&Number.isFinite(lat)&&lng>=ACCRA_BOUNDS.west&&lng<=ACCRA_BOUNDS.east&&lat>=ACCRA_BOUNDS.south&&lat<=ACCRA_BOUNDS.north}
@@ -92,7 +75,7 @@ const realtime=createRealtime({onPlayers(players){state.players=players;state.wo
 
 function toast(message){const el=$('toast');el.textContent=message;el.classList.remove('hidden');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.add('hidden'),3400)}
 function clockText(){return worldAtmosphere().label}
-function updateCityLight(){state.atmosphere?.update(state.view==='2d'?{...worldAtmosphere(),preset:'day',weather:'clear'}:undefined)}
+function updateCityLight(){state.atmosphere?.update((state.view==='2d'||state.cityWelcome?.active)?{...worldAtmosphere(),preset:'day',weather:'clear'}:undefined)}
 function safeText(el,value){el.textContent=String(value??'')}
 async function api(method,body,query=''){
   if(method==='POST'&&state.sessionPaused)throw new Error('This session is paused. Continue in your active game tab.');
@@ -110,18 +93,17 @@ async function refreshWorld(){
     state.self=data.self;syncHomeMarker();state.residences=data.residences||[];if(!realtime.connected)state.players=data.players||[];state.messages=data.messages||[];
     if(state.self)realtime.start();
     updateCityLight();state.lifeUI?.sync();if(data.accessAllowed===false&&state.mode==='indoor'){exitInterior();toast('Your guest access has ended')}syncLife();
-    if(!state.loaded&&state.self){state.selectedPlace=state.self.placeId;state.loaded=true;state.position=[state.self.lng,state.self.lat];state.heading=state.self.heading||0;flyTo(state.selectedPlace,14.6)}
+    if(!state.loaded&&state.self){state.selectedPlace=state.self.placeId;state.loaded=true;state.position=[state.self.lng,state.self.lat];state.heading=state.self.heading||0;if(!state.cityWelcome?.active)flyTo(state.selectedPlace,14.6)}
     state.world3d?.setIdentity(state.self);state.world3d?.setPlayers(state.players,state.self?.id);
-    if(state.world3d&&state.self&&!state.roam&&!state.mapModeRequested)enterRoam();
-    if(!state.self){$('welcomeModal').classList.remove('hidden');$('modalScrim').classList.remove('hidden')}
-    else{$('welcomeModal').classList.add('hidden');if($('helpModal').classList.contains('hidden'))$('modalScrim').classList.add('hidden')}
+    if(state.world3d&&state.self&&!state.self.life?.explorationPending&&!state.cityWelcome?.active&&!state.roam&&!state.mapModeRequested)enterRoam();
+    state.cityWelcome?.sync();if(state.self){$('welcomeModal').classList.add('hidden');if($('helpModal').classList.contains('hidden'))$('modalScrim').classList.add('hidden')}
     if(previousSelf!==JSON.stringify(state.self))renderAll();
     else{renderTop();renderChat();renderMapMarkers()}
   }catch(error){if(!state.loaded)toast(error.message)}finally{state.refreshing=false}
 }
 async function postAction(input){if((state.self?.life?.health<=0||state.self?.life?.arrested)){toast('Restart at home to continue');return null}if(input.type==='act'&&input.actionId==='cook')return lifeAction({type:'cook-inventory'});if(input.type==='act'&&['office','trade','cafe'].includes(input.actionId)){state.lifeUI?.show('work');return null}if(input.type==='act'&&input.actionId==='shopping'){state.lifeUI?.show('shops');return null}
   if(state.busy)return;state.busy=true;
-  try{const data=await api('POST',input);if(data.self){state.self=data.self;if(input.type==='travel'||input.type==='join'){state.position=[data.self.lng,data.self.lat];state.lastSentPosition=[...state.position];state.heading=data.self.heading||0;state.spawnChecked=false;state.spawnCorrectionPending=false;if(state.mode==='drive'){state.mode='walk';state.carSpeed=0;state.cabinView=false;document.body.classList.remove('cabin-mode');state.world3d?.setCabinView(false);state.world3d?.setDriving(false)}state.world3d?.setPosition(...state.position,state.heading);if(state.roam){updateNearby();followCamera(true)}}}if(data.event)toast(data.event);await refreshWorld();updateRoamHud();return data}
+  try{const data=await api('POST',input);if(data.self){state.self=data.self;if(input.type==='travel'||input.type==='join'||input.type==='start-exploring'){state.position=[data.self.lng,data.self.lat];state.lastSentPosition=[...state.position];state.heading=data.self.heading||0;state.spawnChecked=false;state.spawnCorrectionPending=false;if(state.mode==='drive'){state.mode='walk';state.carSpeed=0;state.cabinView=false;document.body.classList.remove('cabin-mode');state.world3d?.setCabinView(false);state.world3d?.setDriving(false)}state.world3d?.setPosition(...state.position,state.heading);if(state.roam){updateNearby();followCamera(true)}}}if(data.event)toast(data.event);await refreshWorld();updateRoamHud();return data}
   catch(error){toast(error.message);return null}finally{state.busy=false;renderPlace()}
 }
 
@@ -129,13 +111,13 @@ function initMap(){
   const Engine=window.maplibregl;
   if(!Engine){toast('Could not load the map library. Check your connection.');return}
   state.engine=Engine;
-  const options={container:'map',center:[-0.1905,5.5704],zoom:12.7,minZoom:10,pitch:28,bearing:0,maxZoom:26,maxPitch:78,canvasContextAttributes:{antialias:true},maxBounds:[[-.39,5.41],[.11,5.82]],style:cityMapStyle()};
+  const options={container:'map',center:[-0.1935,5.5515],zoom:14.7,minZoom:10,pitch:54,bearing:0,maxZoom:26,maxPitch:78,canvasContextAttributes:{antialias:true},maxBounds:[[-.39,5.41],[.11,5.82]],style:cityMapStyle()};
   state.map=new Engine.Map(options);
   installPlaceIcons(state.map);
   state.sceneLoading=createSceneLoading(state.map,()=>state.mode);
   const canvas=state.map.getCanvas();let looking=false,lastLook=null;canvas.addEventListener('contextmenu',e=>{if(state.roam)e.preventDefault()});canvas.addEventListener('pointerdown',e=>{if(e.button!==2||!state.roam||state.view==='2d')return;looking=true;lastLook=[e.clientX,e.clientY];canvas.setPointerCapture(e.pointerId)});canvas.addEventListener('pointermove',e=>{if(!looking)return;const dx=e.clientX-lastLook[0],dy=e.clientY-lastLook[1];lastLook=[e.clientX,e.clientY];if(state.mode==='indoor'){state.interior?.look?.(-dx*.2,dy*.12);return}if(state.mode==='walk')state.cameraBearing-=dx*.2;else state.lookOffset=(state.lookOffset||0)-dx*.2;state.lookPitch=Math.max(-18,Math.min(3,(state.lookPitch||0)+dy*.12))});for(const event of ['pointerup','pointercancel'])canvas.addEventListener(event,()=>{looking=false});
 
-  state.map.on('load',()=>{PLACES.forEach(place=>{const el=document.createElement('button');el.className='poi-marker';el.type='button';el.setAttribute('aria-label',`Visit ${place.name}`);el.innerHTML=`<span class="poi-icon">${place.emoji}</span><span class="poi-label"></span>`;el.querySelector('.poi-label').textContent=place.name;el.addEventListener('click',e=>{e.stopPropagation();selectPlace(place.id)});const marker=new Engine.Marker({element:el,anchor:'bottom'}).setLngLat([place.lng,place.lat]).addTo(state.map);state.poiMarkers.set(place.id,marker)});try{installGroundDetail(state.map);state.satellite=installSatellite(state.map);state.roadGeometry=installRealBuildings(state.map);installOverheadMap(state.map);state.roadSurface=createRoadSurface(state.map);state.architecture=createArchitecture(state.map,()=>[...PLACES,...HOMES.map(h=>({...h,type:'Private home'})),...visibleMapPlaces()]);state.physics=createBuildingPhysics(state.map);state.safety=createStreetSafety(state.map,state.physics);state.world3d=createWorld3D(state.map,Engine);state.atmosphere=createAtmosphere(state.map,state.world3d);createTransit({state,action:lifeAction,navigate:p=>state.navigation?.to(p),arrive:resetJourney,places:PLACES,chat:()=>{state.chatChannel='place';if(!state.chatOpen)toggleRoamChat();refreshWorld()}}).then(t=>state.transit=t).catch(e=>toast(e.message));state.lifeUI=createLifeUI({state,action:lifeAction,navigate:p=>{if(state.mode==='indoor')exitInterior();state.navigation?.to(p)},enterHome:openHome,places:PLACES});state.lifeUI.sync();state.cityLife=createCityLife(state.map,state.physics,trafficHit,()=>state.scenery?.items.filter(i=>i.kind==='signal')||[]);state.scenery=createScenery(state.map,state.physics);state.navigation=createNavigation({map:state.map,places:PLACES,getPosition:()=>state.position,getMode:()=>state.mode,onAutoStart:rate=>{state.autoTrafficWait=0;state.autoBlockedFor=0;state.keys.clear();state.joystick={x:0,y:0};return lifeAction({type:'drive-speed',rate})},onSkip:place=>lifeAction({type:'drive-skip',lng:place.lng,lat:place.lat}),onSelect:()=>{state.keys.clear();if(!state.roam)enterRoam()}});state.overhead=createOverheadView({state});state.minimap=createMiniMap({state,places:()=>[...PLACES,...HOMES.map(h=>({...h,type:'Private home'})),...visibleMapPlaces()]});state.world3d.setPlayers(state.players,state.self?.id);updateCityLight();if(state.self)enterRoam()}catch(error){console.error('3D world',error);toast('3D characters could not load on this device. The city map is still available.')}renderMapMarkers()});
+  state.map.on('load',()=>{PLACES.forEach(place=>{const el=document.createElement('button');el.className='poi-marker';el.type='button';el.setAttribute('aria-label',`Visit ${place.name}`);el.innerHTML=`<span class="poi-icon">${place.emoji}</span><span class="poi-label"></span>`;el.querySelector('.poi-label').textContent=place.name;el.addEventListener('click',e=>{e.stopPropagation();selectPlace(place.id)});const marker=new Engine.Marker({element:el,anchor:'bottom'}).setLngLat([place.lng,place.lat]).addTo(state.map);state.poiMarkers.set(place.id,marker)});try{installGroundDetail(state.map);state.satellite=installSatellite(state.map);state.roadGeometry=installRealBuildings(state.map);installOverheadMap(state.map);state.roadSurface=createRoadSurface(state.map);state.architecture=createArchitecture(state.map,()=>[...PLACES,...HOMES.map(h=>({...h,type:'Private home'})),...visibleMapPlaces()]);state.physics=createBuildingPhysics(state.map);state.safety=createStreetSafety(state.map,state.physics);state.world3d=createWorld3D(state.map,Engine);state.atmosphere=createAtmosphere(state.map,state.world3d);createTransit({state,action:lifeAction,navigate:p=>state.navigation?.to(p),arrive:resetJourney,places:PLACES,chat:()=>{state.chatChannel='place';if(!state.chatOpen)toggleRoamChat();refreshWorld()}}).then(t=>state.transit=t).catch(e=>toast(e.message));state.lifeUI=createLifeUI({state,action:lifeAction,navigate:p=>{if(state.mode==='indoor')exitInterior();state.navigation?.to(p)},enterHome:openHome,places:PLACES});state.lifeUI.sync();state.cityLife=createCityLife(state.map,state.physics,trafficHit,()=>state.scenery?.items.filter(i=>i.kind==='signal')||[]);state.scenery=createScenery(state.map,state.physics);state.navigation=createNavigation({map:state.map,places:PLACES,getPosition:()=>state.position,getMode:()=>state.mode,onAutoStart:rate=>{state.autoTrafficWait=0;state.autoBlockedFor=0;state.keys.clear();state.joystick={x:0,y:0};return lifeAction({type:'drive-speed',rate})},onSkip:place=>lifeAction({type:'drive-skip',lng:place.lng,lat:place.lat}),onSelect:()=>{state.keys.clear();if(!state.roam)enterRoam()}});state.overhead=createOverheadView({state});state.minimap=createMiniMap({state,places:()=>[...PLACES,...HOMES.map(h=>({...h,type:'Private home'})),...visibleMapPlaces()]});state.world3d.setPlayers(state.players,state.self?.id);updateCityLight();if(state.self&&!state.cityWelcome?.active&&!state.self.life?.explorationPending)enterRoam();else previewCity()}catch(error){console.error('3D world',error);toast('3D characters could not load on this device. The city map is still available.')}renderMapMarkers()});
   state.map.on('dragstart',()=>{if(state.view==='2d')state.overheadFollowing=false});
   state.map.on('click',e=>{if(state.roam&&state.view!=='2d')return;let place=null;if(e.point){const feature=state.map.queryRenderedFeatures(e.point,{layers:['worldfolk-map-places','worldfolk-poi-labels','worldfolk-poi-dots','worldfolk-place-labels'].filter(id=>state.map.getLayer(id))}).find(f=>f.properties?.name&&f.geometry?.type==='Point');if(feature?.properties?.placeId)place=placeForId(feature.properties.placeId);else if(feature){const coords=feature.geometry.coordinates;place=geoPlace(coords[0],coords[1],String(feature.properties.name),String(feature.properties?.type||feature.properties?.class||'Local place'),emojiForFeature(feature.properties))}}if(!state.roam)place??=geoPlace(e.lngLat.lng,e.lngLat.lat);if(place)selectPlace(place.id);else if(!state.roam)toast('Choose a spot within Accra')});
   state.map.on('moveend',()=>{if(state.panelTab==='places'&&!state.placeQuery)renderPlaces()});
@@ -146,9 +128,9 @@ let cachedMapPlaces=[],lastMapPlaces=0;
 function visibleMapPlaces(){if(performance.now()-lastMapPlaces<1000)return cachedMapPlaces;lastMapPlaces=performance.now();if(!state.map?.isStyleLoaded())return [];const found=new Map();try{for(const feature of state.map.querySourceFeatures('accralife-streets',{sourceLayer:'poi'})){const coords=feature.geometry?.coordinates,name=feature.properties?.name;if(feature.geometry?.type!=='Point'||!name||state.position&&metersBetween(state.position,coords)>500)continue;const place=geoPlace(coords[0],coords[1],String(name),String(feature.properties?.type||feature.properties?.class||'Local place'),emojiForFeature(feature.properties));if(place&&!found.has(place.id))found.set(place.id,place);if(found.size>=70)break}}catch(error){console.warn('Could not read map places',error)}cachedMapPlaces=[...found.values()];return cachedMapPlaces}
 
 function flyTo(id,zoom=15.5){const p=placeForId(id);if(p&&state.map)state.map.flyTo({center:[p.lng,p.lat],zoom,pitch:state.tilted?58:42,duration:1050,essential:true})}
-function selectPlace(id){const place=placeForId(id);if(!place)return;if(id.startsWith('g_')&&place.name!=='Map location'){try{sessionStorage.setItem(`accralife_place_${id}`,JSON.stringify({name:place.name,type:place.type,emoji:place.emoji}))}catch{}}state.selectedPlace=id;if(state.roam&&state.view==='2d'){visitFromMap(place);return}renderPlace();renderMapMarkers();flyTo(id);if(window.innerWidth<=760)openMobile('place')}
+function selectPlace(id){const place=placeForId(id);if(!place)return;if(state.cityWelcome?.active){if(!state.cityWelcome.select(place)){toast('Choose a highlighted public place or use the place search');return}state.selectedPlace=id;renderMapMarkers();state.map?.flyTo({center:[place.lng,place.lat],zoom:16.1,pitch:55,duration:1200,essential:true});return}if(id.startsWith('g_')&&place.name!=='Map location'){try{sessionStorage.setItem(`accralife_place_${id}`,JSON.stringify({name:place.name,type:place.type,emoji:place.emoji}))}catch{}}state.selectedPlace=id;if(state.roam&&state.view==='2d'){visitFromMap(place);return}renderPlace();renderMapMarkers();flyTo(id);if(window.innerWidth<=760)openMobile('place')}
 function renderMapMarkers(){
-  state.poiMarkers.forEach((marker,id)=>marker.getElement().classList.toggle('selected',id===state.selectedPlace));
+  state.poiMarkers.forEach((marker,id)=>{marker.getElement().classList.toggle('selected',id===state.selectedPlace);marker.getElement().hidden=id==='home'&&!!state.cityWelcome?.active});
   state.selectedMarker?.remove();state.selectedMarker=null;
   const selected=placeForId(state.selectedPlace);if(state.map?.getSource('worldfolk-map-places'))updateOverheadPlaces(state.map,PLACES,selected);if(selected?.id.startsWith('g_')&&state.map){const el=document.createElement('button');el.type='button';el.className='poi-marker selected';el.setAttribute('aria-label',`Selected: ${selected.name}`);el.innerHTML=`<span class="poi-icon">${selected.emoji}</span><span class="poi-label"></span>`;el.querySelector('.poi-label').textContent=selected.name;state.selectedMarker=new state.engine.Marker({element:el,anchor:'bottom'}).setLngLat([selected.lng,selected.lat]).addTo(state.map)}
   state.playerMarkers.forEach(m=>m.remove());state.playerMarkers=[];
@@ -246,7 +228,7 @@ function updateNearby(){
   const nearby=PLACES.filter(p=>metersBetween(state.position,[p.lng,p.lat])<180).sort((a,b)=>metersBetween(state.position,[a.lng,a.lat])-metersBetween(state.position,[b.lng,b.lat]));if(state.nearestPlace&&!nearby.some(p=>p.id===state.nearestPlace.id))nearby.unshift(state.nearestPlace);state.world3d?.setBeacons(nearby);updateRoamHud();
 }
 function followCamera(force=false,dt=1/60){
-  if(!state.map||!state.position||state.mode==='indoor')return;
+  if(state.cityWelcome?.active||!state.map||!state.position||state.mode==='indoor')return;
   if(state.view==='2d'){const moving=state.movementSpeed>.08||state.mode==='transit'||state.mode==='flight';if(moving)state.overheadFollowing=true;if(force||state.overheadFollowing)state.map.jumpTo({center:state.position,pitch:0,bearing:0});return}
   if(force||!state.cameraPosition){state.cameraPosition=[...state.position];state.cameraHeading=state.cameraBearing}
   state.cameraPosition=state.cameraPosition.map((v,i)=>damp(v,state.position[i],12,dt));
@@ -259,8 +241,8 @@ function followCamera(force=false,dt=1/60){
 }
 function openDrivingHeading(position){if(!state.physics?.count)return state.heading;let best=state.heading,bestDistance=-1;for(let heading=0;heading<360;heading+=30){const angle=heading*Math.PI/180;let distance=0;for(let metres=2;metres<=16;metres+=2){const point=[position[0]+Math.sin(angle)*metres/(111320*Math.cos(position[1]*Math.PI/180)),position[1]+Math.cos(angle)*metres/111320];if(state.physics.collision(point,1.15))break;distance=metres}if(distance>bestDistance){best=heading;bestDistance=distance}}return best}
 function enterRoam(){
-  if(!state.self){toast('Create your Sim to enter 3D play');return}if(!state.world3d){toast('The 3D city is still loading');return}if(state.roam)return;
-  state.roam=true;state.mapModeRequested=false;state.mode=state.self.driving?'drive':'walk';state.cabinView=state.mode==='drive'&&state.cameraMode==='first';document.body.classList.toggle('cabin-mode',state.cabinView);state.world3d?.setCabinView(state.cabinView);state.position??=[state.self.lng,state.self.lat];state.lastSentPosition=[...state.position];state.heading=state.self.heading||0;state.cameraBearing=state.heading;state.spawnChecked=false;
+  if(!state.self||state.self.life?.explorationPending){state.cityWelcome?.show();toast('Choose your starting place on the map');return}if(!state.world3d){toast('The 3D city is still loading');return}if(state.roam)return;
+  state.cityWelcome?.hide();state.world3d?.setPreview(false);state.roam=true;state.mapModeRequested=false;state.mode=state.self.driving?'drive':'walk';state.cabinView=state.mode==='drive'&&state.cameraMode==='first';document.body.classList.toggle('cabin-mode',state.cabinView);state.world3d?.setCabinView(state.cabinView);state.position??=[state.self.lng,state.self.lat];state.lastSentPosition=[...state.position];state.heading=state.self.heading||0;state.cameraBearing=state.heading;state.spawnChecked=false;
   state.physics?.refresh(state.position,true);
   if(state.physics?.count&&state.physics.collision(state.position,state.mode==='drive'?1.15:.7)){const open=state.physics.findOpen(state.position,state.mode==='drive'?1.15:.7);if(metersBetween(open,state.position)<35){state.position=open;state.spawnCorrectionPending=true}}
   if(state.mode==='drive')state.carPosition=[...state.position];else if(!state.carPosition){const lat=state.position[1],near=[state.position[0]+3/(111320*Math.cos(lat*Math.PI/180)),lat];state.carPosition=state.physics?.findOpen(near,2.1)||near;state.carHeading=openDrivingHeading(state.carPosition)}
@@ -417,9 +399,9 @@ document.querySelectorAll('.chat-channels button[data-channel]').forEach(b=>b.ad
 $('unmuteAll').addEventListener('click',()=>{state.muted.clear();localStorage.removeItem('accralife_muted');renderChat();toast('All players unmuted')});
 $('chatCollapse').addEventListener('click',()=>{if(state.roam&&document.body.classList.contains('touch-device')){toggleRoamChat();return}$('chatPanel').classList.toggle('collapsed');state.chatCollapsed=!state.chatCollapsed;$('chatCollapse').textContent=state.chatCollapsed?'⌃':'⌄'});
 $('chatForm').addEventListener('submit',async e=>{e.preventDefault();const input=$('chatInput');const body=input.value.trim();if(!body)return;const result=await postAction({type:'chat',body,channel:state.chatChannel});if(result){input.value='';await refreshWorld()}});
-$('joinForm').addEventListener('submit',async e=>{e.preventDefault();const name=$('joinName').value.trim();if(name.length<2)return;const result=await postAction({type:'join',name,avatar:state.avatar});if(result){$('welcomeModal').classList.add('hidden');$('modalScrim').classList.add('hidden');toast(`Akwaaba, ${name}! Welcome to your assigned home.`);restoreHomeInterior()}});
+$('joinForm').addEventListener('submit',async e=>{e.preventDefault();const name=$('joinName').value.trim(),place=state.cityWelcome.selected;if(name.length<2||!place)return;const submit=e.currentTarget.querySelector('button[type=submit]');submit.disabled=true;try{const result=await postAction({type:'join',name,avatar:state.avatar,startPlaceId:place.id});if(result){$('welcomeModal').classList.add('hidden');$('modalScrim').classList.add('hidden');await beginExploring(place);toast(`Akwaaba, ${name}! Explore ${place.name}.`)}}finally{submit.disabled=false}});
 $('brandBtn').addEventListener('click',()=>state.map?.flyTo({center:[-0.1905,5.5704],zoom:12.7,pitch:28,bearing:0,essential:true}));
-state.accountUI=createAccountUI({getPlayer:()=>state.self,pause:async()=>{state.keys.clear();state.walkVelocity=[0,0];state.carSpeed=0;await flushMove()}});
+state.accountUI=createAccountUI({getPlayer:()=>state.self,getStartPlace:()=>state.cityWelcome?.selected,pause:async()=>{state.keys.clear();state.walkVelocity=[0,0];state.carSpeed=0;await flushMove()}});
 $('profileBtn').addEventListener('click',()=>state.accountUI.show());
 $('createAccountWelcome').onclick=()=>state.accountUI.show('register');
 $('signInWelcome').onclick=()=>state.accountUI.show('login');
@@ -427,9 +409,11 @@ $('zoomIn').addEventListener('click',()=>state.map?.zoomIn());$('zoomOut').addEv
 $('toggle3d').addEventListener('click',()=>{state.tilted=!state.tilted;$('toggle3d').classList.toggle('active',state.tilted);state.map?.easeTo({pitch:state.tilted?65:0,zoom:Math.max(state.map.getZoom(),state.tilted?16:12),duration:750})});
 $('findMe').addEventListener('click',()=>{if(state.self){state.selectedPlace=state.self.placeId;flyTo(state.self.placeId,16);renderPlace();renderMapMarkers()}else toast('Create your Sim to enter the city')});
 $('helpBtn').addEventListener('click',()=>{$('helpModal').classList.remove('hidden');$('modalScrim').classList.remove('hidden')});
-$('helpClose').addEventListener('click',()=>{$('helpModal').classList.add('hidden');if(state.self)$('modalScrim').classList.add('hidden')});
+$('helpClose').addEventListener('click',()=>{$('helpModal').classList.add('hidden');if($('welcomeModal').classList.contains('hidden'))$('modalScrim').classList.add('hidden')});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('helpModal').classList.contains('hidden'))$('helpClose').click()});
 AVATARS.forEach(avatar=>{const b=document.createElement('button');b.type='button';b.textContent=avatar;b.classList.toggle('active',avatar===state.avatar);b.setAttribute('aria-label',`Choose avatar ${avatar}`);b.addEventListener('click',()=>{state.avatar=avatar;$('welcomePreview').textContent=avatar;document.querySelectorAll('.avatar-choices button').forEach(x=>x.classList.toggle('active',x===b))});$('avatarChoices').appendChild(b)});
+state.cityWelcome=createCityWelcome({state,onSelect:p=>selectPlace(p.id),onExplore:beginExploring,onResume:()=>enterRoam(),onGuest:()=>{$('welcomeTitle').textContent=`Start at ${state.cityWelcome.selected.name}`;$('welcomeModal').classList.remove('hidden');$('modalScrim').classList.remove('hidden');$('joinName').focus()},onAccount:mode=>state.accountUI.show(mode)});
+$('welcomeClose').onclick=()=>{$('welcomeModal').classList.add('hidden');$('modalScrim').classList.add('hidden')};
 initMap();refreshWorld();pollTimer=setInterval(()=>{if(!document.hidden)refreshWorld()},15000);heartbeatTimer=setInterval(()=>{if(state.self&&!document.hidden&&!realtime.connected)api('POST',{type:'heartbeat'}).catch(()=>{})},60000);
 createMobileControls({state,release:releaseControls,interact,toggleCamera:toggleScenic});
 let chatRefreshPending=false;setInterval(async()=>{if(document.hidden||!state.self||state.roam&&!state.chatOpen||chatRefreshPending)return;chatRefreshPending=true;try{const data=await api('GET',null,`?messagesOnly=1&channel=${state.chatChannel==='city'?'city':'place'}`);state.messages=data.messages;renderChat()}catch{}finally{chatRefreshPending=false}},3000);
@@ -498,3 +482,20 @@ function syncHomeMarker(){
 
 // Keep the last validated journey when the browser suspends or reloads this tab.
 window.addEventListener('pagehide',()=>{if(state.sessionPaused||!state.self||!state.position||!['walk','drive'].includes(state.mode)||state.moveSyncPaused)return;fetch('/api/game',{method:'POST',credentials:'same-origin',keepalive:true,headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'move',lng:state.position[0],lat:state.position[1],heading:state.heading,spawnCorrection:state.spawnCorrectionPending})}).catch(()=>{})});
+
+async function beginExploring(place){
+ if(!state.self)return;if(!state.world3d){toast('The city is still loading. Please try again.');return}
+ if(state.self.life?.explorationPending){const result=await postAction({type:'start-exploring',placeId:place.id});if(!result)return}
+ if(state.self.life?.startPlaceId===place.id&&!state.roam){
+  state.map.flyTo({center:[state.self.lng,state.self.lat],zoom:18,pitch:58,duration:1100,essential:true});
+  await new Promise(resolve=>setTimeout(resolve,1150));
+ }
+ enterRoam();if(state.roam&&metersBetween(state.position,[place.lng,place.lat])>90)state.navigation?.to(place);
+}
+function previewCity(){
+ if(!state.cityWelcome?.active||state.roam||!state.world3d)return;
+ const center=state.map.getCenter(),position=[center.lng,center.lat];state.world3d.setPreview(true);state.world3d.setEnabled(true);state.world3d.setPosition(...position,0);state.world3d.setVehicleOwned(false);
+ state.physics?.refresh(position);state.roadGeometry?.update(position);state.architecture?.update(position);state.world3d.setArchitecture(state.architecture?.details||[]);state.scenery?.update(position);state.world3d.setScenery(state.scenery?.items||[]);
+ state.atmosphere?.update({...worldAtmosphere(),preset:'day',weather:'clear'});
+}
+setInterval(previewCity,300);

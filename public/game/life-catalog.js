@@ -51,5 +51,6 @@ export const STARTING_LIVES=[
  {id:'comfortable',name:'Comfortable start',money:STARTING_BALANCE,home:'osu-flat',inventory:{water:4,groceries:3,phone:1},vehicles:['motorcycle'],furnished:['sofa']},
  {id:'wealthy',name:'Wealthy start',money:STARTING_BALANCE,home:'coastal-villa',inventory:{water:8,groceries:8,phone:1,shirt:1},vehicles:['car','motorcycle'],furnished:['sofa','television','bed']}
 ];
-export function startingLife(roll,spawnRoll){const start=STARTING_LIVES[roll<.5?0:roll<.85?1:2],spawn=HOMES[Math.min(HOMES.length-1,Math.floor(spawnRoll*HOMES.length))];return {money:start.money,lng:spawn.lng,lat:spawn.lat,life:{background:start.name,home:spawn.id,properties:[spawn.id],inventory:{...start.inventory},vehicles:[...start.vehicles],vehicle:start.vehicles[0]||'car',furnished:[...start.furnished]}}}
+/** @param {{id:string,lng:number,lat:number}|null} place */
+export function startingLife(roll,spawnRoll,place=null){const start=STARTING_LIVES[roll<.5?0:roll<.85?1:2],home=place?[...HOMES].sort((a,b)=>Math.hypot(a.lng-place.lng,a.lat-place.lat)-Math.hypot(b.lng-place.lng,b.lat-place.lat))[0]:HOMES[0];return {money:start.money,lng:place?.lng??home.lng,lat:place?.lat??home.lat,life:{explorationPending:!place,startPlaceId:place?.id||null,background:start.name,home:home.id,properties:[home.id],inventory:{...start.inventory},vehicles:[...start.vehicles],vehicle:start.vehicles[0]||'car',furnished:[...start.furnished]}}}
 export function rideFare(metres,kind){return Math.max(0,Math.ceil(kind==='taxi'?15+metres/1000*5:5+metres/1000*1.5))}

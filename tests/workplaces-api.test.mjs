@@ -115,3 +115,14 @@ test('new characters start with 100000 cedis once and keep it when registering',
  const cookie=response.headers.get('set-cookie').split(';')[0];assert.equal((await call(cookie)).body.self.money,100000);
  fixture(joined.body.self.id,{money:98765});const again=await call(cookie,{type:'join',name:'Another Bonus',avatar:'🧑🏾'});assert.equal(again.body.self.id,joined.body.self.id);assert.equal(again.body.self.money,98765,'joining again never resets the balance');
 });
+
+test('map-selected starting places are validated, persisted and cannot reset an existing life',async()=>{
+ const bad=await call(null,{type:'join',name:'Map Start Invalid',avatar:'🧑🏾',startPlaceId:'p_somebody_starter'});assert.equal(bad.status,400);
+ const joined=await call(null,{type:'join',name:'Map Explorer',avatar:'🧑🏾',startPlaceId:'mall',lng:30,lat:0});assert.equal(joined.status,201,JSON.stringify(joined.body));let saved=joined.body.self;
+ assert.equal(saved.life.explorationPending,false);assert.equal(saved.life.startPlaceId,'mall');assert.equal(saved.placeId,'mall');assert.equal(saved.money,100000);assert.ok(Math.hypot((saved.lng+.1738)*111000,(saved.lat-5.6224)*111000)<600);
+ const original=[saved.lng,saved.lat];assert.equal((await call(joined.cookie,{type:'start-exploring',placeId:'labadi'})).status,409);saved=(await call(joined.cookie)).body.self;assert.deepEqual([saved.lng,saved.lat],original);
+ const pending=await call(null,{type:'join',name:'Choose Later',avatar:'🧑🏾'});assert.equal(pending.body.self.life.explorationPending,true);
+ assert.equal((await call(pending.cookie,{type:'start-exploring',placeId:'home'})).status,400);
+ const results=await Promise.all([call(pending.cookie,{type:'start-exploring',placeId:'osu'}),call(pending.cookie,{type:'start-exploring',placeId:'labadi'})]);assert.equal(results.filter(r=>r.status===200).length,1,'only one initial location choice commits');
+ saved=(await call(pending.cookie)).body.self;assert.equal(saved.life.explorationPending,false);assert.ok(['osu','labadi'].includes(saved.life.startPlaceId));assert.equal(saved.money,100000);
+});

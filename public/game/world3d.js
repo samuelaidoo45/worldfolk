@@ -101,6 +101,7 @@ export function createWorld3D(map,mapEngine){
   let cameraDistance=7;
   let frameTime=performance.now(),roadBounce=0,roadRoll=0,roadHoles=[];
   let preset='day';
+  let preview=false;
   let renderer=null,enabled=false,driving=false,cabinView=false,position=[-0.1949,5.5682],carPosition=null,carHeading=0,heading=0,moving=false,ownsVehicle=true,actionUntil=0;
   const syncShellVisibility=createBuildingVisibility(map);
   function syncBuildingShells(){syncShellVisibility([...architectureItems.values()].map(i=>i.data),enabled,pendingArchitecture)}
@@ -109,7 +110,7 @@ export function createWorld3D(map,mapEngine){
     const transform=new THREE.Matrix4().makeTranslation(mercator.x,mercator.y,mercator.z).scale(new THREE.Vector3(scale,-scale,scale)).multiply(new THREE.Matrix4().makeRotationX(Math.PI/2));
     camera.projectionMatrix=new THREE.Matrix4().fromArray(matrix.defaultProjectionData?.mainMatrix||matrix.defaultProjectionData?.projectionMatrix||matrix).multiply(transform);
     const now=performance.now(),dt=Math.min(.1,(now-frameTime)/1000);frameTime=now;
-    own.group.visible=!driving&&!flying&&cameraDistance>3;aircraft.group.visible=flying;aircraft.group.position.y=altitude;aircraft.group.rotation.y=-heading*DEG;own.animate(t,moving||now<actionUntil);own.group.rotation.y=-heading*DEG;
+    own.group.visible=!preview&&!driving&&!flying&&cameraDistance>3;aircraft.group.visible=flying;aircraft.group.position.y=altitude;aircraft.group.rotation.y=-heading*DEG;own.animate(t,moving||now<actionUntil);own.group.rotation.y=-heading*DEG;
     parkedCar.group.position.y=driving?roadBounce:0;parkedCar.group.rotation.z=driving?roadRoll:0;if(parkedCar.rider)parkedCar.rider.visible=driving;
     if(carPosition){parkedCar.group.position.x=(carPosition[0]-position[0])*METERS_PER_DEGREE*Math.cos(position[1]*DEG);parkedCar.group.position.z=(position[1]-carPosition[1])*METERS_PER_DEGREE;parkedCar.group.rotation.y=-carHeading*DEG;parkedCar.group.visible=(ownsVehicle||driving)&&!cabinView&&!flying}else parkedCar.group.visible=false;
     for(const item of others.values()){
@@ -134,6 +135,7 @@ export function createWorld3D(map,mapEngine){
     setScenery(items){if(items===scenerySource)return;scenerySource=items;const ids=new Set(items.map(i=>i.id));for(const data of items)if(!sceneryItems.has(data.id)){const model=['lamp','signal'].includes(data.kind)?createStreetLight(data):createStreetProp(data.kind,data);sceneryItems.set(data.id,{data,model});batchStaticMeshes(model.group);scene.add(model.group)}for(const [id,item] of sceneryItems)if(!ids.has(id)){scene.remove(item.model.group);disposeModel(item.model.group);sceneryItems.delete(id)}},
     setCameraDistance(value){cameraDistance=value},
     setIdentity(player){selfIdentity=player},
+    setPreview(value){preview=value},
     setEnabled(value){enabled=value;if(!value)nameTags.hide();syncBuildingShells();map.triggerRepaint()},
     setSelf(icon){scene.remove(own.group);disposeModel(own.group);Object.assign(own,createActor(icon));scene.add(own.group);map.triggerRepaint()},
     setOutfit(id){own.outfit(id);map.triggerRepaint()},

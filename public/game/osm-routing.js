@@ -39,5 +39,5 @@ export function createRouter(graph){
   steps.push({distance:0,maneuver:{instruction:'Arrive near your destination',type:'arrive',modifier:''}});
   return {distance:Math.round(total),duration:Math.round(distance.get(end)),geometry:{type:'LineString',coordinates},legs:[{steps}],snapped:[coordinates[0],coordinates.at(-1)]};
  }
- return {route};
+ return {route,walkingArrival:position=>coord(snap(position,'walking',false))};
 }
