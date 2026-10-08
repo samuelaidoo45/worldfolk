@@ -9,7 +9,7 @@ export function createMiniMap({state,places}){
  button.onclick=()=>toggle(!enabled);root.querySelector('.minimap-places').onclick=()=>state.navigation?.toggle(true);root.querySelector('.minimap-open').onclick=()=>document.getElementById('roamToggle').click();toggle(enabled);
  const read=layer=>{try{return state.map.querySourceFeatures('accralife-streets',{sourceLayer:layer})}catch{return []}};
  function update(now){
-  root.hidden=!state.roam||state.mode==='indoor'||!!state.chatOpen||!!state.navigation?.isOpen||!!state.lifeUI?.isOpen;
+  root.hidden=!state.roam||state.view==='2d'||state.mode==='indoor'||!!state.chatOpen||!!state.navigation?.isOpen||!!state.lifeUI?.isOpen;
   if(root.hidden||!enabled||!state.position||now-last<200)return;last=now;
   if(now-lastTiles>2000){lastTiles=now;roads=roadFeatures(state.map);land=read('landuse');buildings=read('building');water=read('water')}
   const size=440,mid=size/2,radius=210,scale=1.4,p=state.position,project=c=>[mid+(c[0]-p[0])*111320*Math.cos(p[1]*Math.PI/180)*scale,mid-(c[1]-p[1])*111320*scale];

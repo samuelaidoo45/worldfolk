@@ -67,3 +67,29 @@
 .touch-device.roam-mode.transit-mode .ride-console{left:calc(var(--safe-left) + var(--radar-size) + 12px);right:calc(var(--safe-right) + 64px);width:auto;transform:none;bottom:var(--safe-bottom)}
 .touch-device.roam-mode.transit-mode .mobile-menu-toggle{bottom:calc(var(--safe-bottom) + 112px)}
 .touch-device.roam-mode.transit-mode .roam-chat-toggle{right:var(--safe-right);bottom:calc(var(--safe-bottom) + 58px)}
+
+/* The overhead camera is another playable view of the same world. */
+.overhead-actors,.overhead-tools{display:none}
+.overhead-actors{position:fixed;inset:0;width:100vw;height:100vh;z-index:15;pointer-events:none}
+.map-play .overhead-actors{display:block}
+.roam-mode.map-play .game-minimap{display:none!important}
+.roam-mode.map-play .poi-marker{display:flex!important;flex-direction:column;align-items:center;filter:drop-shadow(0 2px 2px #0003)}
+.roam-mode.map-play .poi-icon{width:30px;height:30px;font-size:18px;border-radius:50%}
+.roam-mode.map-play .poi-label{display:block;font-size:10px;max-width:130px;padding:3px 6px}
+.roam-mode.map-play .roam-status{left:var(--hud-left);bottom:var(--hud-bottom)}
+.roam-mode.map-play .overhead-tools{display:flex;position:fixed;z-index:20;left:var(--hud-left);bottom:calc(var(--hud-bottom) + 128px);gap:6px;pointer-events:auto}
+.overhead-tools button{width:44px;height:44px;border:1px solid #ffffff70;border-radius:50%;background:#102c35df;color:white;font-size:23px;cursor:pointer}
+.roam-mode .view-mode-button,.roam-mode .run-toggle-button{position:fixed;z-index:20;bottom:var(--hud-bottom);width:46px;height:46px;border:1px solid #ffffff70;border-radius:50%;background:#102c35df;color:white;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer;pointer-events:auto}
+.roam-mode .view-mode-button{right:calc(var(--hud-right) + 168px)}
+.roam-mode .run-toggle-button{right:calc(var(--hud-right) + 112px)}
+.roam-mode .run-toggle-button[aria-pressed='true'],.touch-run[aria-pressed='true']{background:#e8bc55!important;color:#172d31!important;border-color:#fff2c4!important}
+.roam-mode .run-toggle-button:disabled{opacity:.4;cursor:default}
+.view-mode-button:focus-visible,.run-toggle-button:focus-visible,.overhead-tools button:focus-visible{outline:3px solid #ffd16c;outline-offset:3px}
+.map-play .touch-look,.map-play .vehicle-cabin,.map-play .ride-cabin-scene,.map-play .passenger-window{display:none!important}
+.map-play .touch-turn{visibility:hidden}
+.touch-device.roam-mode .run-toggle-button{display:none}
+.touch-device.roam-mode .view-mode-button{right:calc(var(--safe-right) + 108px);bottom:calc(var(--safe-bottom) + 132px);width:44px;height:44px}
+.touch-device.roam-mode.map-play .roam-status{left:var(--hud-left);bottom:calc(var(--safe-bottom) + 12px)}
+.touch-device.roam-mode.map-play .overhead-tools{left:var(--hud-left);bottom:calc(var(--safe-bottom) + 116px)}
+.touch-device.roam-mode.map-play .navigation-card{bottom:calc(var(--safe-bottom) + 170px)}
+.touch-device.roam-mode.map-play.transit-mode .roam-status,.touch-device.roam-mode.map-play.transit-mode .overhead-tools{left:var(--safe-left)}
