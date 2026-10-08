@@ -199,3 +199,10 @@ body.touch-device.roam-mode .life-shift.work-assignment{top:calc(var(--safe-top)
 body.touch-device.roam-mode.mobile-paused .life-shift.work-assignment{visibility:hidden}
 
 .selected-work{border:2px solid #218663;background:#edf8f1}.selected-work .life-actions{display:flex;flex-wrap:wrap;gap:8px}.selected-work .life-actions button{min-height:44px;flex:1 1 150px}
+
+/* Trip choices stay inside the destination picker; the driving view stays clear. */
+.destination-travel-mode{display:block;width:100%;min-height:44px;padding:10px 12px;margin:8px 0;border:1px solid #63897c;border-radius:10px;background:#e9f6ef;color:#183b32;font:inherit;font-weight:600}
+.destination-travel-mode[hidden]{display:none}
+.nav-drive-tools{display:flex;gap:6px;flex-wrap:wrap}
+.nav-drive-tools button{min-height:44px;flex:1;padding:7px;font:inherit}
+.nav-drive-tools.hidden{display:none}

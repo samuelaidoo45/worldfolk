@@ -45,10 +45,11 @@ export const TERMINALS=[
 export const propertyId=(owner,home)=>`p_${owner}_${home}`;
 
 // Persisted once at registration; existing lives are never rerolled.
+export const STARTING_BALANCE=100000;
 export const STARTING_LIVES=[
- {id:'humble',name:'Fresh start',money:80,home:'starter',inventory:{water:2,waakye:1},vehicles:[],furnished:[]},
- {id:'comfortable',name:'Comfortable start',money:1200,home:'osu-flat',inventory:{water:4,groceries:3,phone:1},vehicles:['motorcycle'],furnished:['sofa']},
- {id:'wealthy',name:'Wealthy start',money:18000,home:'coastal-villa',inventory:{water:8,groceries:8,phone:1,shirt:1},vehicles:['car','motorcycle'],furnished:['sofa','television','bed']}
+ {id:'humble',name:'Fresh start',money:STARTING_BALANCE,home:'starter',inventory:{water:2,waakye:1},vehicles:[],furnished:[]},
+ {id:'comfortable',name:'Comfortable start',money:STARTING_BALANCE,home:'osu-flat',inventory:{water:4,groceries:3,phone:1},vehicles:['motorcycle'],furnished:['sofa']},
+ {id:'wealthy',name:'Wealthy start',money:STARTING_BALANCE,home:'coastal-villa',inventory:{water:8,groceries:8,phone:1,shirt:1},vehicles:['car','motorcycle'],furnished:['sofa','television','bed']}
 ];
 export function startingLife(roll,spawnRoll){const start=STARTING_LIVES[roll<.5?0:roll<.85?1:2],spawn=HOMES[Math.min(HOMES.length-1,Math.floor(spawnRoll*HOMES.length))];return {money:start.money,lng:spawn.lng,lat:spawn.lat,life:{background:start.name,home:spawn.id,properties:[spawn.id],inventory:{...start.inventory},vehicles:[...start.vehicles],vehicle:start.vehicles[0]||'car',furnished:[...start.furnished]}}}
 export function rideFare(metres,kind){return Math.max(0,Math.ceil(kind==='taxi'?15+metres/1000*5:5+metres/1000*1.5))}

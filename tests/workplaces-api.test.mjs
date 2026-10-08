@@ -107,3 +107,11 @@ test('new vehicle models can be bought, selected and retain their identity after
  const [lng,lat]=point('mall');fixture(guest.id,{life_json:'{"vehicles":[],"vehicle":"car"}'});
  const stolen=await call(guest.cookie,{type:'vehicle-steal',vehicle:'pickup',npcId:'ambient-42',lng,lat,heading:90});assert.equal(stolen.status,200);assert.equal(stolen.body.self.life.vehicle,'pickup');assert.deepEqual(stolen.body.self.life.vehicles,['pickup']);
 });
+
+test('new characters start with 100000 cedis once and keep it when registering',async()=>{
+ const joined=await call(null,{type:'join',name:'Starting Balance',avatar:'🧑🏾',money:999999999});assert.equal(joined.status,201);assert.equal(joined.body.self.money,100000);
+ const baseHeaders={'Content-Type':'application/json',Origin:base,Cookie:joined.cookie};
+ const response=await fetch(base+'/api/auth',{method:'POST',headers:baseHeaders,body:JSON.stringify({action:'register',username:'balance_'+Date.now().toString(36),password:'Local balance test passphrase 407!'})});assert.equal(response.status,201);
+ const cookie=response.headers.get('set-cookie').split(';')[0];assert.equal((await call(cookie)).body.self.money,100000);
+ fixture(joined.body.self.id,{money:98765});const again=await call(cookie,{type:'join',name:'Another Bonus',avatar:'🧑🏾'});assert.equal(again.body.self.id,joined.body.self.id);assert.equal(again.body.self.money,98765,'joining again never resets the balance');
+});
