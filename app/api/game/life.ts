@@ -1,3 +1,4 @@
+import {CITY_DESTINATIONS} from '../../../public/game/city-destinations.js';
 import {canShopHere} from '../../../server/maps/venues';
 import {routePoint} from '../../../public/game/transit.js';
 import {STREET_SERVICES,exchangeMoMo} from '../../../public/game/street-services.js';
@@ -14,6 +15,7 @@ export function readLife(p:LifePlayer):Life {let saved;try{saved=JSON.parse(p.li
 export function lifeView(p:LifePlayer){const life=readLife(p);return {...life,homeId:propertyId(p.id,life.home),homeName:HOMES.find(h=>h.id===life.home)?.name,apartment:p.id.slice(0,6).toUpperCase()}}
 export const metres=(a:number[],b:number[])=>Math.hypot((a[0]-b[0])*111320*Math.cos(a[1]*Math.PI/180),(a[1]-b[1])*111320);
 const publicCoords:Record<string,number[]>={home:[-.1949,5.5682],makola:[-.2141,5.5485],kaneshie:[-.2346,5.5724],osu:[-.1819,5.5598],mall:[-.1738,5.6224],airport:[-.1787,5.6093],labadi:[-.140846,5.561955],legon:[-.1874,5.651]};
+for(const place of CITY_DESTINATIONS)publicCoords[place.id]=[place.lng,place.lat];
 const here=(p:LifePlayer,place:string)=>!p.driving&&!!publicCoords[place]&&metres([p.pos_lng??-.1949,p.pos_lat??5.5682],publicCoords[place])<=85;
 const fail=(message:string,status=400)=>Response.json({error:message},{status,headers:{'Cache-Control':'no-store'}});
 export async function propertyInfo(db:D1Database,id:string){const match=/^p_([a-f0-9-]{36})_([a-z-]+)$/.exec(id);if(!match)return null;const owner=await db.prepare('SELECT * FROM players WHERE id=?').bind(match[1]).first<LifePlayer>();const home=HOMES.find(h=>h.id===match[2]);if(!owner||!home||!readLife(owner).properties.includes(home.id))return null;return {id,ownerId:owner.id,ownerName:owner.name,home,coords:[home.lng,home.lat] as [number,number]}}

@@ -42,7 +42,7 @@ export function createLifeUI({state,action,navigate,enterHome,places}){
  if(tab==='work'){
   heading('Earn your living','Apply at a workplace, complete a shift, and collect your wages. Leaving work requires cancelling the shift.');
   if(life.shift){const job=JOBS.find(j=>j.id===life.shift.jobId),b=row(job.name,job.task),timer=document.createElement('p');timer.className='shift-timer';b.before(timer);timer.dataset.ends=life.shift.endsAt;button(b,Date.now()>=life.shift.endsAt?'Collect wages':'Working…',()=>transact({type:'shift-complete'}),Date.now()<life.shift.endsAt);button(b,'Cancel shift',()=>transact({type:'shift-cancel'}));}
-  for(const job of JOBS){const q=place(job.place),hired=life.job===job.id,b=row(job.name,`${q.name} · ₵${job.wage} per ${job.seconds}s shift · ${job.task}`);if(!near(q))button(b,'Go to workplace',()=>route(q));else button(b,hired?'Start shift':'Apply for job',async()=>{const result=await transact({type:hired?'shift-start':'job-apply',jobId:job.id});if(result&&hired)close()},!!life.shift||p.driving)}
+  for(const job of JOBS){const q=place(job.place),hired=life.job===job.id,b=row(job.name,`${q.name} · ₵${job.wage} per ${job.seconds}s shift · ${job.task}`);if(!near(q)){button(b,'Walk / drive to work',()=>route(q));button(b,'Ride to work',()=>{close();navigate(q);state.transit?.show()})}else button(b,hired?'Start shift':'Apply for job',async()=>{const result=await transact({type:hired?'shift-start':'job-apply',jobId:job.id});if(result&&hired)close()},!!life.shift||p.driving)}
  }
  if(tab==='homes'){
   heading('Your private homes','Your starter apartment is assigned automatically. Owners can issue a one-guest invitation pass or revoke all passes.');

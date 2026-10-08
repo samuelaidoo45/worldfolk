@@ -11,6 +11,20 @@ export function bodyContact(a,b){
  return {depth,normal};
 }
 export function bodyVelocity(body){const a=(body.heading||0)*Math.PI/180;return body.impactVelocity||[Math.sin(a)*(body.speed||0),Math.cos(a)*(body.speed||0)]}
+// Resolve a short chain of movable bodies transactionally. A wall or closed
+// gap rolls back the whole push instead of leaving cars interpenetrating.
+function pushChain(other,target,actors,physics,changed,visiting=new Set()){
+ if(visiting.has(other)||visiting.size>=12)return false;
+ visiting.add(other);if(!changed.has(other))changed.set(other,[...other.position]);
+ const result=(other.driving?physics?.moveVehicle(other.position,target,other.heading,other.vehicle):physics?.move(other.position,target,.28))||{position:target,blocked:false};
+ if(result.blocked)return false;
+ for(const next of actors){if(next===other||visiting.has(next)||distanceMetres(result.position,next.position)>10)continue;const contact=bodyContact({...other,position:result.position},next);if(!contact)continue;
+  const before=bodyContact(other,next);if(before&&contact.depth<=before.depth)continue;
+  const to=offsetMetres(next.position,contact.normal[0]*(contact.depth+.02),contact.normal[1]*(contact.depth+.02));
+  if(!pushChain(next,to,actors,physics,changed,visiting))return false;
+ }
+ other.position=result.position;visiting.delete(other);return true;
+}
 // Small swept steps prevent tunnelling. Movable bodies receive momentum; walls
 // remain immovable. This applies to local ambient actors, not remote players.
 export function driveWithContacts(from,to,body,velocity,actors,physics,now){
@@ -24,10 +38,9 @@ export function driveWithContacts(from,to,body,velocity,actors,physics,now){
    const {normal,depth}=contact,old=bodyContact({...body,position},other);
    if(old&&depth<=old.depth+1e-7)continue; // Reverse or slide out of an existing overlap.
    const target=offsetMetres(other.position,normal[0]*(depth+.015),normal[1]*(depth+.015));
-   const pushed=other.driving?physics?.moveVehicle(other.position,target,other.heading,other.vehicle):physics?.move(other.position,target,.28);
-   const resolved=pushed||{position:target,blocked:false};
-   if(resolved.blocked||actors.some(a=>a!==other&&distanceMetres(a.position,resolved.position)<10&&bodyContact({...other,position:resolved.position},a))){stop=true;blocked=true;break}
-   other.position=resolved.position;
+   const changed=new Map();
+   if(!pushChain(other,target,actors,physics,changed)){for(const [actor,position] of changed)actor.position=position;stop=true;blocked=true;break}
+   for(const [actor] of changed){actor.pauseUntil=now+600;actor.stalled=0;actor.progressAnchor=[...actor.position];actor.moving=true;}
    const ov=bodyVelocity(other),closing=dot([v[0]-ov[0],v[1]-ov[1]],normal);
    if(closing>0){const impulse=closing*1.12/(1/mass(body)+1/mass(other));v=v.map((n,k)=>n-impulse/mass(body)*normal[k]);other.impactVelocity=ov.map((n,k)=>n+impulse/mass(other)*normal[k]);other.impactUntil=now+900;other.pauseUntil=now+450;other.moving=true;other.stalled=0;other.progressAnchor=[...other.position];hits++;}
   }

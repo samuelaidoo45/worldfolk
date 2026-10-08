@@ -113,5 +113,5 @@ test('chase camera contracts before a wall and extends smoothly after clearing i
  const clear=chaseCamera({position:origin,heading:0,physics:{collision:()=>null},previousDistance:close.distance});
  assert.ok(clear.distance>close.distance&&clear.distance<7);
  const scenic=chaseCamera({position:origin,heading:90,physics:{collision:()=>null},scenic:true});
- assert.equal(scenic.distance,20);assert.ok(scenic.altitude>7);
+ assert.equal(scenic.distance,34);assert.ok(scenic.altitude>7);
 });

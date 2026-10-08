@@ -1,3 +1,4 @@
+import {driveWithContacts} from './vehicle-contacts.js';
 import {distanceMetres,bearingTo,offsetMetres,projectOnSegment} from './motion.js';
 export const angleDifference=(a,b)=>Math.abs(((a-b+540)%360)-180);
 // Forward corridor plus braking distance: cars in the opposite lane do not stop us.
@@ -42,8 +43,10 @@ export function makeRoadPath(coordinates,lane=0){
  return {total,at,get lane(){return lane},set lane(value){lane=value}};
 }
 // Never sweep a diagonal across a corner, even after a slow frame.
-export function advanceRoad(path,distance,speed,dt,physics,actors=[],kind='bus',speedLimit=Infinity){
+export function advanceRoad(path,distance,speed,dt,physics,actors=[],kind='bus',speedLimit=Infinity,recovery=null){
  let current=path.at(distance),allowed=Math.min(speedLimit,trafficSpeed(current.position,current.heading,speed,22,actors)),ahead=path.at(distance+Math.max(8,speed*2));
+ path.waiting=recovery&&speed<.4&&allowed<.4&&speedLimit>0?(path.waiting||0)+dt:(speedLimit<=0?0:Math.max(0,(path.waiting||0)-dt*.05));
+ if(recovery&&path.waiting>2)allowed=Math.min(speedLimit,2.4);
  if(angleDifference(current.heading,ahead.heading)>25)allowed=Math.min(allowed,4);
  let nextSpeed=Math.max(0,speed+Math.max(-6*dt,Math.min(3.2*dt,allowed-speed))),left=nextSpeed*dt,blocked=false;
  while(left>1e-7&&distance<path.total){current=path.at(distance);const step=Math.min(left,.25,current.remaining>1e-6?current.remaining+.000001:.25,path.total-distance),next=path.at(distance+step);
@@ -54,7 +57,8 @@ export function advanceRoad(path,distance,speed,dt,physics,actors=[],kind='bus',
    if(lane<path.lane&&!physics.moveVehicle(current.position,inward.position,current.heading,kind).blocked&&!actors.some(a=>a.driving&&vehiclesOverlap(inward.position,current.heading,a.position,a.heading,kind,a.vehicle)))path.lane=lane;
    blocked=true;nextSpeed=0;break;
   }
-  if(actors.some(a=>a.driving&&vehiclesOverlap(next.position,next.heading,a.position,a.heading,kind,a.vehicle)&&distanceMetres(next.position,a.position)<distanceMetres(current.position,a.position))){blocked=true;nextSpeed=0;break}
+  if(recovery){const r=next.heading*Math.PI/180,contact=driveWithContacts(current.position,next.position,{driving:true,vehicle:kind,heading:next.heading},[Math.sin(r)*nextSpeed,Math.cos(r)*nextSpeed],actors,physics,recovery.now||performance.now());if(contact.blocked){blocked=true;nextSpeed=0;break}}
+  else if(actors.some(a=>a.driving&&vehiclesOverlap(next.position,next.heading,a.position,a.heading,kind,a.vehicle)&&distanceMetres(next.position,a.position)<distanceMetres(current.position,a.position))){blocked=true;nextSpeed=0;break}
   distance+=step;left-=step;
  }
  return {distance,speed:nextSpeed,blocked, ...path.at(distance)};

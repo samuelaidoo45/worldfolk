@@ -84,7 +84,7 @@ export function createVenueScene({kind,name,avatar,design={}}){
  function move(dx,dz){if(watching)return;[x,z]=physics.move([x,z],[dx,dz]);if(Math.hypot(dx,dz)>.001)actor.group.rotation.y=Math.atan2(-dx,-dz)}
  for(const a of [actor,...animated,...residents])a.group.traverse(o=>o.castShadow=false);
  const crowd=instanceAnimatedModels([...animated,...residents].map(a=>a.group));scene.add(crowd.group);
- function render(t,moving){const dt=last?Math.min(.1,t-last):1/60;last=t;if(width!==innerWidth||height!==innerHeight){width=innerWidth;height=innerHeight;renderer.setSize(width,height,false);camera.aspect=width/height;camera.updateProjectionMatrix()}
+ function render(t,moving,cameraMode='third'){const dt=last?Math.min(.1,t-last):1/60;last=t;if(width!==innerWidth||height!==innerHeight){width=innerWidth;height=innerHeight;renderer.setSize(width,height,false);camera.aspect=width/height;camera.updateProjectionMatrix()}
   actor.animate(t,moving&&!watching);actor.group.position.set(x,actor.group.position.y,z);
   if(kind==='stadium'){
    const bx=Math.sin(t*.23)*23,bz=Math.sin(t*.16)*42;ball.position.set(bx,.25+Math.abs(Math.sin(t*2))*.4,bz);
@@ -95,7 +95,7 @@ export function createVenueScene({kind,name,avatar,design={}}){
   if(kind==='theatre')animated.forEach((a,i)=>{a.animate(t+i,true);a.group.position.set((i-1.5)*4+Math.sin(t*.5+i),1.2,-17);a.leftArm.rotation.x=Math.sin(t*2+i)*1.1});
   residents.forEach((a,i)=>{a.animate(t+i,true);a.group.position.set((i%2?-1:1)*(kind==='stadium'?39:kind==='theatre'?14:kind==='mall'?4:7),a.group.position.y,Math.sin(t*.055+i)*(kind==='stadium'?48:kind==='theatre'?15:23));a.group.rotation.y=Math.cos(t*.055+i)>0?Math.PI:0});
   crowd.update();
-  if(!watching){const a=viewYaw*Math.PI/180;let distance=7;for(;distance>1.3;distance-=.3){const cx=x-Math.sin(a)*distance,cz=z+Math.cos(a)*distance;if(physics.clear(cx,cz)&&physics.visible([x,z],[cx,cz]))break}cameraTarget.set(x-Math.sin(a)*distance,Math.min(3.7,1.9+distance*.24)+viewPitch,z+Math.cos(a)*distance);lookTarget.set(x+Math.sin(a)*5,1.4,z-Math.cos(a)*5)}else if(kind!=='stadium'){cameraTarget.set(x,2.1,z+1);lookTarget.set(0,2,-17)}camera.position.lerp(cameraTarget,1-Math.exp(-dt*7));camera.lookAt(lookTarget);renderer.render(scene,camera);
+  if(!watching){const a=viewYaw*Math.PI/180;let distance=cameraMode==='first'?0:cameraMode==='overview'?20:11;for(;distance>1.3;distance-=.3){const cx=x-Math.sin(a)*distance,cz=z+Math.cos(a)*distance;if(physics.clear(cx,cz)&&physics.visible([x,z],[cx,cz]))break}cameraTarget.set(x-Math.sin(a)*distance,cameraMode==='first'?1.65:Math.min(5.5,1.9+distance*.24)+viewPitch,z+Math.cos(a)*distance);lookTarget.set(x+Math.sin(a)*5,1.4,z-Math.cos(a)*5)}else if(kind!=='stadium'){cameraTarget.set(x,2.1,z+1);lookTarget.set(0,2,-17)}camera.position.lerp(cameraTarget,1-Math.exp(-dt*7));actor.group.visible=cameraMode!=='first';camera.lookAt(lookTarget);renderer.render(scene,camera);
  }
  function destroy(){disposeScene(scene);for(const a of [...animated,...residents])disposeScene(a.group);renderer.dispose();renderer.forceContextLoss();canvas.remove()}
  return {move,nearby,render,destroy,interact,look(yaw,pitch=0){viewYaw+=yaw;viewPitch=Math.max(-.6,Math.min(1,viewPitch+pitch*.03))},get bearing(){return viewYaw},playAction(){},get isActing(){return false},get position(){return [x,z]},get name(){return name},description:layout.description,stats};
