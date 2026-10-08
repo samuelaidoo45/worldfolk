@@ -95,8 +95,8 @@ async function api(method,body,query=''){
   const response=await fetch(`/api/game${query}`,{method,credentials:'same-origin',cache:'no-store',headers:{...(body?{'Content-Type':'application/json'}:{}),...(realtime.connected?{'X-World-Room':realtime.room}:{})},body:body?JSON.stringify(body):undefined});
   const data=await response.json().catch(()=>({error:'The city is unavailable'}));
   if(!response.ok){const error=new Error(data.error||'The city is unavailable');error.status=response.status;throw error}
-  if(data.self)data.self=newestPlayer(state.self,data.self);
   if(method==='POST'&&data.self&&realtime.connected)await realtime.sync().catch(()=>{});
+  if(data.self)data.self=newestPlayer(state.self,data.self);
   return data;
 }
 async function refreshWorld(){
