@@ -12,7 +12,7 @@ export async function requestDisplayOrientation(mode,doc=globalThis.document,ori
 export function mobileCameraScale(width,height,touch){
  if(!touch)return 1;
  const aspect=Math.max(.3,width/Math.max(1,height));
- return Math.min(1.55,Math.max(1.12,1.12/Math.sqrt(aspect)));
+ return Math.min(2,Math.max(1.3,1.4/Math.sqrt(aspect)));
 }
 export function mobileFieldOfView(base,width,height,touch){
  if(!touch||width>=height)return base;

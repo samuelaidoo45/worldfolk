@@ -25,7 +25,8 @@ test('already fullscreen does not re-request fullscreen',async()=>{
 test('phone portrait framing widens while desktop framing stays unchanged',()=>{
  assert.equal(mobileCameraScale(390,844,false),1);
  assert.ok(mobileCameraScale(390,844,true)>mobileCameraScale(844,390,true));
- assert.ok(mobileCameraScale(320,900,true)<=1.55);
+ assert.ok(mobileCameraScale(390,844,true)>=1.9);assert.ok(mobileCameraScale(844,390,true)>=1.3);
+ assert.ok(mobileCameraScale(320,900,true)<=2);
  assert.ok(mobileFieldOfView(58,390,844,true)>58);
  assert.equal(mobileFieldOfView(58,844,390,true),58);
  assert.equal(mobileFieldOfView(58,390,844,false),58);
