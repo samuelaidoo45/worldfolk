@@ -160,3 +160,9 @@
 @media(max-height:480px){.scene-loading{font-size:11px;padding:6px 10px;max-width:55vw}}
 
 .nav-auto{width:100%;min-height:40px;margin-top:7px;border:1px solid #9eba9c;border-radius:8px;background:#244f45;color:#fff;font:600 12px inherit}.nav-auto[aria-pressed=true]{background:#d3b464;color:#162c25}
+
+/* Keep the map-credit toggle in the gap between the two thumb zones. */
+.touch-device.roam-mode .maplibregl-ctrl-bottom-right{bottom:var(--safe-bottom)!important;right:auto!important;left:calc((100% + var(--thumb-size) - 148px)/2 - 12px);transform:none;opacity:.8}
+.touch-device.roam-mode .maplibregl-ctrl-attrib{margin:0;float:none}
+.touch-device.roam-mode .maplibregl-compact-show{box-sizing:border-box;position:absolute;bottom:0;left:0;transform:translateX(-45%);width:260px;max-width:calc(100vw - 32px)}
+.touch-device.roam-mode.transit-mode .maplibregl-ctrl-bottom-right{bottom:calc(var(--safe-bottom) + 160px)!important;left:50%}
