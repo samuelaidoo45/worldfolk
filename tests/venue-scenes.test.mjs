@@ -7,7 +7,7 @@ import {createRoomPhysics} from '../public/game/room-physics.js';
 import {roadFeatures} from '../public/game/road-cache.js';
 import {createActor,createCar} from '../public/game/world3d.js';
 test('venue classification separates malls, stadiums, worship, education and hospitality',()=>{
- for(const [name,kind] of [['Accra Mall','mall'],['Accra Sports Stadium','stadium'],['Kotoka International Airport','terminal'],['National Theatre','theatre'],['Holy Trinity Cathedral','church'],['National Mosque','mosque'],['University of Ghana','classroom'],['Makola Market','market'],['City Hospital','clinic'],['Coastal Hotel','hotel'],['National Museum','gallery'],['Fitness Centre','gym'],['Guest Hotel','hotel'],['Library','library']])assert.equal(interiorKind({name}),kind,name);
+ for(const [name,kind] of [['Accra Mall','mall'],['Accra Sports Stadium','stadium'],['Kotoka International Airport','terminal'],['National Theatre','theatre'],['Holy Trinity Cathedral','church'],['National Mosque','mosque'],['University of Ghana','campus'],['Makola Market','market'],['City Hospital','clinic'],['Coastal Hotel','hotel'],['National Museum','gallery'],['Fitness Centre','gym'],['Guest Hotel','hotel'],['Library','library']])assert.equal(interiorKind({name}),kind,name);
 });
 test('large venue entrances are in bounds and stadium concourse can be walked to pitch side',()=>{
  for(const layout of Object.values(LARGE_VENUES)){const physics=createRoomPhysics([],layout.bounds);assert.ok(physics.clear(...layout.spawn));assert.ok(physics.clear(...layout.exit))}

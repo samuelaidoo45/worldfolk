@@ -214,3 +214,20 @@ node --test --test-concurrency=1 tests/game-motion.test.mjs tests/life-api.test.
 ```
 
 Pickup verification: `node --test --test-concurrency=1 tests/*.test.mjs` against the local Wrangler server checks random starting lives, vehicle ownership, persisted pickup routes, shared tro-tros, duplicate arrival protection, affordability, and the new jobs. Integration fixtures modify local SQLite only.
+
+### Public venue environments
+
+Public places now select a purpose-specific scene: banking halls, workplaces,
+university courtyards, civic visitor spaces, restaurants, galleries, nightclubs,
+churches, mosques, market lanes, beaches and sports fields. Existing malls,
+stadiums, theatres and terminals retain their larger scenes. Staff and ambient
+visitors can be approached and spoken to with the same Interact control.
+Shopping at mapped food/retail venues is checked against the server's OSM place
+index and saved to the player's inventory. Vehicles still use designated dealers.
+
+These are designed game environments, not photogrammetric replicas or surveyed
+interiors. Jubilee House uses a fictional public visitor courtyard; private and
+restricted areas are not modelled. Anonymous OSM buildings without recorded use
+cannot be reliably assigned a real-world venue purpose. NPC crowds are local
+simulation, not additional connected players. See `tests/public-venues.test.mjs`
+for walkable entrance/activity coverage and venue purchase authorization checks.

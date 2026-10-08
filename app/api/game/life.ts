@@ -1,3 +1,4 @@
+import {canShopHere} from '../../../server/maps/venues';
 import {routePoint} from '../../../public/game/transit.js';
 import {STREET_SERVICES,exchangeMoMo} from '../../../public/game/street-services.js';
 import {roadRoute,type Ride} from './ride';
@@ -89,7 +90,7 @@ export async function handleLife(db:D1Database,p:LifePlayer,input:Record<string,
  }
  const item=GOODS.find(g=>g.id===input.itemId);
  if(type==='buy'){
-  if(!item)return fail('Choose an item from the shop');if(!item.shops.some(shop=>here(p,shop)))return fail('Walk into a market or shop that sells this item');
+  if(!item)return fail('Choose an item from the shop');if(!item.shops.some(shop=>here(p,shop))){let available=false;try{available=await canShopHere(item,p)}catch{return fail('The shop directory is loading. Please retry.',503)}if(!available)return fail('Walk into a market or shop that sells this item');}
   if(life.shift)return fail('Finish or cancel your shift first');if(next.money<item.price)return fail(`You need ₵${item.price} for ${item.name}`);
   if(item.kind==='vehicle'&&life.vehicles.includes(item.id))return fail('You already own this vehicle');if((life.inventory[item.id]||0)>=99)return fail('Your bag already has enough of this item');
   next.money-=item.price;if(item.kind==='vehicle')life.vehicles.push(item.id);else life.inventory[item.id]=(life.inventory[item.id]||0)+1;event=`Bought ${item.name} for ₵${item.price}`;return save();

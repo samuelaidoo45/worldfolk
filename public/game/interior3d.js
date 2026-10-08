@@ -1,3 +1,5 @@
+import {PUBLIC_VENUES} from './public-venues.js';
+import {createPublicVenueScene} from './public-venue-scene.js';
 import {createVenueScene} from './venue-scenes.js';
 import {PAINTS} from './building-design.js';
 import {LARGE_VENUES} from './venue-layouts.js';
@@ -12,6 +14,7 @@ function cylinder(scene,material,r,h,x,y,z){const mesh=new THREE.Mesh(new THREE.
 function roomFloor(kind){const canvas=document.createElement('canvas');canvas.width=256;canvas.height=256;const c=canvas.getContext('2d');const tiled=['clinic','shop','cafe'].includes(kind);c.fillStyle=tiled?'#c9d3cc':kind==='library'?'#806346':'#b19b7e';c.fillRect(0,0,256,256);c.strokeStyle=tiled?'#eef1e9':'#6d57413a';c.lineWidth=2;for(let y=0;y<256;y+=tiled?64:32){c.strokeRect(0,y,256,tiled?64:32);for(let x=(y/32%2)*64;x<256;x+=tiled?64:128)c.strokeRect(x,y,tiled?64:128,tiled?64:32)}const texture=new THREE.CanvasTexture(canvas);texture.wrapS=texture.wrapT=THREE.RepeatWrapping;texture.repeat.set(4,4);texture.colorSpace=THREE.SRGBColorSpace;return texture}
 function labelTexture(text){const canvas=document.createElement('canvas');canvas.width=512;canvas.height=128;const ctx=canvas.getContext('2d');ctx.fillStyle='#214436';ctx.fillRect(0,0,512,128);ctx.fillStyle='#f4dfaa';ctx.font='bold 49px sans-serif';ctx.textAlign='center';ctx.fillText(text.slice(0,18),256,78);return new THREE.CanvasTexture(canvas)}
 export function createInterior3D({avatar,kind,name,activities=[],furniture=[],design={}}){
+  if(PUBLIC_VENUES[kind])return createPublicVenueScene({avatar,kind,name,activities,design});
   if(LARGE_VENUES[kind])return createVenueScene({avatar,kind,name,activities,design});
   const palette=design.palette||PAINTS[0],cream=new THREE.MeshStandardMaterial({color:palette.wall,roughness:.88}),fabric=new THREE.MeshStandardMaterial({color:palette.accent,roughness:.8}),darkWood=new THREE.MeshStandardMaterial({color:palette.roof,roughness:.75}),wood=new THREE.MeshStandardMaterial({color:palette.roof,roughness:.8}),metal=new THREE.MeshStandardMaterial({color:0x394d51,metalness:.45,roughness:.48}),glass=new THREE.MeshStandardMaterial({color:0x8dd4ec,roughness:.18,emissive:0x326c8b,emissiveIntensity:.25});
   const canvas=document.createElement('canvas');canvas.className='interior-canvas';canvas.setAttribute('aria-label',`${name} · ${kind} interior`);canvas.dataset.design=design.style||kind;canvas.dataset.paint=palette.wall;document.body.appendChild(canvas);
@@ -72,7 +75,7 @@ export function createInterior3D({avatar,kind,name,activities=[],furniture=[],de
     plaque('MENU · COFFEE & FOOD',0,-5.65,3);for(const x of [-2,0,2])box(scene,accent,.5,.3,.3,x,1.25,-4.5);
   }else if(kind==='shop'){
     for(const x of [-5,5])for(const z of [-3,0,3]){box(scene,darkWood,1.35,1.7,.58,x,.85,z);for(const y of [.5,1.05,1.6]){box(scene,cream,1.3,.06,.62,x,y,z);for(let n=0;n<4;n++)box(scene,n%2?accent:fabric,.2,.28,.23,x-.45+n*.3,y+.18,z)}block(x,z,1.35,.7)}
-    box(scene,darkWood,2.8,1.1,1.1,0,.55,-3.5);block(0,-3.5,2.8,1.1);spot(0,-1.7,'Browse the shop',activities.includes('shopping')?'shopping':'explore');
+    box(scene,darkWood,2.8,1.1,1.1,0,.55,-3.5);block(0,-3.5,2.8,1.1);spot(0,-1.7,'Browse the shop','shopping');
   }else if(kind==='gallery'){
     plaque('ART · HISTORY · CULTURE',0,-5.65,4);
     for(const x of [-4,0,4]){box(scene,darkWood,2.7,1.8,.12,x,2,-5.65);box(scene,x?fabric:accent,2.4,1.5,.14,x,2,-5.56);for(let i=0;i<5;i++)box(scene,i%2?cream:wood,.18,1.15,.02,x-.9+i*.45,2,-5.47);spot(x,-3.8,'View the exhibition',activities.includes('museum')?'museum':'explore')}
@@ -99,6 +102,7 @@ export function createInterior3D({avatar,kind,name,activities=[],furniture=[],de
     if(furniture.includes('sofa')){box(scene,fabric,3,.65,1.2,3,.6,1.6);block(3,1.6,3,1.2)}
     if(furniture.includes('bed'))box(scene,new THREE.MeshStandardMaterial({color:0xc7a454}),2.75,.12,1.5,-3,.94,-2.05);
   }
+  if(!['home','hotel','market'].includes(kind)){const floorPhysics=createRoomPhysics(blockers);for(const [px,pz] of [[2,2.5],[-2,-2.5],[4,3]]){if(!floorPhysics.clear(px,pz))continue;const guest=createActor(residents.length%2?'👩🏾':'👨🏽');guest.group.position.set(px,0,pz);guest.group.traverse(o=>o.userData.dynamic=true);scene.add(guest.group);residents.push(guest)}}
   const marker=new THREE.Mesh(new THREE.RingGeometry(.34,.42,32),new THREE.MeshBasicMaterial({color:0xf2cd77,transparent:true,opacity:.8,side:THREE.DoubleSide}));marker.rotation.x=-Math.PI/2;marker.position.y=.035;scene.add(marker);
   waves.forEach(o=>o.userData.dynamic=true);marker.userData.dynamic=true;batchStaticMeshes(scene);renderer.shadowMap.needsUpdate=true;
   const actor=createActor(avatar);actor.group.traverse(o=>o.castShadow=false);actor.group.position.set(0,0,3.4);scene.add(actor.group);
@@ -106,9 +110,9 @@ export function createInterior3D({avatar,kind,name,activities=[],furniture=[],de
   function resize(){const w=window.innerWidth,h=window.innerHeight;if(w===width&&h===height)return;width=w;height=h;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}
   const physics=createRoomPhysics(blockers);
   function move(dx,dz){if(performance.now()/1000<actionUntil)return;[x,z]=physics.move([x,z],[dx,dz]);actor.group.position.set(x,0,z);if(Math.hypot(dx,dz)>.0001)actor.group.rotation.y=Math.atan2(-dx,-dz)}
-  function nearby(){if(z>3.7&&Math.abs(x)<1.8)return {kind:'exit',label:'Leave building'};let best=null,distance=1.65;for(const spot of hotspots){const d=Math.hypot(x-spot.x,z-spot.z);if(d<distance&&physics.visible([x,z],[spot.x,spot.z])){best={kind:'activity',...spot};distance=d}}return best}
+  function nearby(){if(z>3.7&&Math.abs(x)<1.8)return {kind:'exit',label:'Leave building'};const resident=residents.find(a=>Math.hypot(x-a.group.position.x,z-a.group.position.z)<1.8&&physics.visible([x,z],[a.group.position.x,a.group.position.z]));if(resident)return {kind:'local',actionId:'talk',label:'Talk to a visitor'};let best=null,distance=1.65;for(const spot of hotspots){const d=Math.hypot(x-spot.x,z-spot.z);if(d<distance&&physics.visible([x,z],[spot.x,spot.z])){best={kind:spot.actionId==='shopping'?'local':'activity',...spot};distance=d}}return best}
   function playAction(kind){actionKind=kind;actionStart=performance.now()/1000;actionUntil=actionStart+2.3}
   function render(t,moving){resize();const target=nearby();marker.visible=target?.kind==='activity';if(marker.visible){marker.position.set(target.x,.035,target.z);marker.material.opacity=.6+Math.sin(t*3)*.2}if(outdoors){const sky=worldAtmosphere(),key=sky.preset+sky.weather;if(key!==lastSky){lastSky=key;const night=sky.preset==='night',warm=['dusk','dawn'].includes(sky.preset);scene.background.set(night?0x101c30:warm?0xc39883:0x8fbfd2);scene.fog.color.copy(scene.background);ambient.intensity=night?.4:1.25;sun.intensity=night?.35:2.3;sun.color.set(warm?0xffb877:0xffdfaa)}}for(const resident of residents)resident.animate(t,false);waves.forEach((w,i)=>{w.position.z=-9-i*2.6+Math.sin(t*.6+i)*.5;w.material.opacity=.25+Math.sin(t+i)*.15});actor.animate(t,moving&&t>=actionUntil);const active=t<actionUntil,blend=active?Math.min(1,(t-actionStart)*3,(actionUntil-t)*3):0;actor.group.position.set(x,0,z);actor.group.rotation.z=0;if(actionKind==='sleep'&&['home','hotel'].includes(kind)){actor.group.position.lerp(new THREE.Vector3(-3,.94,-2.25),blend);actor.group.rotation.z=-Math.PI*.5*blend}else if(actionKind==='relax'){actor.group.position.lerp(new THREE.Vector3(3,.3,-1.9),blend)}else if(actionKind==='shower'){actor.group.position.lerp(new THREE.Vector3(-4.8,0,1.5),blend)}if(active){actor.leftArm.rotation.x=-1.2*blend+Math.sin(t*12)*.16*blend;actor.rightArm.rotation.x=-1.2*blend-Math.sin(t*12)*.16*blend}camera.position.lerp(new THREE.Vector3(Math.max(-5.8,Math.min(5.8,x)),3.6,z+(window.innerHeight>window.innerWidth?6.2:8)),.14);camera.lookAt(x,1.25,z-2);renderer.render(scene,camera)}
   function destroy(){disposeScene(scene);renderer.dispose();renderer.forceContextLoss();canvas.remove()}
-  return {move,nearby,render,playAction,destroy,get isActing(){return performance.now()/1000<actionUntil},get position(){return [x,z]},get name(){return name}};
+  return {move,nearby,render,playAction,destroy,interact(action){if(action==='shopping')return 'shops';return {dialogue:`Visitor · Welcome to ${name}. Explore the room and use the marked activity spots. You can also chat with other players.`}},get isActing(){return performance.now()/1000<actionUntil},get position(){return [x,z]},get name(){return name}};
 }

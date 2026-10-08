@@ -1,3 +1,4 @@
+import {sellsAtVenue} from './venue-shopping.js';
 import {STREET_SERVICES} from './street-services.js';
 import {HOMES,GOODS,JOBS,TERMINALS,propertyId} from './life-catalog.js';
 import {distanceMetres} from './motion.js';
@@ -32,9 +33,11 @@ export function createLifeUI({state,action,navigate,enterHome,places}){
  }
  if(tab==='shops'){
   heading('City shops','Walk or drive to the shop, park, then purchase with your earned cedis.');
+  const indoor=state.mode==='indoor'?state.indoorPlace:null;
   const nearby=places.filter(q=>['makola','kaneshie','osu','mall','airport'].includes(q.id)&&near(q));
-  if(!nearby.length){for(const id of ['makola','mall','osu','kaneshie']){const q=place(id),b=row(q.name,q.area);button(b,'Set route',()=>route(q))}}
-  for(const item of GOODS.filter(g=>!nearby.length||g.shops.some(id=>nearby.some(q=>q.id===id)))){const available=item.shops.some(id=>nearby.some(q=>q.id===id)),owned=item.kind==='vehicle'&&life.vehicles.includes(item.id);const b=row(`${item.icon} ${item.name}`,`₵${item.price} · ${item.shops.map(id=>place(id)?.name).join(' / ')}`);button(b,owned?'Owned':available?'Buy':'Visit shop to buy',()=>transact({type:'buy',itemId:item.id}),owned||!available||p.driving||p.money<item.price)}
+  if(indoor)heading(indoor.name,'Purchases use your game money and are saved in your bag.');
+  if(!nearby.length&&!indoor){for(const id of ['makola','mall','osu','kaneshie']){const q=place(id),b=row(q.name,q.area);button(b,'Set route',()=>route(q))}}
+  for(const item of GOODS.filter(g=>indoor?sellsAtVenue(g,indoor)||g.shops.some(id=>nearby.some(q=>q.id===id)):!nearby.length||g.shops.some(id=>nearby.some(q=>q.id===id)))){const available=!!indoor&&sellsAtVenue(item,indoor)||item.shops.some(id=>nearby.some(q=>q.id===id)),owned=item.kind==='vehicle'&&life.vehicles.includes(item.id);const b=row(`${item.icon} ${item.name}`,`₵${item.price} · ${item.shops.map(id=>place(id)?.name).join(' / ')}`);button(b,owned?'Owned':available?'Buy':'Visit shop to buy',()=>transact({type:'buy',itemId:item.id}),owned||!available||p.driving||p.money<item.price)}
  }
  if(tab==='work'){
   heading('Earn your living','Apply at a workplace, complete a shift, and collect your wages. Leaving work requires cancelling the shift.');

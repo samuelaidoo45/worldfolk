@@ -72,15 +72,15 @@ export function createVenueScene({kind,name,avatar,design={}}){
  const stats=batchStaticMeshes(scene);renderer.shadowMap.needsUpdate=true;
  if(kind==='stadium')for(let i=0;i<22;i++){const actor=createActor(i<11?'👨🏾':'👩🏽');actor.group.traverse(o=>{if(o.material?.color&&o.material.roughness===.86)o.material.color.set(i<11?0xe3b541:0x417da8)});animated.push(actor)}
  if(kind==='theatre')for(let i=0;i<4;i++){const actor=createActor(i%2?'👩🏾':'👨🏽');animated.push(actor)}
- if(kind==='mall'||kind==='terminal')for(let i=0;i<8;i++){const actor=createActor(i%2?'👩🏾':'👨🏽');residents.push(actor)}
+ if(['mall','terminal','stadium','theatre'].includes(kind))for(let i=0;i<(kind==='stadium'||kind==='theatre'?4:8);i++){const actor=createActor(i%2?'👩🏾':'👨🏽');residents.push(actor)}
  const actor=createActor(avatar);scene.add(actor.group);const physics=createRoomPhysics(blockers,layout.bounds);let [x,z]=layout.spawn,watching=false,last=0,width=0,height=0,viewYaw=0,viewPitch=0;const cameraTarget=new THREE.Vector3(),lookTarget=new THREE.Vector3();camera.position.set(x,4,z+7);
  let pointerLook=null;
  canvas.addEventListener('contextmenu',e=>e.preventDefault());
  canvas.addEventListener('pointerdown',e=>{if(e.button!==2&&e.pointerType!=='touch')return;pointerLook=[e.clientX,e.clientY];canvas.setPointerCapture(e.pointerId)});
  canvas.addEventListener('pointermove',e=>{if(!pointerLook)return;viewYaw-=(e.clientX-pointerLook[0])*.2;viewPitch=Math.max(-.6,Math.min(1,viewPitch+(e.clientY-pointerLook[1])*.0036));pointerLook=[e.clientX,e.clientY]});
  for(const event of ['pointerup','pointercancel'])canvas.addEventListener(event,()=>pointerLook=null);
- function nearby(){if(watching)return {kind:'local',actionId:'stop-watching',label:'Return to walking'};if(Math.hypot(x-layout.exit[0],z-layout.exit[1])<2.3)return {kind:'exit',label:'Leave '+(kind==='stadium'?'stadium':'building')};return hotspots.filter(h=>Math.hypot(x-h.x,z-h.z)<2.3&&physics.visible([x,z],[h.x,h.z])).map(h=>({kind:['watch-match','watch-stage','sit','transport'].includes(h.actionId)?'local':'activity',...h}))[0]||null}
- function interact(action){if(action==='transport')return 'transport';if(action==='stop-watching'){watching=false;return}if(action.startsWith('watch-')||action==='sit')watching=action}
+ function nearby(){const person=residents.find(a=>Math.hypot(x-a.group.position.x,z-a.group.position.z)<2.1&&physics.visible([x,z],[a.group.position.x,a.group.position.z]));if(person&&!watching)return {kind:'local',actionId:'talk',label:kind==='mall'?'Talk to a shopper':'Talk to a visitor'};if(watching)return {kind:'local',actionId:'stop-watching',label:'Return to walking'};if(Math.hypot(x-layout.exit[0],z-layout.exit[1])<2.3)return {kind:'exit',label:'Leave '+(kind==='stadium'?'stadium':'building')};return hotspots.filter(h=>Math.hypot(x-h.x,z-h.z)<2.3&&physics.visible([x,z],[h.x,h.z])).map(h=>({kind:['watch-match','watch-stage','sit','transport','shopping'].includes(h.actionId)?'local':'activity',...h}))[0]||null}
+ function interact(action){if(action==='talk')return {dialogue:kind==='mall'?'Shopper · Akwaaba! The shops are along both sides of the atrium, and the food court is at the far end.':'Visitor · Enjoy exploring! You can talk to other players using the chat button.'};if(action==='shopping')return 'shops';if(action==='transport')return 'transport';if(action==='stop-watching'){watching=false;return}if(action.startsWith('watch-')||action==='sit')watching=action}
  function move(dx,dz){if(watching)return;[x,z]=physics.move([x,z],[dx,dz]);if(Math.hypot(dx,dz)>.001)actor.group.rotation.y=Math.atan2(-dx,-dz)}
  for(const a of [actor,...animated,...residents])a.group.traverse(o=>o.castShadow=false);
  const crowd=instanceAnimatedModels([...animated,...residents].map(a=>a.group));scene.add(crowd.group);
@@ -93,7 +93,7 @@ export function createVenueScene({kind,name,avatar,design={}}){
    if(watching){cameraTarget.set(x>0?38:-38,5,z);lookTarget.set(bx,1,bz)}
   }
   if(kind==='theatre')animated.forEach((a,i)=>{a.animate(t+i,true);a.group.position.set((i-1.5)*4+Math.sin(t*.5+i),1.2,-17);a.leftArm.rotation.x=Math.sin(t*2+i)*1.1});
-  residents.forEach((a,i)=>{a.animate(t+i,true);a.group.position.set((i%2?-1:1)*(kind==='mall'?4:7),a.group.position.y,Math.sin(t*.055+i)*23);a.group.rotation.y=Math.cos(t*.055+i)>0?Math.PI:0});
+  residents.forEach((a,i)=>{a.animate(t+i,true);a.group.position.set((i%2?-1:1)*(kind==='stadium'?39:kind==='theatre'?14:kind==='mall'?4:7),a.group.position.y,Math.sin(t*.055+i)*(kind==='stadium'?48:kind==='theatre'?15:23));a.group.rotation.y=Math.cos(t*.055+i)>0?Math.PI:0});
   crowd.update();
   if(!watching){const a=viewYaw*Math.PI/180;let distance=7;for(;distance>1.3;distance-=.3){const cx=x-Math.sin(a)*distance,cz=z+Math.cos(a)*distance;if(physics.clear(cx,cz)&&physics.visible([x,z],[cx,cz]))break}cameraTarget.set(x-Math.sin(a)*distance,Math.min(3.7,1.9+distance*.24)+viewPitch,z+Math.cos(a)*distance);lookTarget.set(x+Math.sin(a)*5,1.4,z-Math.cos(a)*5)}else if(kind!=='stadium'){cameraTarget.set(x,2.1,z+1);lookTarget.set(0,2,-17)}camera.position.lerp(cameraTarget,1-Math.exp(-dt*7));camera.lookAt(lookTarget);renderer.render(scene,camera);
  }
