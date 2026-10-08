@@ -1,3 +1,4 @@
+import {MAX_RIDE_PROGRESS_SPEED} from '../../../public/game/ride-speed.js';
 import {CITY_DESTINATIONS} from '../../../public/game/city-destinations.js';
 import {canShopHere} from '../../../server/maps/venues';
 import {routePoint} from '../../../public/game/transit.js';
@@ -24,10 +25,10 @@ export async function residences(db:D1Database,ownerId?:string){const rows=await
 async function hash(code:string){return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(code)))).map(x=>x.toString(16).padStart(2,'0')).join('')}
 export async function handleLife(db:D1Database,p:LifePlayer,input:Record<string,unknown>,view:(p:any)=>unknown):Promise<Response|null>{
  const type=String(input.type),life=readLife(p),now=Date.now();
- const kinds=['momo','buy','consume','equip','furnish','vehicle-select','job-apply','shift-start','shift-complete','shift-cancel','property-buy','home-set','pass-create','pass-redeem','pass-revoke','flight-book','flight-arrive','cook-inventory','vitals','crash','respawn','recover','ride-book','ride-progress','ride-exit','ride-social','bus-board','bus-arrive','traffic-hit'];
+ const kinds=['momo','buy','consume','equip','furnish','vehicle-select','job-apply','shift-start','shift-complete','shift-cancel','property-buy','home-set','pass-create','pass-redeem','pass-revoke','flight-book','flight-arrive','cook-inventory','vitals','crash','respawn','recover','ride-book','ride-progress','ride-skip','ride-exit','ride-social','bus-board','bus-arrive','traffic-hit'];
  if(!kinds.includes(type))return null;
  if((life.health<=0||life.arrested)&&!['respawn','vitals'].includes(type))return fail('Restart at home to continue');
- if(life.transit&&!['respawn','bus-arrive','ride-progress','ride-exit','ride-social','vitals'].includes(type))return fail('Your bus is travelling');
+ if(life.transit&&!['respawn','bus-arrive','ride-progress','ride-skip','ride-exit','ride-social','vitals'].includes(type))return fail('Your bus is travelling');
  if(life.flight&&!['respawn','flight-arrive','vitals'].includes(type))return fail('Finish your flight before doing this');
  const next={...p};let event='',extra:Record<string,unknown>={};
  async function homeAccess(){const property=await propertyInfo(db,p.place_id);return !!property&&!p.driving&&metres([p.pos_lng??0,p.pos_lat??0],property.coords)<=85&&await canEnter(db,p,p.place_id)}
@@ -76,7 +77,7 @@ export async function handleLife(db:D1Database,p:LifePlayer,input:Record<string,
  if(type==='ride-progress'){
   const trip=life.transit,progress=Number(input.progress);if(!trip?.coordinates||trip.progress===undefined||!Number.isFinite(progress)||progress<0||progress>1)return fail('Invalid journey progress');
   const length=trip.coordinates.slice(1).reduce((sum,point,i)=>sum+metres(trip.coordinates![i],point),0),elapsed=Math.max(0,(now-(trip.progressAt||trip.startedAt))/1000);
-  if(progress<trip.progress||((progress-trip.progress)*length)>elapsed*90+2)return fail('Journey progress is too fast');
+  if(progress<trip.progress||((progress-trip.progress)*length)>elapsed*MAX_RIDE_PROGRESS_SPEED+2)return fail('Journey progress is too fast');
   if(now<(trip.progressAt||trip.startedAt)+1000)return fail('Wait for the next journey checkpoint',429);
   trip.progress=progress;trip.progressAt=now;return save(false);
  }
@@ -86,8 +87,8 @@ export async function handleLife(db:D1Database,p:LifePlayer,input:Record<string,
   const destination=transit.stops.find(s=>s.id===route.to)!;let detailed;try{detailed=await roadRoute([stop.lng,stop.lat],[destination.lng,destination.lat])}catch{return fail('Road routing is unavailable. Please try again.',503)}
   next.money-=route.fare;const departure=Math.ceil((now+2000)/30000)*30000;life.transit={routeId:route.id,startedAt:departure,endsAt:departure+detailed.seconds*1000,coordinates:detailed.coordinates,progress:0,progressAt:departure};event='Ticket purchased. Boarded the tro-tro; departure within 30 seconds.';return save();
  }
- if(type==='bus-arrive'||type==='ride-exit'){
-  const trip=life.transit,route=transit.routes.find(r=>r.id===trip?.routeId);if(!trip||(!route&&!trip.coordinates)||type==='bus-arrive'&&(trip.progress===undefined?now<trip.endsAt:trip.progress<1))return fail('Your vehicle has not arrived');const to=route?transit.stops.find(s=>s.id===route.to)!:{id:'home',name:trip.name||'Your destination'},coords=trip.coordinates||route!.coordinates,point=type==='ride-exit'?routePoint(coords,trip.progress??Math.max(0,(now-trip.startedAt)/(trip.endsAt-trip.startedAt))).position:coords[coords.length-1];life.transit=null;
+ if(type==='bus-arrive'||type==='ride-exit'||type==='ride-skip'){
+  const trip=life.transit;if(type==='ride-skip'&&(!trip||input.rideId!==(trip.rideId||String(trip.startedAt))))return fail('This ride is no longer active');const route=transit.routes.find(r=>r.id===trip?.routeId);if(!trip||(!route&&!trip.coordinates)||type==='bus-arrive'&&(trip.progress===undefined?now<trip.endsAt:trip.progress<1))return fail('Your vehicle has not arrived');const to=route?transit.stops.find(s=>s.id===route.to)!:{id:'home',name:trip.name||'Your destination'},coords=trip.coordinates||route!.coordinates,point=type==='ride-exit'?routePoint(coords,trip.progress??Math.max(0,(now-trip.startedAt)/(trip.endsAt-trip.startedAt))).position:coords[coords.length-1];life.transit=null;
   const result=await db.prepare('UPDATE players SET life_json=?,pos_lng=?,pos_lat=?,place_id=?,driving=0,last_move_at=?,last_action_at=?,last_seen_at=?,revision=revision+1 WHERE id=? AND revision=?').bind(JSON.stringify(life),point[0],point[1],type==='ride-exit'?'home':to.id==='ridge'?'home':to.id,now,now,now,p.id,p.revision).run();if(!result.meta.changes)return fail('Please try again',409);const updated=await db.prepare('SELECT *, (SELECT username FROM accounts WHERE player_id=players.id) AS handle FROM players WHERE id=?').bind(p.id).first();return Response.json({self:view(updated),event:type==='ride-exit'?'You left the vehicle at the roadside':`Arrived at ${to.name}`});
  }
  const item=GOODS.find(g=>g.id===input.itemId);

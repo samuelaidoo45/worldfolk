@@ -76,3 +76,26 @@ test('death during public transport or a flight can restart at the owned home',a
   assert.equal((await call(joined.cookie,{type:'respawn'})).status,400,'living players cannot use restart to teleport');
  }
 });
+
+test('skip completes only the booked ride once, without changing fare or fellow passengers',async()=>{
+ const a=await call(null,{type:'join',name:'Skip Rider',avatar:'🧑🏾'}),b=await call(null,{type:'join',name:'Continuing Rider',avatar:'🧑🏾'});
+ const trip={rideId:'shared-skip-test',routeId:'pickup',kind:'trotro',name:'Accra Mall',fare:15,coordinates:[[-.19,5.56],[-.1738,5.6224]],progress:0,progressAt:Date.now()+15000,startedAt:Date.now()+15000,endsAt:Date.now()+300000};
+ for(const rider of [a,b])fixture(rider.body.self.id,{money:85,place_id:'ride_shared-skip-test',life_json:JSON.stringify({...rider.body.self.life,transit:trip}),pos_lng:-.19,pos_lat:5.56});
+ assert.equal((await call(a.cookie,{type:'ride-skip',rideId:'wrong-ride'})).status,400);
+ assert.equal((await call(a.cookie,{type:'bus-arrive'})).status,400,'normal arrival still requires finishing the route');
+ const results=await Promise.all([call(a.cookie,{type:'ride-skip',rideId:trip.rideId,lng:30,lat:30}),call(a.cookie,{type:'ride-skip',rideId:trip.rideId})]);
+ assert.equal(results.filter(r=>r.status===200).length,1);
+ const saved=await call(a.cookie);assert.equal(saved.body.self.life.transit,null);assert.equal(saved.body.self.money,85);assert.deepEqual([saved.body.self.lng,saved.body.self.lat],trip.coordinates.at(-1));assert.equal(saved.body.self.driving,false);
+ const other=await call(b.cookie);assert.equal(other.body.self.life.transit.rideId,trip.rideId);assert.equal(other.body.self.life.transit.progress,0);assert.equal(other.body.self.money,85);
+ assert.equal((await call(a.cookie,{type:'ride-skip',rideId:trip.rideId})).status,400);
+ const nextTrip={...trip,rideId:'another-ride'};fixture(a.body.self.id,{life_json:JSON.stringify({...saved.body.self.life,transit:nextTrip})});
+ assert.equal((await call(a.cookie,{type:'ride-skip',rideId:trip.rideId})).status,400,'an old retry cannot skip a new ride');
+});
+
+test('eight-times transport checkpoints are accepted without allowing instant fake arrival',async()=>{
+ const joined=await call(null,{type:'join',name:'Fast Rider',avatar:'🧑🏾'}),p=joined.body.self;
+ const trip={rideId:'speed-test',routeId:'pickup',kind:'taxi',name:'Destination',fare:20,coordinates:[[-.19,5.56],[-.19,5.65]],progress:0,progressAt:Date.now()-5000,startedAt:Date.now()-10000,endsAt:Date.now()+300000};
+ fixture(p.id,{life_json:JSON.stringify({...p.life,transit:trip})});
+ assert.equal((await call(joined.cookie,{type:'ride-progress',progress:.075})).status,200,'750m in 5s is valid at 8x');
+ assert.equal((await call(joined.cookie,{type:'ride-progress',progress:1})).status,400,'skipping requires the explicit skip action');
+});
