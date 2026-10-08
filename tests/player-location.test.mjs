@@ -1,0 +1,11 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {resolvePlayerLocation} from '../public/game/player-location.js';
+import {offsetMetres} from '../public/game/motion.js';
+const point=[-.1819,5.5598],district={name:'Osu · high street'};
+const street=(name,position=point)=>({properties:{name,class:'street'},geometry:{type:'LineString',coordinates:[offsetMetres(position,0,-80),offsetMetres(position,0,80)]}});
+test('current street follows the player when moving between streets',()=>{const next=offsetMetres(point,130,0),roads=[street('Oxford Street'),street('Lokko Road',next)];assert.equal(resolvePlayerLocation({position:point,roads,district,mode:'walk'}).label,'Oxford Street');const driving=resolvePlayerLocation({position:next,roads,district,mode:'drive'});assert.equal(driving.label,'Lokko Road');assert.equal(driving.prefix,'DRIVING');assert.equal(driving.area,'Osu')});
+test('nearby venues are explicitly near rather than falsely claiming the player entered them',()=>{const location=resolvePlayerLocation({position:point,places:[{name:'Cafe',lng:point[0],lat:point[1],type:'Food'}],district,mode:'walk'});assert.equal(location.label,'Near Cafe');assert.match(location.description,/near Cafe/)});
+test('indoor location uses the entered venue instead of the outside street',()=>{const location=resolvePlayerLocation({position:point,roads:[street('Oxford Street')],indoorPlace:{name:'Oxford Street Mall'},mode:'indoor',district});assert.equal(location.label,'Oxford Street Mall');assert.equal(location.prefix,'INSIDE')});
+test('unknown roads fall back to area and do not claim a distant or underground road',()=>{const tunnel=street('Tunnel');tunnel.properties.structure='tunnel';const location=resolvePlayerLocation({position:point,roads:[tunnel,street('Distant road',offsetMetres(point,200,0))],district,mode:'walk'});assert.equal(location.label,'Osu');assert.equal(location.description,'You are in Osu')});
+test('flights and missing position use explicit location states',()=>{assert.equal(resolvePlayerLocation({position:point,mode:'flight',district}).label,'Above Osu');assert.equal(resolvePlayerLocation({mode:'walk'}).label,'Locating…')});

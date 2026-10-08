@@ -93,3 +93,8 @@
 .touch-device.roam-mode.map-play .overhead-tools{left:var(--hud-left);bottom:calc(var(--safe-bottom) + 116px)}
 .touch-device.roam-mode.map-play .navigation-card{bottom:calc(var(--safe-bottom) + 170px)}
 .touch-device.roam-mode.map-play.transit-mode .roam-status,.touch-device.roam-mode.map-play.transit-mode .overhead-tools{left:var(--safe-left)}
+
+/* Current location stays readable beside the radar in every travel mode. */
+.roam-mode .roam-status .roam-kicker{display:block;font-size:8px;line-height:1.4;letter-spacing:.08em;color:#a7e2d0;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;margin-bottom:4px}
+.touch-device.roam-mode .roam-status .roam-kicker{font-size:7px;margin-bottom:3px}
+.game-minimap .minimap-caption{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
