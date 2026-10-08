@@ -108,7 +108,7 @@ async function refreshWorld(){
     if(state.self)realtime.start();
     updateCityLight();state.lifeUI?.sync();if(data.accessAllowed===false&&state.mode==='indoor'){exitInterior();toast('Your guest access has ended')}syncLife();
     if(!state.loaded&&state.self){state.selectedPlace=state.self.placeId;state.loaded=true;state.position=[state.self.lng,state.self.lat];state.heading=state.self.heading||0;flyTo(state.selectedPlace,14.6)}
-    state.world3d?.setPlayers(state.players,state.self?.id);
+    state.world3d?.setIdentity(state.self);state.world3d?.setPlayers(state.players,state.self?.id);
     if(state.world3d&&state.self&&!state.roam&&!state.mapModeRequested)enterRoam();
     if(!state.self){$('welcomeModal').classList.remove('hidden');$('modalScrim').classList.remove('hidden')}
     else{$('welcomeModal').classList.add('hidden');if($('helpModal').classList.contains('hidden'))$('modalScrim').classList.add('hidden')}
@@ -261,7 +261,7 @@ function enterRoam(){
   state.physics?.refresh(state.position,true);
   if(state.physics?.count&&state.physics.collision(state.position,state.mode==='drive'?1.15:.7)){const open=state.physics.findOpen(state.position,state.mode==='drive'?1.15:.7);if(metersBetween(open,state.position)<35){state.position=open;state.spawnCorrectionPending=true}}
   if(state.mode==='drive')state.carPosition=[...state.position];else if(!state.carPosition){const lat=state.position[1],near=[state.position[0]+3/(111320*Math.cos(lat*Math.PI/180)),lat];state.carPosition=state.physics?.findOpen(near,2.1)||near;state.carHeading=openDrivingHeading(state.carPosition)}
-  state.world3d.setSelf(state.self.avatar);state.world3d.setVehicleOwned(state.self.life.vehicles.includes(state.self.life.vehicle));state.world3d.setVehicleKind(state.self.life?.vehicle||'car');state.world3d.setOutfit(state.self.life?.outfit);state.world3d.setPosition(...state.position,state.heading);state.world3d.setCarPosition(...state.carPosition,state.carHeading);state.world3d.setDriving(state.mode==='drive');state.world3d.setCabinView(false);state.world3d.setEnabled(state.view!=='2d');
+  state.world3d.setIdentity(state.self);state.world3d.setSelf(state.self.avatar);state.world3d.setVehicleOwned(state.self.life.vehicles.includes(state.self.life.vehicle));state.world3d.setVehicleKind(state.self.life?.vehicle||'car');state.world3d.setOutfit(state.self.life?.outfit);state.world3d.setPosition(...state.position,state.heading);state.world3d.setCarPosition(...state.carPosition,state.carHeading);state.world3d.setDriving(state.mode==='drive');state.world3d.setCabinView(false);state.world3d.setEnabled(state.view!=='2d');
   state.map.dragPan.disable();state.map.dragRotate.disable();state.map.touchZoomRotate.disable();state.map.doubleClickZoom.disable();document.body.classList.add('roam-mode');$('roamHud').classList.remove('hidden');$('roamToggle').textContent='◫ City map';state.keys.clear();state.lastFrame=performance.now();updateNearby();renderMapMarkers();followCamera(true);if(state.spawnCorrectionPending)sendMove();syncLife();restoreHomeInterior();requestAnimationFrame(roamFrame)
 }
 // Camera selection never stops or resets the shared gameplay simulation.

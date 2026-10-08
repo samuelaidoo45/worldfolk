@@ -20,7 +20,7 @@ export class WorldSession extends DurableObject<Cloudflare.Env> {
       // Legacy geographic rooms are checked on the first connection after upgrade.
       await stub(this.env,room).fetch('https://room/disconnect',{method:'POST',body:JSON.stringify({id:player.id,token:player.session_token})});
       if(new URL(request.url).pathname==='/end'){await this.ctx.storage.delete('room');return Response.json({ok:true})}
-      const fresh=await this.env.DB!.prepare('SELECT * FROM players WHERE id=? AND session_token=?').bind(player.id,player.session_token).first<WorldPlayer>();
+      const fresh=await this.env.DB!.prepare('SELECT *, (SELECT username FROM accounts WHERE player_id=players.id) AS handle FROM players WHERE id=? AND session_token=?').bind(player.id,player.session_token).first<WorldPlayer>();
       if(!fresh)return new Response('Session ended',{status:401});
       player=fresh;
       player.pos_lng??=-.1949;player.pos_lat??=5.5682;

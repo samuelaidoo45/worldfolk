@@ -1,3 +1,4 @@
+import {createPlayerLabels} from './player-labels.js';
 import {createBuildingVisibility} from './building-visibility.js';
 import {batchStaticMeshes,disposeScene} from './render-utils.js';
 import {potholeImpact} from './road-surface.js';
@@ -85,7 +86,7 @@ function createDoorway(){
   return {group,glow};
 }
 export function createWorld3D(map,mapEngine){
-  const scene=new THREE.Scene(),camera=new THREE.Camera();
+  const scene=new THREE.Scene(),camera=new THREE.Camera(),nameTags=createPlayerLabels(map);let selfIdentity=null;
   const ambient=new THREE.AmbientLight(0xffffff,1.55);scene.add(ambient);
   const light=new THREE.DirectionalLight(0xffedcb,1.35);light.position.set(-8,18,10);scene.add(light);
   const own=createActor('🧑🏾');own.group.scale.setScalar(1);scene.add(own.group);
@@ -116,14 +117,18 @@ export function createWorld3D(map,mapEngine){
     }
     for(const item of beacons){item.beacon.group.position.x=(item.lng-position[0])*METERS_PER_DEGREE*Math.cos(position[1]*DEG);item.beacon.group.position.z=(position[1]-item.lat)*METERS_PER_DEGREE;const beaconDistance=Math.hypot(item.beacon.group.position.x,item.beacon.group.position.z);item.beacon.group.visible=beaconDistance<170&&beaconDistance>4;item.beacon.gem.position.y=2.7+Math.sin(t*2+item.phase)*.22;item.beacon.gem.rotation.y=t*.8;item.beacon.ring.rotation.z=t*.5}
     for(const item of doors){item.door.group.position.x=(item.lng-position[0])*METERS_PER_DEGREE*Math.cos(position[1]*DEG);item.door.group.position.z=(position[1]-item.lat)*METERS_PER_DEGREE;item.door.group.rotation.y=item.heading*DEG;item.door.glow.material.opacity=.42+Math.sin(t*3)*.16}
-    renderer.resetState();renderer.render(scene,camera);renderer.resetState();map.triggerRepaint();
+    renderer.resetState();renderer.render(scene,camera);renderer.resetState();
+    const tags=[...others.values()].map(item=>({player:item.identity,x:item.model.group.position.x,y:item.driving?(item.vehicle==='bus'?3.7:2.3):2.15,z:item.model.group.position.z,distance:Math.hypot(item.model.group.position.x,item.model.group.position.z),visible:item.model.group.visible}));
+    if(selfIdentity)tags.push({player:selfIdentity,x:0,y:driving?(vehicleKind==='bus'?3.7:2.3):2.15,z:0,distance:0,self:true,visible:!flying&&!cabinView&&(driving||own.group.visible)});
+    nameTags.update(tags,camera.projectionMatrix,now);map.triggerRepaint();
   }};
   map.addLayer(layer);
   return {
     setArchitecture(items){if(items!==architectureSource){architectureSource=items;const ids=new Set(items.map(i=>i.id));for(const data of items){const old=architectureItems.get(data.id);if(old&&old.data.style!==data.style){scene.remove(old.model.group);disposeModel(old.model.group);architectureItems.delete(data.id)}}pendingArchitecture=items.filter(i=>!architectureItems.has(i.id));for(const [id,item] of architectureItems)if(!ids.has(id)){scene.remove(item.model.group);disposeModel(item.model.group);architectureItems.delete(id)}}const start=performance.now();while(pendingArchitecture.length&&performance.now()-start<2){const data=pendingArchitecture.shift(),model=createBuildingFacade(data);architectureItems.set(data.id,{data,model});scene.add(model.group)}syncBuildingShells()},
     setScenery(items){if(items===scenerySource)return;scenerySource=items;const ids=new Set(items.map(i=>i.id));for(const data of items)if(!sceneryItems.has(data.id)){const model=['lamp','signal'].includes(data.kind)?createStreetLight(data):createStreetProp(data.kind);sceneryItems.set(data.id,{data,model});batchStaticMeshes(model.group);scene.add(model.group)}for(const [id,item] of sceneryItems)if(!ids.has(id)){scene.remove(item.model.group);disposeModel(item.model.group);sceneryItems.delete(id)}},
     setCameraDistance(value){cameraDistance=value},
-    setEnabled(value){enabled=value;syncBuildingShells();map.triggerRepaint()},
+    setIdentity(player){selfIdentity=player},
+    setEnabled(value){enabled=value;if(!value)nameTags.hide();syncBuildingShells();map.triggerRepaint()},
     setSelf(icon){scene.remove(own.group);disposeModel(own.group);Object.assign(own,createActor(icon));scene.add(own.group);map.triggerRepaint()},
     setOutfit(id){own.outfit(id);map.triggerRepaint()},
     setAircraft(value,height=0){flying=value;altitude=height;map.triggerRepaint()},
@@ -139,7 +144,7 @@ export function createWorld3D(map,mapEngine){
     setPosition(lng,lat,direction=heading){position=[lng,lat];heading=direction;map.triggerRepaint()},
     setMoving(value){moving=value},
     playAction(){actionUntil=performance.now()+1300;map.triggerRepaint()},
-    setPlayers(players,selfId){const visible=new Set();for(const p of players){if(p.id===selfId||!Number.isFinite(p.lng)||!Number.isFinite(p.lat))continue;visible.add(p.id);let item=others.get(p.id);if(!item||item.driving!==!!p.driving||item.vehicle!==p.vehicle){if(item){scene.remove(item.model.group);disposeModel(item.model.group)}const model=p.driving?(p.vehicle==='bus'?createBus():p.vehicle==='motorcycle'?createMotorcycle():createCar(0x40858c)):createActor(p.avatar);item={model,actor:p.driving?null:model,driving:!!p.driving,vehicle:p.vehicle,position:[p.lng,p.lat],heading:p.heading||0};others.set(p.id,item);scene.add(model.group)}item.target=[p.lng,p.lat];item.targetHeading=p.heading||0}for(const [id,item] of others){if(!visible.has(id)){scene.remove(item.model.group);disposeModel(item.model.group);others.delete(id)}}map.triggerRepaint()},
+    setPlayers(players,selfId){const visible=new Set();for(const p of players){if(p.id===selfId||!Number.isFinite(p.lng)||!Number.isFinite(p.lat))continue;visible.add(p.id);let item=others.get(p.id);if(!item||item.driving!==!!p.driving||item.vehicle!==p.vehicle){if(item){scene.remove(item.model.group);disposeModel(item.model.group)}const model=p.driving?(p.vehicle==='bus'?createBus():p.vehicle==='motorcycle'?createMotorcycle():createCar(0x40858c)):createActor(p.avatar);item={model,actor:p.driving?null:model,driving:!!p.driving,vehicle:p.vehicle,position:[p.lng,p.lat],heading:p.heading||0};others.set(p.id,item);scene.add(model.group)}item.identity=p;item.target=[p.lng,p.lat];item.targetHeading=p.heading||0}for(const [id,item] of others){if(!visible.has(id)){scene.remove(item.model.group);disposeModel(item.model.group);others.delete(id)}}map.triggerRepaint()},
     setBeacons(places){const key=places.slice(0,8).map(p=>p.id).join(',');if(key===beaconKey)return;beaconKey=key;for(const item of beacons){scene.remove(item.beacon.group);disposeModel(item.beacon.group)}beacons.length=0;places.slice(0,8).forEach((p,index)=>{const beacon=createBeacon();beacons.push({beacon,lng:p.lng,lat:p.lat,phase:index});scene.add(beacon.group)});map.triggerRepaint()},
     setDoors(entries){entries.slice(0,3).forEach((p,index)=>{let item=doors[index];if(!item){const door=createDoorway();item={door};doors[index]=item;scene.add(door.group)}Object.assign(item,{lng:p.lng,lat:p.lat,heading:p.heading||0});item.door.group.visible=true});for(let i=entries.length;i<doors.length;i++)doors[i].door.group.visible=false;map.triggerRepaint()},
     destroy(){if(map.getLayer(layer.id))map.removeLayer(layer.id);renderer?.dispose()}

@@ -9,7 +9,7 @@ import { env } from "cloudflare:workers";
 
 type Player = {
   life_json:string; revision:number; session_token:string|null;
-  id: string; name: string; avatar: string; place_id: string; money: number;
+  id: string; name: string; handle?:string; avatar: string; place_id: string; money: number;
   pos_lng: number|null; pos_lat: number|null; heading: number; driving: number; last_move_at: number;
   energy: number; hunger: number; fun: number; social: number; hygiene: number;
   xp: number; day: number; minute: number; home_tier: number; job: string;
@@ -65,7 +65,7 @@ const cookieId = (request: Request) => request.headers.get("cookie")?.match(/(?:
 
 function view(p: Player) {
   const [lng,lat]=playerPosition(p);
-  return {id:p.id,revision:p.revision,name:p.name,avatar:p.avatar,placeId:p.place_id,money:p.money,
+  return {id:p.id,revision:p.revision,name:p.name,handle:p.handle,avatar:p.avatar,placeId:p.place_id,money:p.money,
     lng,lat,heading:p.heading,driving:!!p.driving,life:lifeView(p),
     energy:p.energy,hunger:p.hunger,fun:p.fun,social:p.social,hygiene:p.hygiene,
     xp:p.xp,level:Math.floor(p.xp/100)+1,day:p.day,minute:p.minute,
@@ -78,7 +78,7 @@ async function ownPlayer(db: D1Database, request: Request) {
   if(player?.session_token&&room&&env.WORLD_SESSIONS){
     const response=await env.WORLD_SESSIONS.get(env.WORLD_SESSIONS.idFromName(room)).fetch('https://room/checkpoint',{method:'POST',body:JSON.stringify({player,persist:request.method==='POST'})});
     const live=await response.json() as {player:Player|null};
-    if(request.method==='POST')player=await db.prepare('SELECT * FROM players WHERE id=?').bind(player.id).first<Player>();
+    if(request.method==='POST')player=await db.prepare('SELECT *, (SELECT username FROM accounts WHERE player_id=players.id) AS handle FROM players WHERE id=?').bind(player.id).first<Player>();
     else if(live.player)player={...player,pos_lng:live.player.pos_lng,pos_lat:live.player.pos_lat,heading:live.player.heading};
   }
   return player;
@@ -98,12 +98,12 @@ export async function GET(request: Request) {
     const now=Date.now();const self=await ownPlayer(db,request);let sessionHeaders:HeadersInit={};
     if(self&&!self.session_token){const token=crypto.randomUUID();const result=await db.prepare('UPDATE players SET session_token=? WHERE id=? AND session_token IS NULL').bind(token,self.id).run();if(result.meta.changes)sessionHeaders={"Set-Cookie":`accralife_session=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=2592000${new URL(request.url).protocol==='https:'?'; Secure':''}`}}
     const messagesOnly=new URL(request.url).searchParams.get('messagesOnly')==='1';
-    const online=messagesOnly||request.headers.get('X-World-Room')?{results:[]}:await db.prepare("SELECT id,name,avatar,place_id,pos_lng,pos_lat,heading,driving,life_json FROM players WHERE last_seen_at > ? ORDER BY last_seen_at DESC LIMIT 100").bind(now-120000).all<Pick<Player,"id"|"name"|"avatar"|"place_id"|"pos_lng"|"pos_lat"|"heading"|"driving"|"life_json">>();
+    const online=messagesOnly||request.headers.get('X-World-Room')?{results:[]}:await db.prepare("SELECT id,name,avatar,place_id,pos_lng,pos_lat,heading,driving,life_json,(SELECT username FROM accounts WHERE player_id=players.id) AS handle FROM players WHERE last_seen_at > ? ORDER BY last_seen_at DESC LIMIT 100").bind(now-120000).all<Pick<Player,"id"|"name"|"handle"|"avatar"|"place_id"|"pos_lng"|"pos_lat"|"heading"|"driving"|"life_json">>();
     const channel=new URL(request.url).searchParams.get("channel")||"city";
     const safeChannel=channel==="city"?"city":self?.place_id||"city";
     const messages=await db.prepare("SELECT m.id,m.channel,m.body,m.created_at,p.id AS player_id,p.name,p.avatar FROM messages m JOIN players p ON p.id=m.player_id WHERE m.channel=? ORDER BY m.created_at DESC LIMIT 40").bind(safeChannel).all();
     if(messagesOnly)return json({messages:messages.results.reverse(),channel:safeChannel},200,sessionHeaders);
-    return json({self:self?view(self):null,players:online.results.map((p)=>{const life=readLife(p as Player),trip=life.transit,route=transit.routes.find(r=>r.id===trip?.routeId),ride=trip&&(trip.coordinates||route)?routePoint(trip.coordinates||route!.coordinates,trip.progress??(now-trip.startedAt)/(trip.endsAt-trip.startedAt)):null,[lng,lat]=ride?.position||playerPosition(p as Player);return {id:p.id,name:p.name,avatar:p.avatar,placeId:p.place_id,lng,lat,heading:ride?.heading??p.heading,driving:!!p.driving||!!ride,vehicle:ride?(trip?.kind==='taxi'?'car':'bus'):life.vehicle,health:life.health}}),messages:messages.results.reverse(),channel:safeChannel,residences:await residences(db,self?.id),accessAllowed:!self?.place_id.startsWith("p_")||await canEnter(db,self!,self!.place_id)},200,sessionHeaders);
+    return json({self:self?view(self):null,players:online.results.map((p)=>{const life=readLife(p as Player),trip=life.transit,route=transit.routes.find(r=>r.id===trip?.routeId),ride=trip&&(trip.coordinates||route)?routePoint(trip.coordinates||route!.coordinates,trip.progress??(now-trip.startedAt)/(trip.endsAt-trip.startedAt)):null,[lng,lat]=ride?.position||playerPosition(p as Player);return {id:p.id,name:p.name,handle:p.handle,avatar:p.avatar,placeId:p.place_id,lng,lat,heading:ride?.heading??p.heading,driving:!!p.driving||!!ride,vehicle:ride?(trip?.kind==='taxi'?'car':'bus'):life.vehicle,health:life.health}}),messages:messages.results.reverse(),channel:safeChannel,residences:await residences(db,self?.id),accessAllowed:!self?.place_id.startsWith("p_")||await canEnter(db,self!,self!.place_id)},200,sessionHeaders);
   } catch(error){console.error("world GET",error);return json({error:"Could not load the city"},500)}
 }
 
@@ -126,12 +126,12 @@ export async function POST(request: Request) {
       const id=crypto.randomUUID(),token=crypto.randomUUID();
       const rolls=crypto.getRandomValues(new Uint32Array(2)),start=startingLife(rolls[0]/4294967296,rolls[1]/4294967296);
       await db.prepare("INSERT INTO players (id,name,avatar,session_token,place_id,pos_lng,pos_lat,money,life_json,last_seen_at,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)").bind(id,name,avatar,token,propertyId(id,start.life.home),start.lng,start.lat,start.money,JSON.stringify(start.life),now,now).run();
-      const p=await db.prepare("SELECT * FROM players WHERE id=?").bind(id).first<Player>();
+      const p=await db.prepare("SELECT *, (SELECT username FROM accounts WHERE player_id=players.id) AS handle FROM players WHERE id=?").bind(id).first<Player>();
       const secure=new URL(request.url).protocol==="https:"?"; Secure":"";
       return json({self:view(p!)},201,{"Set-Cookie":`accralife_session=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=2592000${secure}`});
     }
     let p=await ownPlayer(db,request);if(!p)return json({error:"Create your Sim to play"},401);
-    if(p.driving&&!readLife(p).drivingSince){const migrated={...readLife(p),drivingSince:now-30000};await db.prepare("UPDATE players SET life_json=?,revision=revision+1 WHERE id=? AND revision=?").bind(JSON.stringify(migrated),p.id,p.revision).run();const updated=await db.prepare("SELECT * FROM players WHERE id=?").bind(p.id).first<Player>();if(updated)p=updated;}
+    if(p.driving&&!readLife(p).drivingSince){const migrated={...readLife(p),drivingSince:now-30000};await db.prepare("UPDATE players SET life_json=?,revision=revision+1 WHERE id=? AND revision=?").bind(JSON.stringify(migrated),p.id,p.revision).run();const updated=await db.prepare("SELECT *, (SELECT username FROM accounts WHERE player_id=players.id) AS handle FROM players WHERE id=?").bind(p.id).first<Player>();if(updated)p=updated;}
     const lifeInput=type==='act'&&input.actionId==='cook'?{type:'cook-inventory'}:input;
     const lifeResult=await handleLife(db,p,lifeInput,view);if(lifeResult)return lifeResult;
     const life=readLife(p);
@@ -162,7 +162,7 @@ export async function POST(request: Request) {
       const wanted=Math.min(3,life.wanted+1);const changed={...life,wanted,arrested:wanted>=3,arrests:life.arrests+(wanted>=3?1:0),lastTheftAt:now,drivingSince:now,vehicle:'car',vehicles:[...new Set([...life.vehicles,'car'])]};
       const result=await db.prepare("UPDATE players SET driving=1,pos_lng=?,pos_lat=?,heading=?,last_move_at=?,last_seen_at=?,life_json=?,revision=revision+1 WHERE id=? AND revision=?").bind(lng,lat,((heading%360)+360)%360,now,now,JSON.stringify(changed),p.id,p.revision).run();
       if(!result.meta.changes)return json({error:"Your state changed. Try again."},409);
-      const updated=await db.prepare("SELECT * FROM players WHERE id=?").bind(p.id).first<Player>();return json({self:view(updated!)});
+      const updated=await db.prepare("SELECT *, (SELECT username FROM accounts WHERE player_id=players.id) AS handle FROM players WHERE id=?").bind(p.id).first<Player>();return json({self:view(updated!)});
     }
     if(type==="vehicle"){
       const entering=input.enter===true;const lng=Number(input.lng),lat=Number(input.lat);
@@ -171,7 +171,7 @@ export async function POST(request: Request) {
       if(!Number.isFinite(lng)||!Number.isFinite(lat)||lng<ACCRA_BOUNDS.west||lng>ACCRA_BOUNDS.east||lat<ACCRA_BOUNDS.south||lat>ACCRA_BOUNDS.north)return json({error:"Choose a spot in Accra"},400);
       if(distanceKm(playerPosition(p),[lng,lat])>(entering?0.008:0.004))return json({error:"Move closer to the vehicle"},400);
       await db.prepare("UPDATE players SET driving=?,pos_lng=?,pos_lat=?,last_move_at=?,last_seen_at=?,life_json=?,revision=revision+1 WHERE id=? AND revision=?").bind(entering?1:0,lng,lat,now,now,JSON.stringify({...life,shift:life.shift?.jobId==='driver'&&entering?{...life.shift,drove:true}:life.shift,drivingSince:entering?now:0}),p.id,p.revision).run();
-      const updated=await db.prepare("SELECT * FROM players WHERE id=?").bind(p.id).first<Player>();
+      const updated=await db.prepare("SELECT *, (SELECT username FROM accounts WHERE player_id=players.id) AS handle FROM players WHERE id=?").bind(p.id).first<Player>();
       return json({self:view(updated!)});
     }
     if(type==="enter"){
@@ -183,7 +183,7 @@ export async function POST(request: Request) {
       if(place.startsWith('g_')&&coords&&HOMES.some(h=>Math.hypot((coords[0]-h.lng)*111000*Math.cos(coords[1]*Math.PI/180),(coords[1]-h.lat)*111000)<35))return json({error:'Private residential address. Choose its owner’s home and use a guest pass.',requiresPass:true},403);
       if(!coords||distanceKm(playerPosition(p),coords)>0.085)return json({error:"Move closer to interact here"},400);
       if(place!==p.place_id)await db.prepare("UPDATE players SET place_id=?,visits=visits+1,last_seen_at=? WHERE id=?").bind(place,now,p.id).run();
-      const updated=await db.prepare("SELECT * FROM players WHERE id=?").bind(p.id).first<Player>();
+      const updated=await db.prepare("SELECT *, (SELECT username FROM accounts WHERE player_id=players.id) AS handle FROM players WHERE id=?").bind(p.id).first<Player>();
       return json({self:view(updated!)});
     }
     if(type==="travel")return json({error:"Choose a route and walk, drive, or board a flight to travel"},400);
@@ -213,7 +213,7 @@ export async function POST(request: Request) {
       const result=await db.prepare("UPDATE players SET money=?,energy=?,hunger=?,fun=?,social=?,hygiene=?,xp=?,day=?,minute=?,home_tier=?,job=?,jobs_done=?,last_action_at=?,last_seen_at=?,revision=revision+1 WHERE id=? AND revision=?")
         .bind(values.money,values.energy,values.hunger,values.fun,values.social,values.hygiene,values.xp,values.day,values.minute,values.homeTier,values.job,values.jobsDone,now,now,p.id,p.revision).run();
       if(!result.meta.changes)return json({error:"Your state changed. Please try again."},409);
-      const updated=await db.prepare("SELECT * FROM players WHERE id=?").bind(p.id).first<Player>();
+      const updated=await db.prepare("SELECT *, (SELECT username FROM accounts WHERE player_id=players.id) AS handle FROM players WHERE id=?").bind(p.id).first<Player>();
       return json({self:view(updated!),event:action.upgrade?"Your home has a new upgrade!":`${action.label} complete.`});
     }
     if(type==="chat"){

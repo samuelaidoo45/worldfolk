@@ -17,6 +17,8 @@ test('guest upgrades, resumes on another session, and can recover without losing
  assert.equal((await call('/api/game',g.cookie)).body.self,null,'upgrading revokes the old guest token');
  let r=await call('/api/game',reg.cookie);assert.equal(r.body.self.id,g.self.id);assert.equal(r.body.self.money,4321);assert.equal(r.body.self.xp,99);assert.equal(r.body.self.life.homeId,g.self.life.homeId);
  assert.equal((await call('/api/auth',reg.cookie)).body.username,username);
+ assert.equal(r.body.self.handle,username);assert.ok(!JSON.stringify(r.body).includes('password_hash'));const named=socket(reg.cookie);try{const welcome=await named.welcome;assert.equal(welcome.players.find(p=>p.id===g.self.id).handle,username);assert.ok(!JSON.stringify(welcome).includes('password_hash'))}finally{named.ws.terminate()}
+ assert.equal((await call('/api/game',reg.cookie,{type:'vitals'})).body.self.handle,username);
  const stored=sql('SELECT password_hash,recovery_hash FROM accounts WHERE username=?',[username])[0];assert.match(stored[0],/^scrypt-v1\$/);assert.ok(!stored.includes(password));assert.notEqual(stored[1],reg.body.recoveryCode);
  assert.equal((await call('/api/auth',null,{action:'login',username,password:'wrong password'})).status,401);
  const login=await call('/api/auth',null,{action:'login',username:username.toUpperCase(),password});assert.equal(login.status,200);assert.equal((await call('/api/game',login.cookie)).body.self.id,g.self.id);assert.equal((await call('/api/game',reg.cookie)).body.self,null);
