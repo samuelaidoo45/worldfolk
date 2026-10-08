@@ -9,7 +9,7 @@ const stub=(env:Cloudflare.Env,name:string)=>env.WORLD_ROOMS!.get(env.WORLD_ROOM
 export class WorldSession extends DurableObject<Cloudflare.Env> {
   async fetch(request:Request):Promise<Response>{
     return this.ctx.blockConcurrencyWhile(async()=>{
-      const input=(new URL(request.url).pathname==='/checkpoint'?await request.json():{player:JSON.parse(request.headers.get('X-World-Player')!)}) as {player:WorldPlayer;persist?:boolean};
+      const input=(['/checkpoint','/end'].includes(new URL(request.url).pathname)?await request.json():{player:JSON.parse(request.headers.get('X-World-Player')!)}) as {player:WorldPlayer;persist?:boolean};
       let player=input.player;
       const previous=await this.ctx.storage.get<string>('room');
       const room=previous||roomFor(player.pos_lng,player.pos_lat);
@@ -19,6 +19,7 @@ export class WorldSession extends DurableObject<Cloudflare.Env> {
       // Checkpoint and evict the old socket before assigning another instance.
       // Legacy geographic rooms are checked on the first connection after upgrade.
       await stub(this.env,room).fetch('https://room/disconnect',{method:'POST',body:JSON.stringify({id:player.id,token:player.session_token})});
+      if(new URL(request.url).pathname==='/end'){await this.ctx.storage.delete('room');return Response.json({ok:true})}
       const fresh=await this.env.DB!.prepare('SELECT * FROM players WHERE id=? AND session_token=?').bind(player.id,player.session_token).first<WorldPlayer>();
       if(!fresh)return new Response('Session ended',{status:401});
       player=fresh;

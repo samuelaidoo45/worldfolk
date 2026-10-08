@@ -11,6 +11,7 @@ export const players = sqliteTable("players", {
   driving: integer("driving").notNull().default(0),
   lastMoveAt: integer("last_move_at").notNull().default(0),
   sessionToken: text("session_token"),
+  sessionExpiresAt: integer("session_expires_at").notNull().default(0),
   lifeJson: text("life_json").notNull().default("{}"),
   revision: integer("revision").notNull().default(0),
   money: integer("money").notNull().default(120),
@@ -63,3 +64,17 @@ export const voiceSignals = sqliteTable('voice_signals', {
   payload: text('payload').notNull(),
   createdAt: integer('created_at').notNull(),
 }, table => [index('voice_signals_recipient').on(table.toSession,table.id),index('voice_signals_expiry').on(table.createdAt)]);
+
+export const accounts = sqliteTable('accounts', {
+  id: text('id').primaryKey(),
+  playerId: text('player_id').notNull().references(() => players.id),
+  username: text('username').notNull(),
+  passwordHash: text('password_hash').notNull(),
+  recoveryHash: text('recovery_hash').notNull(),
+  createdAt: integer('created_at').notNull(),
+}, table => [uniqueIndex('accounts_username_unique').on(table.username),uniqueIndex('accounts_player_unique').on(table.playerId)]);
+export const authRateLimits = sqliteTable('auth_rate_limits', {
+  bucket: text('bucket').primaryKey(),
+  count: integer('count').notNull(),
+  expiresAt: integer('expires_at').notNull(),
+}, table => [index('auth_rate_expiry').on(table.expiresAt)]);

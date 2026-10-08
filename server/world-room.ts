@@ -3,14 +3,14 @@ import { DurableObject } from 'cloudflare:workers';
 export type WorldPlayer = {
   id:string; session_token:string; name:string; avatar:string; place_id:string;
   pos_lng:number; pos_lat:number; heading:number; driving:number; life_json:string;
-  revision:number; last_move_at:number; last_action_at:number;
+  revision:number; last_move_at:number; last_action_at:number; session_expires_at?:number;
 };
 // Escape UTF-16 code units so names and emoji stay valid HTTP header values.
 export const playerHeader=(player:WorldPlayer)=>JSON.stringify(player).replace(/[\u007f-\uffff]/g,c=>'\\u'+c.charCodeAt(0).toString(16).padStart(4,'0'));
 type Member = { player:WorldPlayer; at:number; savedAt:number; dirty:boolean; lastPacket:number; lastSync?:number; room:string };
 export function roomFor(lng:number,lat:number){return `accra:${Math.floor((lng+.36)/.02)}:${Math.floor((lat-5.43)/.02)}`}
 function life(p:WorldPlayer){try{return JSON.parse(p.life_json||'{}')}catch{return {}}}
-function compact(p:WorldPlayer):WorldPlayer{const l=life(p);return {id:p.id,session_token:p.session_token,name:p.name,avatar:p.avatar,place_id:p.place_id,pos_lng:p.pos_lng,pos_lat:p.pos_lat,heading:p.heading,driving:p.driving,revision:p.revision,last_move_at:p.last_move_at,last_action_at:p.last_action_at,life_json:JSON.stringify({arrested:!!l.arrested,health:l.health??100,vehicle:l.vehicle,drivingSince:l.drivingSince,shift:l.shift?{jobId:l.shift.jobId}:null,flight:!!l.flight,transit:!!l.transit})}}
+function compact(p:WorldPlayer):WorldPlayer{const l=life(p);return {id:p.id,session_token:p.session_token,session_expires_at:p.session_expires_at,name:p.name,avatar:p.avatar,place_id:p.place_id,pos_lng:p.pos_lng,pos_lat:p.pos_lat,heading:p.heading,driving:p.driving,revision:p.revision,last_move_at:p.last_move_at,last_action_at:p.last_action_at,life_json:JSON.stringify({arrested:!!l.arrested,health:l.health??100,vehicle:l.vehicle,drivingSince:l.drivingSince,shift:l.shift?{jobId:l.shift.jobId}:null,flight:!!l.flight,transit:!!l.transit})}}
 function publicPlayer(p:WorldPlayer){const l=life(p);return {id:p.id,name:p.name,avatar:p.avatar,placeId:p.place_id,lng:p.pos_lng,lat:p.pos_lat,heading:p.heading,driving:!!p.driving,vehicle:l.vehicle,health:l.health??100}}
 export function validMove(m:Member,input:Record<string,unknown>,now:number){
   const {lng,lat,heading}=input;
@@ -73,6 +73,7 @@ export class WorldRoom extends DurableObject<Cloudflare.Env> {
     let input:Record<string,unknown>;try{input=JSON.parse(message)}catch{ws.close(1003,'Invalid JSON');return}
     if(!input||typeof input!=='object'||Array.isArray(input))return;
     const m=ws.deserializeAttachment() as Member,now=Date.now();
+    if(m.player.session_expires_at&&m.player.session_expires_at<=now){ws.close(4003,'Session expired');return}
     if(input.type==='sync'){if(now-(m.lastSync||0)<300){ws.close(1008,'Sync rate exceeded');return}m.lastSync=now;await this.ctx.blockConcurrencyWhile(()=>this.reload(ws,m));this.send(ws,{type:'synced',seq:input.seq});if(roomFor(m.player.pos_lng,m.player.pos_lat)!==m.room.split(':instance:')[0])ws.close(4001,'Entering next district');return}
     if(now-m.lastPacket<150){this.send(ws,{type:'ack',seq:input.seq});return} m.lastPacket=now;ws.serializeAttachment(m);
     if(input.type!=='move')return;
@@ -86,7 +87,7 @@ export class WorldRoom extends DurableObject<Cloudflare.Env> {
   async webSocketError(ws:WebSocket){await this.webSocketClose(ws,1011,'Reconnect')}
   async alarm(){
     const members=this.members();
-    for(const {ws,m} of members){try{await this.save(ws,m)}catch{this.send(ws,{type:'notice',message:'Saving delayed; reconnecting if needed.'})}}
+    for(const {ws,m} of members){try{await this.save(ws,m);if(m.player.session_expires_at&&m.player.session_expires_at<=Date.now())ws.close(4003,'Session expired')}catch{this.send(ws,{type:'notice',message:'Saving delayed; reconnecting if needed.'})}}
     if(this.members().length)await this.ctx.storage.setAlarm(Date.now()+60000);
   }
 }

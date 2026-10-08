@@ -1,3 +1,4 @@
+import {loadPlayer} from './player-session';
 import {playerHeader,type WorldPlayer} from './world-room';
 import {sessionName} from './world-routing';
 export async function realtime(request:Request,env:Cloudflare.Env){
@@ -6,7 +7,7 @@ export async function realtime(request:Request,env:Cloudflare.Env){
   if(request.headers.get('Upgrade')!=='websocket')return new Response('WebSocket required',{status:426});
   const token=request.headers.get('cookie')?.match(/(?:^|;\s*)accralife_session=([a-f0-9-]{36})(?:;|$)/)?.[1];
   if(!token)return new Response('Sign in first',{status:401});
-  const player=await env.DB.prepare('SELECT * FROM players WHERE session_token=?').bind(token).first<WorldPlayer>();
+  const player=await loadPlayer<WorldPlayer>(env.DB,request);
   if(!player)return new Response('Session ended',{status:401});
   player.pos_lng??=-.1949;player.pos_lat??=5.5682;
   const room=env.WORLD_SESSIONS.get(env.WORLD_SESSIONS.idFromName(sessionName(player.id)));

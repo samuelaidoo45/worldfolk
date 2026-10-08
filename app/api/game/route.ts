@@ -1,3 +1,4 @@
+import {loadPlayer} from '../../../server/player-session';
 import {startingLife} from '../../../public/game/life-catalog.js';
 import {sessionName} from '../../../server/world-routing';
 import transit from '../../../public/game/transit-routes.json';
@@ -72,8 +73,7 @@ function view(p: Player) {
 }
 function playerPosition(p:Player):[number,number]{return p.pos_lng!==null&&p.pos_lat!==null?[p.pos_lng,p.pos_lat]:placeCoords(p.place_id)??PLACE_COORDS.home}
 async function ownPlayer(db: D1Database, request: Request) {
-  const id = cookieId(request);
-  let player=id ? await db.prepare("SELECT * FROM players WHERE session_token=? OR (id=? AND session_token IS NULL)").bind(id,id).first<Player>() : null;
+  let player=await loadPlayer<Player>(db,request);
   const room=player?sessionName(player.id):null;
   if(player?.session_token&&room&&env.WORLD_SESSIONS&&(request.method==='POST'||request.headers.has('X-World-Room'))){
     const response=await env.WORLD_SESSIONS.get(env.WORLD_SESSIONS.idFromName(room)).fetch('https://room/checkpoint',{method:'POST',body:JSON.stringify({player,persist:request.method==='POST'})});

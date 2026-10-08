@@ -1,6 +1,7 @@
+import {loadPlayer} from '../../../server/player-session';
 import {env} from 'cloudflare:workers';
 const reply=(data:unknown,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'no-store'}});
-async function player(request:Request){const token=request.headers.get('cookie')?.match(/(?:^|;\s*)accralife_session=([^;]+)/)?.[1];if(!token||!env.DB)return null;return env.DB.prepare('SELECT id,name FROM players WHERE session_token=?').bind(token).first<{id:string;name:string}>()}
+async function player(request:Request){return env.DB?loadPlayer<{id:string;name:string}>(env.DB,request):null}
 type Session={player_id:string;session_id:string;last_seen:number;last_signal:number};
 async function getVoice(request:Request){
  const p=await player(request);if(!p)return reply({error:'Sign in to use voice'},401);const db=env.DB,now=Date.now();if(!db)return reply({error:"Voice storage unavailable"},503);const own=await db.prepare('SELECT * FROM voice_sessions WHERE player_id=? AND last_seen>?').bind(p.id,now-20000).first<Session>();if(!own)return reply({error:'Join voice first'},403);
