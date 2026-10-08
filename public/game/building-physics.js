@@ -1,4 +1,4 @@
-// The polygons come from the rendered Mapbox Streets building layer.
+// The polygons come from the rendered OpenStreetMap building layer.
 // All distances below are computed in a small, local metre coordinate system.
 import {BUILDING_LAYER} from './real-buildings.js';
 const M=111320;

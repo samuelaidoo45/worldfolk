@@ -2,6 +2,18 @@
 
 Worldfolk is a multiplayer 3D life simulation beginning in Accra, Ghana. Explore the city, meet players, work, shop, travel, and build a home. The app runs on [vinext](https://github.com/cloudflare/vinext) with Cloudflare D1.
 
+## Mapping (current architecture)
+
+MapLibre renders self-hosted OpenStreetMap vector tiles for Accra. Buildings,
+road geometry, mini-map and traffic share the same source. Place search and
+walking/driving directions use local indexes; public rides use the same routing
+graph on the server. Runtime mapping does not call Mapbox or public OSM services.
+Satellite is disabled unless a separately licensed imagery source is configured.
+See [map rebuild and scaling instructions](scripts/maps/README.md) and
+[map attribution and downloadable data](public/maps/README.html).
+
+The release notes below describe earlier Mapbox versions where noted.
+
 ## Deploy to your Cloudflare account
 
 Build the app, create a D1 database in your Cloudflare account, and prepare a separate Worker configuration. The generated configuration leaves the Sites configuration intact.

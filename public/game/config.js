@@ -1,3 +1,2 @@
-// A public Mapbox access token can be placed here to make Mapbox Standard
-// the default basemap for every visitor. Keep this token limited to map reads.
-window.ACCRALIFE_CONFIG = { mapboxToken: 'REMOVED' };
+// All default map requests stay on this deployment. Optional imagery must be licensed.
+window.ACCRALIFE_CONFIG = { mapData: '/maps/accra-v1', imagery: null };

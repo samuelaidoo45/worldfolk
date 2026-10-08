@@ -1,5 +1,5 @@
 import {signalPhase} from './traffic-signals.js';
-// A lightweight moving-actor overlay on the same Mapbox map and simulation.
+// A lightweight moving-actor overlay on the same MapLibre map and simulation.
 export function createOverheadView({state}){
  const canvas=document.createElement('canvas');canvas.className='overhead-actors';canvas.setAttribute('aria-label','Live overhead view of players, pedestrians and vehicles');canvas.setAttribute('role','img');document.body.append(canvas);const ctx=canvas.getContext('2d');let width=0,height=0,lastLabel='';
  function drawActor(person,t,self=false){

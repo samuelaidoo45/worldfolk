@@ -13,9 +13,9 @@ export function potholeImpact(holes,from,to,speed){if(Math.abs(speed)<1||distanc
 export function createRoadSurface(map){
  let holes=[],last=0,impactAt=-10000,strength=0,lastHole=null;
  const source='worldfolk-potholes';map.addSource(source,{type:'geojson',data:{type:'FeatureCollection',features:[]}});
- map.addLayer({id:source+'-rim',type:'fill',source,slot:'top',minzoom:18,paint:{'fill-color':'#72716b','fill-opacity':1}});
- map.addLayer({id:source+'-edge',type:'line',source,slot:'top',minzoom:18,paint:{'line-color':'#131618','line-width':2}});
- map.addLayer({id:source+'-pit',type:'fill',source,slot:'top',minzoom:18,filter:['==',['get','inner'],true],paint:{'fill-color':'#101517','fill-opacity':1}});
+ map.addLayer({id:source+'-rim',type:'fill',source,minzoom:18,paint:{'fill-color':'#72716b','fill-opacity':1}},'worldfolk-road-labels');
+ map.addLayer({id:source+'-edge',type:'line',source,minzoom:18,paint:{'line-color':'#131618','line-width':2}},'worldfolk-road-labels');
+ map.addLayer({id:source+'-pit',type:'fill',source,minzoom:18,filter:['==',['get','inner'],true],paint:{'fill-color':'#101517','fill-opacity':1}},'worldfolk-road-labels');
  return {update(position){if(performance.now()-last<1000)return;last=performance.now();let roads;try{roads=roadFeatures(map)}catch{return}holes=roadPotholes(roads,position);const features=[];for(const h of holes)for(const inner of [false,true]){const ring=[];for(let i=0;i<12;i++){const a=i*Math.PI/6,r=h.radius*(inner?.73:1)*(1+Math.sin(i*7+h.seed)*.15);ring.push(offsetMetres(h.position,Math.cos(a)*r,Math.sin(a)*r*.72))}ring.push(ring[0]);features.push({type:'Feature',properties:{inner},geometry:{type:'Polygon',coordinates:[ring]}})}map.getSource(source).setData({type:'FeatureCollection',features})},
  hit(from,to,speed){const h=potholeImpact(holes,from,to,speed);if(!h){lastHole=null;return}if(h.id===lastHole)return;lastHole=h.id;impactAt=performance.now();strength=Math.min(.19,.035+Math.abs(speed)*.004)},
  sample(){const age=(performance.now()-impactAt)/1000;if(age>1)return {bounce:0,roll:0,pitch:0};const decay=Math.exp(-age*5),bounce=Math.sin(age*32)*strength*decay;return {bounce,roll:Math.sin(age*25)*strength*.35*decay,pitch:bounce*5}},get holes(){return holes}};

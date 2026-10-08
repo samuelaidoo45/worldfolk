@@ -1,6 +1,6 @@
 import * as THREE from './three.module.js';
 import {createActor} from './world3d.js';
-// Transparent cabin: the live Mapbox scene remains visible through the windows.
+// Transparent cabin: the live MapLibre scene remains visible through the windows.
 export function createRideCabin(parent){
  const canvas=document.createElement('canvas');canvas.className='ride-cabin-scene';canvas.setAttribute('aria-hidden','true');parent.prepend(canvas);
  const renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));renderer.setClearColor(0,0);renderer.outputColorSpace=THREE.SRGBColorSpace;

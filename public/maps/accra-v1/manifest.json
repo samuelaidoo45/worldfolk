@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "bounds": [
+    -0.4,
+    5.4,
+    0.12,
+    5.83
+  ],
+  "minzoom": 10,
+  "maxzoom": 15,
+  "tiles": 2614,
+  "bytes": 89080878,
+  "source": "https://download.geofabrik.de/africa/ghana-latest.osm.pbf",
+  "attribution": "\u00a9 OpenStreetMap contributors \u00b7 ODbL 1.0",
+  "generatedAt": "2026-10-08T12:12:15.241Z",
+  "layers": {
+    "building": 664218,
+    "road": 99969,
+    "landuse": 2744,
+    "water": 682,
+    "waterway": 2638,
+    "poi": 11587,
+    "place": 451
+  },
+  "sourceSha256": "0b4f9f78d1fa2d1f8bb7c1772c7bfc139a00a0cf9c92bed15f7b367346052a1c"
+}

@@ -14,7 +14,7 @@ export function createCityLife(map,physics,onHit=()=>{},getSignals=()=>[]){
     const seen=new Set(),out=[];
     for(const f of features){if(/rail|ferry/.test(f.properties?.class||''))continue;const lines=f.geometry?.type==='LineString'?[f.geometry.coordinates]:f.geometry?.type==='MultiLineString'?f.geometry.coordinates:[];
       for(const line of lines){if(line.length<2)continue;let best=null;for(let i=0;i<line.length-1;i++){const p=projectOnSegment(position,line[i],line[i+1]);if(!best||p.distance<best.distance)best={...p,index:i}}
-        if(!best||best.distance>170)continue;const key=`${line[0].join(',')}:${line.at(-1).join(',')}`;if(seen.has(key))continue;seen.add(key);out.push({line,best,roadClass:f.properties?.class,highway:isHighway(f.properties?.class),width:roadWidth(f.properties?.class),layer:Number(f.properties?.layer)||0,oneway:f.properties?.oneway==='-1'?-1:[true,1,'true','yes','1'].includes(f.properties?.oneway)?1:0,walkOnly:/path|pedestrian|steps/.test(f.properties?.class||'')});
+        if(!best||best.distance>170)continue;const key=`${line[0].join(',')}:${line.at(-1).join(',')}`;if(seen.has(key))continue;seen.add(key);out.push({line,best,roadClass:f.properties?.class,highway:isHighway(f.properties?.class),width:roadWidth(f.properties?.class),layer:Number(f.properties?.layer)||0,oneway:Number(f.properties?.oneway)===-1?-1:[true,1,'true','yes','1'].includes(f.properties?.oneway)?1:0,walkOnly:/path|pedestrian|steps/.test(f.properties?.class||'')});
       }
     }out.sort((a,b)=>a.best.distance-b.best.distance);if(roadCells.size>64)roadCells.clear();roadCells.set(key,{at:now,roads:out});return out;
   }
