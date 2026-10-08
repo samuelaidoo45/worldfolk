@@ -1,3 +1,4 @@
+import {canUseVehicle} from './work-catalog.js';
 import {playerLabel} from './player-labels.js';
 import {signalPhase} from './traffic-signals.js';
 // A lightweight moving-actor overlay on the same MapLibre map and simulation.
@@ -15,7 +16,7 @@ export function createOverheadView({state}){
   for(const signal of state.scenery?.items||[]){if(signal.kind!=='signal')continue;const p=state.map.project(signal.position);ctx.beginPath();ctx.arc(p.x,p.y,3.5,0,Math.PI*2);ctx.fillStyle={red:'#e8493c',amber:'#efb532',green:'#28a86b'}[signalPhase(signal)];ctx.fill();ctx.strokeStyle='#ffffff';ctx.lineWidth=1;ctx.stroke()}
   for(const npc of state.cityLife?.actors||[])drawActor(npc,t);
   for(const player of state.players){if(player.id!==state.self?.id)drawActor({position:[player.lng,player.lat],heading:player.heading,driving:player.driving,vehicle:player.vehicle,moving:true,identity:player},t)}
-  if(state.carPosition&&state.mode==='walk'&&state.self?.life?.vehicles?.includes(state.self.life.vehicle))drawActor({position:state.carPosition,heading:state.carHeading,driving:true,vehicle:state.self.life.vehicle},t);
+  if(state.carPosition&&state.mode==='walk'&&canUseVehicle(state.self?.life))drawActor({position:state.carPosition,heading:state.carHeading,driving:true,vehicle:state.self.life.vehicle},t);
   drawActor({position:state.position,heading:state.heading,driving:['drive','transit','flight'].includes(state.mode),vehicle:state.mode==='transit'?'bus':state.self?.life?.vehicle,moving:state.movementSpeed>.08,running:state.running||state.keys.has('ShiftLeft')||state.keys.has('ShiftRight')},t,true);
  }
  return {update};

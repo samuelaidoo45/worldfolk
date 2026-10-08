@@ -191,3 +191,9 @@ body[data-connection="Active in another tab"] .connection-status,body[data-conne
 .ride-skip{min-width:0;min-height:48px;border:1px solid #f1cf86;border-radius:0 14px 14px 0;background:#f1cf86;color:#17372e;font:700 11px inherit;padding:6px;cursor:pointer;touch-action:manipulation}
 .ride-skip:disabled{opacity:.6;cursor:wait}.ride-skip:focus-visible{outline:3px solid white;outline-offset:2px}
 .ride-progress{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.work-category{width:100%;min-height:44px;padding:10px;border:1px solid #b7cebf;border-radius:10px;background:#fff;color:#193b30;font:inherit;margin:10px 0}
+.work-choices{display:grid;gap:8px;margin:10px 0 18px}.work-choices button{min-height:48px;padding:12px;text-align:left;border:1px solid #a9c8b7;border-radius:12px;background:#e7f2eb;color:#193b30;font:600 13px inherit}.work-choices button:disabled{opacity:.5}.work-choices button:focus-visible{outline:3px solid #d5a631;outline-offset:2px}
+.roam-mode .life-shift.work-assignment{padding:0;background:none;border:0;box-shadow:none;width:auto;max-width:180px;bottom:calc(var(--hud-bottom) + 64px);left:50%;transform:translateX(-50%)}
+.work-assignment button{min-height:44px;padding:8px 14px;border:1px solid #b9dcc8;border-radius:12px;background:#18483ce8;color:#fff;font:700 12px inherit}
+body.touch-device.roam-mode .life-shift.work-assignment{top:calc(var(--safe-top) + 100px);bottom:auto;left:var(--safe-left);transform:none;max-width:148px}
+body.touch-device.roam-mode.mobile-paused .life-shift.work-assignment{visibility:hidden}

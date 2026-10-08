@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
-import {startingLife,rideFare} from '../public/game/life-catalog.js';
+import {JOBS,startingLife,rideFare} from '../public/game/life-catalog.js';
 const base='http://127.0.0.1:3000';
 async function call(cookie,body){const r=await fetch(base+'/api/game',{method:body?'POST':'GET',headers:{...(cookie?{cookie}:{}),...(body?{'content-type':'application/json',origin:base}:{})},body:body?JSON.stringify(body):undefined});return {status:r.status,body:await r.json(),cookie:r.headers.get('set-cookie')?.split(';')[0]}}
 function fixture(id,values){const script=`import sqlite3,json,sys\nfrom pathlib import Path\np=next(x for x in Path('.wrangler/state/v3/d1/miniflare-D1DatabaseObject').glob('*.sqlite') if x.name!='metadata.sqlite')\nc=sqlite3.connect(p)\nv=json.loads(sys.argv[2])\nc.execute('UPDATE players SET '+','.join(k+'=?' for k in v)+' WHERE id=?',list(v.values())+[sys.argv[1]])\nc.commit()`;const r=spawnSync('python3',['-c',script,id,JSON.stringify(values)],{encoding:'utf8'});assert.equal(r.status,0,r.stderr)}
@@ -25,11 +25,15 @@ test('pickup is persisted, charged once, shares tro-tros, gates arrival and prot
  assert.equal((await call(cookie,{type:'ride-progress',progress:1})).status,400,'cannot jump to the end at pickup');life.transit.progressAt=Date.now()-3600000;life.transit.endsAt=Date.now()+3600000;fixture(p.id,{life_json:JSON.stringify(life)});assert.equal((await call(cookie,{type:'ride-progress',progress:1})).status,200);
  const arrivals=await Promise.all([call(cookie,{type:'bus-arrive'}),call(cookie,{type:'bus-arrive'})]);assert.equal(arrivals.filter(r=>r.status===200).length,1);r=await call(cookie);assert.equal(r.body.self.life.transit,null);assert.equal(r.body.self.money,200-trip.fare);assert.equal(r.body.self.lng,trip.coordinates.at(-1)[0]);
  fixture(p.id,{pos_lng:-.1787,pos_lat:5.6093,money:0,last_action_at:0});assert.equal((await call(cookie,{...request,kind:'taxi'})).status,400);
- for(const [jobId,lng,lat] of [['coder',-.1787,5.6093],['teacher',-.1874,5.651]]){fixture(p.id,{pos_lng:lng,pos_lat:lat,energy:100});assert.equal((await call(cookie,{type:'job-apply',jobId})).status,200);r=await call(cookie,{type:'shift-start'});assert.equal(r.status,200);assert.equal((await call(cookie,{type:'shift-complete'})).status,400);r.body.self.life.shift.endsAt=Date.now()-1;fixture(p.id,{life_json:JSON.stringify(r.body.self.life)});assert.equal((await call(cookie,{type:'shift-complete'})).status,200)}
- fixture(p.id,{pos_lng:-.1787,pos_lat:5.6093,energy:100,last_move_at:0});await call(cookie,{type:'job-apply',jobId:'driver'});assert.equal((await call(cookie,{type:'shift-start'})).status,400,'taxi work requires a car');
- const driverLife=(await call(cookie)).body.self.life;driverLife.vehicles=['car'];driverLife.vehicle='car';fixture(p.id,{life_json:JSON.stringify(driverLife)});
- assert.equal((await call(cookie,{type:'shift-start'})).status,200);assert.equal((await call(cookie,{type:'vehicle',enter:true,lng:-.1787,lat:5.6093})).status,200);
- const driving=(await call(cookie)).body.self.life;assert.equal(driving.shift.drove,true);driving.shift.endsAt=Date.now()-1;fixture(p.id,{pos_lng:-.1819,pos_lat:5.5598,driving:0,life_json:JSON.stringify(driving)});assert.equal((await call(cookie,{type:'shift-complete'})).status,200);
+ for(const [jobId,lng,lat] of [['coder',-.1787,5.6093],['teacher',-.1874,5.651],['driver',-.1787,5.6093]]){
+  fixture(p.id,{pos_lng:lng,pos_lat:lat,energy:100,driving:0});assert.equal((await call(cookie,{type:'job-apply',jobId})).status,200);
+  r=await call(cookie,{type:'shift-start'});assert.equal(r.status,200);assert.equal((await call(cookie,{type:'shift-complete'})).status,400);
+  let work=r.body.self.life;const job=JOBS.find(j=>j.id===jobId);
+  if(jobId==='driver'){assert.equal((await call(cookie,{type:'vehicle',enter:true,lng,lat})).status,200,'work car is provided');assert.equal((await call(cookie,{type:'vehicle',enter:false,lng,lat})).status,200);work=(await call(cookie)).body.self.life;assert.equal(work.shift.drove,true)}
+  for(let step=0;step<job.steps.length;step++){work.shift.endsAt=Date.now()-1;work.shift.nextTaskAt=Date.now()-1;fixture(p.id,{pos_lng:jobId==='driver'&&step>0?-.1819:lng,pos_lat:jobId==='driver'&&step>0?5.5598:lat,life_json:JSON.stringify(work)});const task=await call(cookie,{type:'work-task',shiftId:work.shift.id,step,choice:job.steps[step].answer});assert.equal(task.status,200);work=task.body.self.life}
+  assert.equal((await call(cookie,{type:'shift-complete'})).status,200);
+ }
+
 
 });
 

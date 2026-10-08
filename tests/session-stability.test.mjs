@@ -45,3 +45,8 @@ test('facade textures are shared only while buildings are resident and released 
  const a=createBuildingFacade(data),b=createBuildingFacade(data);const material=a.group.children.find(m=>m.material?.userData.refs)?.material;assert.ok(material);assert.equal(material.userData.refs,2);let freed=0;material.map.addEventListener('dispose',()=>freed++);disposeScene(a.group);assert.equal(freed,0);disposeScene(b.group);assert.equal(freed,1);const c=createBuildingFacade(data);assert.notEqual(c.group.children.find(m=>m.material?.userData.refs)?.material,material);disposeScene(c.group);
  }finally{globalThis.document=old}
 });
+test('task-based workers can move between assignments and still cannot teleport',()=>{
+ const f=fixture();f.m.player.life_json=JSON.stringify({health:100,shift:{version:2,jobId:'police'}});
+ assert.equal(validMove(f.m,{lng:-.17993,lat:5.56,heading:0},2300),true);
+ assert.equal(validMove(f.m,{lng:-.1,lat:5.56,heading:0},2300),false);
+});

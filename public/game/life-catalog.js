@@ -1,3 +1,4 @@
+import {EXTRA_JOBS,prepareJobs} from './work-catalog.js';
 import {HOME_LOCATIONS} from './home-locations.js';
 // Shared game catalogue: virtual prices and facilities, not real-world offers.
 export const HOMES=[
@@ -22,7 +23,7 @@ export const GOODS=[
  {id:'motorcycle',name:'City motorcycle',icon:'🏍️',price:550,shops:['mall','airport'],kind:'vehicle'},
  {id:'car',name:'City compact car',icon:'🚗',price:1500,shops:['mall','airport'],kind:'vehicle'}
 ];
-export const JOBS=[
+const BASE_JOBS=[
 {"id": "restaurant-crew", "name": "Restaurant crew", "place": "g_-1679_55876", "wage": 95, "seconds": 55, "energy": 12, "task": "Serve visitors and complete your shift at Home Touch"},{"id": "school-assistant", "name": "School assistant", "place": "g_-1596_55885", "wage": 135, "seconds": 70, "energy": 12, "task": "Serve visitors and complete your shift at Garrison Basic School"},{"id": "mall-stock", "name": "Mall stock assistant", "place": "g_-1762_56031", "wage": 110, "seconds": 60, "energy": 12, "task": "Serve visitors and complete your shift at Marina Mall"},{"id": "bank-clerk", "name": "Bank service assistant", "place": "g_-1812_55643", "wage": 155, "seconds": 80, "energy": 12, "task": "Serve visitors and complete your shift at Absa"},{"id": "stadium-steward", "name": "Stadium steward", "place": "g_-1735_56163", "wage": 100, "seconds": 55, "energy": 12, "task": "Serve visitors and complete your shift at Polo Club"},{"id": "market-vendor", "name": "Market vendor", "place": "g_-2564_56081", "wage": 85, "seconds": 50, "energy": 12, "task": "Serve visitors and complete your shift at Chantan New Market"},
  {id:'trader',name:'Market assistant',place:'makola',wage:75,seconds:45,energy:10,task:'Sort produce and serve customers'},
  {id:'cafe',name:'Café crew',place:'osu',wage:90,seconds:55,energy:12,task:'Prepare orders and serve the counter'},
@@ -32,6 +33,7 @@ export const JOBS=[
  {id:'coder',name:'Software developer',place:'airport',wage:185,seconds:90,energy:16,task:'Build and test a client website'},
  {id:'office',name:'Office assistant',place:'airport',wage:130,seconds:75,energy:15,task:'Complete the office service desk shift'}
 ];
+export const JOBS=prepareJobs([...BASE_JOBS,...EXTRA_JOBS]);
 export const TERMINALS=[
  {id:'airport',name:'Airport City game terminal',lng:-.178656,lat:5.60951},
  {id:'labadi',name:'La game air terminal',lng:-.140846,lat:5.561955},

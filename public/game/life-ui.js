@@ -1,9 +1,10 @@
+import {EXPERIENCES,workStep,workReady,jobPay} from './work-catalog.js';
 import {sellsAtVenue} from './venue-shopping.js';
 import {STREET_SERVICES} from './street-services.js';
 import {HOMES,GOODS,JOBS,TERMINALS,propertyId} from './life-catalog.js';
 import {distanceMetres} from './motion.js';
 export function createLifeUI({state,action,navigate,enterHome,places}){
- let open=false,tab='bag',signature='',busy=false,lastPass='';
+ let open=false,tab='bag',signature='',busy=false,lastPass='',workCategory='All';
  const launch=document.createElement('button');launch.className='life-launch';launch.textContent='I · My life';document.body.append(launch);
  const panel=document.createElement('section');panel.className='life-drawer hidden';panel.setAttribute('aria-label','My virtual life');panel.innerHTML='<header><div><small>YOUR LIFE IN ACCRA</small><h2>Make yourself at home</h2></div><button aria-label="Close my life">×</button></header><div class="life-wallet"></div><nav aria-label="Life sections"></nav><div class="life-content"></div><p class="life-note">All prices and ownership are part of the game. Progress saves automatically.</p>';document.body.append(panel);
  const content=panel.querySelector('.life-content'),wallet=panel.querySelector('.life-wallet');
@@ -40,9 +41,25 @@ export function createLifeUI({state,action,navigate,enterHome,places}){
   for(const item of GOODS.filter(g=>indoor?sellsAtVenue(g,indoor)||g.shops.some(id=>nearby.some(q=>q.id===id)):!nearby.length||g.shops.some(id=>nearby.some(q=>q.id===id)))){const available=!!indoor&&sellsAtVenue(item,indoor)||item.shops.some(id=>nearby.some(q=>q.id===id)),owned=item.kind==='vehicle'&&life.vehicles.includes(item.id);const b=row(`${item.icon} ${item.name}`,`₵${item.price} · ${item.shops.map(id=>place(id)?.name).join(' / ')}`);button(b,owned?'Owned':available?'Buy':'Visit shop to buy',()=>transact({type:'buy',itemId:item.id}),owned||!available||p.driving||p.money<item.price)}
  }
  if(tab==='work'){
-  heading('Earn your living','Apply at a workplace, complete a shift, and collect your wages. Leaving work requires cancelling the shift.');
-  if(life.shift){const job=JOBS.find(j=>j.id===life.shift.jobId),b=row(job.name,job.task),timer=document.createElement('p');timer.className='shift-timer';b.before(timer);timer.dataset.ends=life.shift.endsAt;button(b,Date.now()>=life.shift.endsAt?'Collect wages':'Working…',()=>transact({type:'shift-complete'}),Date.now()<life.shift.endsAt);button(b,'Cancel shift',()=>transact({type:'shift-cancel'}));}
-  for(const job of JOBS){const q=place(job.place),hired=life.job===job.id,b=row(job.name,`${q.name} · ₵${job.wage} per ${job.seconds}s shift · ${job.task}`);if(!near(q)){button(b,'Walk / drive to work',()=>route(q));button(b,'Ride to work',()=>{close();navigate(q);state.transit?.show()})}else button(b,hired?'Start shift':'Apply for job',async()=>{const result=await transact({type:hired?'shift-start':'job-apply',jobId:job.id});if(result&&hired)close()},!!life.shift||p.driving)}
+  heading('Earn your living','Choose a profession, travel to work and complete its tasks. Driving shifts include a work vehicle. Five completed shifts increase your pay; earnings buy goods, homes, services and experiences.');
+  if(life.shift){
+   const shift=life.shift,job=JOBS.find(j=>j.id===shift.jobId),task=shift.version===2?workStep(job,shift):null,ready=workReady(job,shift),b=row(job.name,`${job.task} · Pay ₵${jobPay(job,life.career)}`),timer=document.createElement('p');timer.className='shift-timer';b.before(timer);
+   if(task){const q=place(task.place);heading(`Task ${(shift.step||0)+1} / ${job.steps.length} · ${task.label}`,`${q?.name||task.place} · ${task.prompt}`);
+    const choices=document.createElement('div');choices.className='work-choices';content.append(choices);
+    if(q&&!near(q))button(choices,'Route to task',()=>route(q));
+    const order=task.choices.map((label,choice)=>({label,choice}));if((parseInt(shift.id?.slice(0,2)||'00',16)+(shift.step||0))%2)order.reverse();
+    for(const {label,choice} of order)button(choices,label,()=>transact({type:'work-task',shiftId:shift.id,step:shift.step,choice}),!q||!near(q)||p.driving||Date.now()<(shift.nextTaskAt||0));
+    if(job.vehicle)heading('Work vehicle',`A ${job.vehicle==='bus'?'tro-tro':job.vehicle} is provided for this shift. Close this panel, complete pickup, drive to the next stop, park and open Work to finish each task.`);
+   }
+   button(b,'Collect wages',()=>transact({type:'shift-complete'}),!ready||p.driving);button(b,'Cancel shift',()=>transact({type:'shift-cancel'}),p.driving);
+   return;
+  }
+  const filter=document.createElement('select');filter.setAttribute('aria-label','Filter professions');filter.className='work-category';for(const category of ['All',...new Set(JOBS.map(j=>j.category))]){const o=document.createElement('option');o.value=category;o.textContent=category;filter.append(o)}filter.value=workCategory;filter.onchange=()=>{workCategory=filter.value;render()};content.append(filter);
+  for(const job of JOBS.filter(j=>workCategory==='All'||j.category===workCategory)){
+   const q=place(job.place);if(!q)continue;const hired=life.job===job.id,record=life.career?.[job.id],b=row(job.name,`${q.name} · ₵${jobPay(job,life.career)} / shift · ${job.steps.length} tasks · about ${job.seconds}s plus travel${job.vehicle?' · work vehicle included':''}${record?` · ${record.shifts} shifts, ₵${record.earned} earned`:''}`);
+   if(!near(q)){button(b,'Set route to work',()=>route(q));button(b,'Ride to work',()=>{close();navigate(q);state.transit?.show()})}
+   else button(b,hired?'Start shift':'Apply for job',async()=>{const result=await transact({type:hired?'shift-start':'job-apply',jobId:job.id});if(result&&hired)close()},p.driving||p.energy<job.energy+5);
+  }
  }
  if(tab==='homes'){
   heading('Your private homes','Your starter apartment is assigned automatically. Owners can issue a one-guest invitation pass or revoke all passes.');
@@ -52,7 +69,10 @@ export function createLifeUI({state,action,navigate,enterHome,places}){
   heading('Homes for sale','Visit the address to buy. Each purchase is your own private residence.');for(const h of HOMES.filter(h=>h.price&&!life.properties.includes(h.id))){const b=row(h.name,`₵${h.price.toLocaleString()} · ${h.area}`);button(b,'View address',()=>route({...h,id:`estate_${h.id}`,emoji:'🏠'}));button(b,'Buy home',()=>transact({type:'property-buy',homeId:h.id}),!near(h)||p.money<h.price||p.driving)}
   heading('Visit a neighbour','Private residences require their owner’s pass.');for(const h of state.residences.filter(h=>h.ownerId!==p.id).slice(0,20)){const b=row(h.name,h.area+' · pass required');button(b,'Set route',()=>route({...h,type:'Private home',emoji:'🔐',activities:['sleep','cook','relax']}));button(b,'Enter with pass',()=>{close();enterHome({...h,type:'Private home',emoji:'🔐',activities:['sleep','cook','relax']})},!near(h)||p.driving)}
  }
- if(tab==='leisure'){heading('Take a break','Visit the beach, enjoy nightlife, explore art and parks, or meet other players. Activities are available when you arrive.');for(const id of ['labadi','osu','arts','nkrumah','theatre','jamestown','dubois']){const q=place(id),b=row(q.name,q.description);button(b,'Walk / drive',()=>route(q));button(b,'Get a ride',()=>{close();navigate(q);state.transit?.show()})}}
+ if(tab==='leisure'){
+  heading('Services & experiences','Spend your earned game cedis at a venue. Benefits apply immediately and progress is saved.');
+  for(const experience of EXPERIENCES){const q=place(experience.place);if(!q)continue;const b=row(experience.name,`₵${experience.price} · ${q.name} · ${experience.description}`);if(near(q))button(b,'Buy experience',()=>transact({type:'experience-buy',experienceId:experience.id}),p.driving||!!life.shift||p.money<experience.price);else{button(b,'Set route',()=>route(q));button(b,'Get a ride',()=>{close();navigate(q);state.transit?.show()})}}
+ }
  if(tab==='transport'){const bus=row('🚐 Tro-tro or taxi','Pickup at your current location · choose any listed destination');button(bus,'Request pickup',()=>{close();state.transit?.show()});
   heading('Your garage','Vehicles depend on your starting background. Buy a car or motorcycle in the city, or request public transport.');for(const id of life.vehicles){const b=row(id==='motorcycle'?'🏍️ City motorcycle':'🚗 City compact car',life.vehicle===id?'Selected vehicle':'Owned');button(b,life.vehicle===id?'Selected':'Use vehicle',()=>transact({type:'vehicle-select',vehicle:id}),p.driving||life.vehicle===id||!state.nearCar)}
   heading('✈ City air shuttle','Fictional game terminals connect Airport City, La and Legon. Tickets cost ₵65; flights take 60 seconds and continue after reconnecting.');
@@ -60,6 +80,7 @@ export function createLifeUI({state,action,navigate,enterHome,places}){
  }
  }
  function sync(){launch.classList.toggle('hidden',!state.self);const s=JSON.stringify([state.self?.life,state.self?.money,state.self?.driving,state.mode,state.residences?.length]);if(signature!==s){signature=s;render()}}
- let lastReady=false;function tick(){if(!open)return;const shift=state.self?.life?.shift,ready=!!shift&&Date.now()>=shift.endsAt;if(ready!==lastReady){lastReady=ready;render()}const timer=panel.querySelector('.shift-timer');if(timer)timer.textContent=ready?'Shift finished. Collect your wages.':`${Math.max(0,Math.ceil((shift.endsAt-Date.now())/1000))} seconds remaining`}
+ let lastReady='';function tick(){if(!open)return;const shift=state.self?.life?.shift,job=JOBS.find(j=>j.id===shift?.jobId),task=shift?.version===2?workStep(job,shift):null,ready=!!job&&workReady(job,shift),stamp=`${ready}:${!!task&&Date.now()>=(shift.nextTaskAt||0)}`;if(stamp!==lastReady){lastReady=stamp;render()}const timer=panel.querySelector('.shift-timer');if(timer)timer.textContent=ready?'Assignment finished. Park and collect your wages.':task?Date.now()>=(shift.nextTaskAt||0)?'Task ready · choose the correct action at the task location.':`Preparing task · ${Math.max(0,Math.ceil((shift.nextTaskAt-Date.now())/1000))}s remaining`:`${Math.max(0,Math.ceil((shift.endsAt-Date.now())/1000))} seconds remaining`}
+
  return {show,close,sync,tick,get isOpen(){return open}};
 }
