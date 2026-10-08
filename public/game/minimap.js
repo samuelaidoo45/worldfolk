@@ -1,3 +1,4 @@
+import {roadFeatures} from './road-cache.js';
 // Reuses loaded street geometry; no second Mapbox instance or tile requests.
 export function createMiniMap({state,places}){
  const root=document.createElement('section');root.className='game-minimap';root.setAttribute('aria-label','Mini-map');
@@ -9,7 +10,7 @@ export function createMiniMap({state,places}){
  function update(now){
   root.hidden=!state.roam||state.mode==='indoor'||!!state.chatOpen||!!state.navigation?.isOpen||!!state.lifeUI?.isOpen;
   if(root.hidden||!enabled||!state.position||now-last<200)return;last=now;
-  if(now-lastRoads>2000){lastRoads=now;try{roads=state.map.querySourceFeatures('accralife-streets',{sourceLayer:'road'}).flatMap(f=>f.geometry.type==='LineString'?[f.geometry.coordinates]:f.geometry.type==='MultiLineString'?f.geometry.coordinates:[])}catch{roads=[]}}
+  if(now-lastRoads>2000){lastRoads=now;try{roads=roadFeatures(state.map).flatMap(f=>f.geometry.type==='LineString'?[f.geometry.coordinates]:f.geometry.type==='MultiLineString'?f.geometry.coordinates:[])}catch{roads=[]}}
   const w=440,h=300,scale=.55,p=state.position,project=c=>[w/2+(c[0]-p[0])*111320*Math.cos(p[1]*Math.PI/180)*scale,h/2-(c[1]-p[1])*111320*scale];
   ctx.fillStyle='#e1e9de';ctx.fillRect(0,0,w,h);
   function line(coords,color,width){ctx.beginPath();coords.forEach((c,i)=>{const [x,y]=project(c);i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.strokeStyle=color;ctx.lineWidth=width;ctx.stroke()}

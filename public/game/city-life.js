@@ -1,3 +1,4 @@
+import {roadFeatures} from './road-cache.js';
 import {trafficSpeed,roadContinuation,angleDifference,vehiclesOverlap,recoverTraffic} from './traffic-routing.js';
 import {roadWidth,isHighway,sweptHit,pedestrianDamage} from './street-safety.js';
 import {offsetMetres,distanceMetres,bearingTo,projectOnSegment,turnToward} from './motion.js';
@@ -5,15 +6,16 @@ const names=['Ama','Kojo','Abena','Kofi','Adwoa','Yaw','Akosua','Kwame','Efua','
 const looks=['👩🏾','👨🏾','👩🏿','👨🏽','👩🏽','🧑🏾'];
 // Ambient residents are simulated locally and are never included in live-player counts.
 export function createCityLife(map,physics,onHit=()=>{}){
-  let people=[],traffic=[],lastSeed=0,serial=0;const junctions=new Map();
+  let people=[],traffic=[],lastSeed=0,serial=0;const junctions=new Map(),roadCells=new Map();
   function roads(position){
-    let features=[];try{features=map.querySourceFeatures('accralife-streets',{sourceLayer:'road'})}catch{return []}
+    const key=position.map(v=>Math.floor(v*3500)).join(','),now=performance.now(),cached=roadCells.get(key);if(cached&&now-cached.at<1000)return cached.roads;
+    let features=[];try{features=roadFeatures(map)}catch{return []}
     const seen=new Set(),out=[];
     for(const f of features){if(/rail|ferry/.test(f.properties?.class||''))continue;const lines=f.geometry?.type==='LineString'?[f.geometry.coordinates]:f.geometry?.type==='MultiLineString'?f.geometry.coordinates:[];
       for(const line of lines){if(line.length<2)continue;let best=null;for(let i=0;i<line.length-1;i++){const p=projectOnSegment(position,line[i],line[i+1]);if(!best||p.distance<best.distance)best={...p,index:i}}
         if(!best||best.distance>170)continue;const key=`${line[0].join(',')}:${line.at(-1).join(',')}`;if(seen.has(key))continue;seen.add(key);out.push({line,best,roadClass:f.properties?.class,highway:isHighway(f.properties?.class),width:roadWidth(f.properties?.class),layer:Number(f.properties?.layer)||0,oneway:f.properties?.oneway==='-1'?-1:[true,1,'true','yes','1'].includes(f.properties?.oneway)?1:0,walkOnly:/path|pedestrian|steps/.test(f.properties?.class||'')});
       }
-    }return out.sort((a,b)=>a.best.distance-b.best.distance);
+    }out.sort((a,b)=>a.best.distance-b.best.distance);if(roadCells.size>64)roadCells.clear();roadCells.set(key,{at:now,roads:out});return out;
   }
   function spawn(position,isCar,available){
     const options=available.filter(r=>isCar?!r.walkOnly:!r.highway);if(!options.length)return null;

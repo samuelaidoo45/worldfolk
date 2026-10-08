@@ -1,9 +1,10 @@
+import {batchStaticMeshes,disposeScene} from './render-utils.js';
 import {potholeImpact} from './road-surface.js';
 import {createBuildingFacade} from './building-facades.js';
 import {damp,turnToward,distanceMetres} from './motion.js';
 import * as THREE from './three.module.js';
 
-function disposeModel(group){const geometries=new Set(),materials=new Set();group.traverse(o=>{if(o.geometry)geometries.add(o.geometry);if(o.material)materials.add(o.material)});geometries.forEach(g=>g.dispose());materials.forEach(m=>{m.map?.dispose();m.dispose()})}
+const disposeModel=disposeScene;
 const DEG=Math.PI/180;
 const METERS_PER_DEGREE=111320;
 function colorForAvatar(icon){
@@ -11,28 +12,40 @@ function colorForAvatar(icon){
   return {skin:dark?0x65402f:medium?0xa87350:0x8b563b,shirt:icon.startsWith('👩')?0xe57082:icon.startsWith('👨')?0x297b9c:0x42a46e,hair:0x211b19};
 }
 export function createActor(icon){
-  const colors=colorForAvatar(icon),group=new THREE.Group();
-  const skin=new THREE.MeshLambertMaterial({color:colors.skin}),shirt=new THREE.MeshLambertMaterial({color:colors.shirt}),pants=new THREE.MeshLambertMaterial({color:0x27394c}),hair=new THREE.MeshLambertMaterial({color:colors.hair}),shoes=new THREE.MeshLambertMaterial({color:0x1a2424});
-  const mesh=(geometry,material,x,y,z)=>{const part=new THREE.Mesh(geometry,material);part.position.set(x,y,z);part.castShadow=true;group.add(part);return part};
-  mesh(new THREE.CapsuleGeometry(.29,.52,5,10),shirt,0,1.01,0);
-  mesh(new THREE.SphereGeometry(.235,16,12),skin,0,1.65,0);
-  mesh(new THREE.SphereGeometry(.245,16,8,0,Math.PI*2,0,Math.PI*.42),hair,0,1.73,0);
-  const nose=mesh(new THREE.SphereGeometry(.055,8,6),skin,0,1.61,-.225);nose.scale.set(.8,1,.9);
-  for(const sign of [-1,1]){const eye=mesh(new THREE.SphereGeometry(.018,6,6),hair,sign*.09,1.68,-.206);eye.scale.set(1,1,.4)}
-  const leftArm=new THREE.Group(),rightArm=new THREE.Group(),leftLeg=new THREE.Group(),rightLeg=new THREE.Group();
-  for(const [pivot,sign] of [[leftArm,-1],[rightArm,1]]){pivot.position.set(sign*.34,1.28,0);const sleeve=new THREE.Mesh(new THREE.CylinderGeometry(.105,.09,.32,10),shirt);sleeve.position.y=-.15;pivot.add(sleeve);const forearm=new THREE.Mesh(new THREE.CylinderGeometry(.075,.07,.35,10),skin);forearm.position.y=-.47;pivot.add(forearm);group.add(pivot)}
-  for(const [pivot,sign] of [[leftLeg,-1],[rightLeg,1]]){pivot.position.set(sign*.16,.72,0);const leg=new THREE.Mesh(new THREE.CylinderGeometry(.12,.095,.58,10),pants);leg.position.y=-.28;pivot.add(leg);const foot=new THREE.Mesh(new THREE.BoxGeometry(.2,.11,.33),shoes);foot.position.set(0,-.61,-.08);pivot.add(foot);group.add(pivot)}
-  const shadow=new THREE.Mesh(new THREE.CircleGeometry(.42,24),new THREE.MeshBasicMaterial({color:0x10251c,transparent:true,opacity:.25,depthWrite:false}));shadow.rotation.x=-Math.PI/2;shadow.position.y=.025;group.add(shadow);
-  return {group,leftArm,rightArm,leftLeg,rightLeg,outfit(id){shirt.color.setHex(id==='shirt'?0xcc993d:colors.shirt);shoes.color.setHex(id==='trainers'?0xeeeecc:0x1a2424)},animate(t,moving){const step=moving?Math.sin(t*10)*.62:0;leftLeg.rotation.x=step;rightLeg.rotation.x=-step;leftArm.rotation.x=-step*.75;rightArm.rotation.x=step*.75;group.position.y=moving?Math.abs(Math.sin(t*10))*.05:Math.sin(t*2)*.018}};
+ const colors=colorForAvatar(icon),group=new THREE.Group(),skin=new THREE.MeshStandardMaterial({color:colors.skin,roughness:.72}),shirt=new THREE.MeshStandardMaterial({color:colors.shirt,roughness:.86}),pants=new THREE.MeshStandardMaterial({color:0x26323d,roughness:.94}),hair=new THREE.MeshStandardMaterial({color:colors.hair,roughness:.98}),shoes=new THREE.MeshStandardMaterial({color:0x232525,roughness:.64});
+ const part=(parent,geo,mat,x,y,z)=>{const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.castShadow=true;parent.add(m);return m};
+ const torso=part(group,new THREE.CylinderGeometry(.215,.18,.53,12),shirt,0,1.12,0);torso.scale.z=.62;
+ part(group,new THREE.CylinderGeometry(.065,.08,.13,10),skin,0,1.45,0);
+ const head=part(group,new THREE.SphereGeometry(.15,16,12),skin,0,1.64,-.01);head.scale.set(.87,1.22,.98);
+ part(group,new THREE.SphereGeometry(.154,16,8,0,Math.PI*2,0,Math.PI*.42),hair,0,1.71,0);
+ for(const sign of [-1,1]){part(group,new THREE.SphereGeometry(.032,8,6),skin,sign*.13,1.64,0);const eye=part(group,new THREE.SphereGeometry(.012,6,5),hair,sign*.051,1.66,-.143);eye.scale.z=.35}
+ part(group,new THREE.ConeGeometry(.025,.065,8),skin,0,1.625,-.155).rotation.x=-Math.PI/2;
+ const leftArm=new THREE.Group(),rightArm=new THREE.Group(),leftLeg=new THREE.Group(),rightLeg=new THREE.Group(),elbows=[],knees=[];
+ for(const [pivot,sign] of [[leftArm,-1],[rightArm,1]]){pivot.position.set(sign*.24,1.34,0);group.add(pivot);part(pivot,new THREE.CapsuleGeometry(.072,.17,4,8),shirt,0,-.13,0);const elbow=new THREE.Group();elbow.position.y=-.3;pivot.add(elbow);elbows.push(elbow);part(elbow,new THREE.CapsuleGeometry(.055,.16,4,8),skin,0,-.13,0);const hand=part(elbow,new THREE.SphereGeometry(.064,8,6),skin,0,-.29,0);hand.scale.set(.7,1,.6)}
+ for(const [pivot,sign] of [[leftLeg,-1],[rightLeg,1]]){pivot.position.set(sign*.115,.88,0);group.add(pivot);part(pivot,new THREE.CylinderGeometry(.105,.077,.4,10),pants,0,-.19,0);const knee=new THREE.Group();knee.position.y=-.4;pivot.add(knee);knees.push(knee);part(knee,new THREE.CylinderGeometry(.075,.052,.36,10),pants,0,-.18,0);const foot=part(knee,new THREE.CapsuleGeometry(.07,.13,4,8),shoes,0,-.39,-.055);foot.rotation.x=Math.PI/2;foot.scale.y=1.05}
+ for(const limb of [leftArm,rightArm,leftLeg,rightLeg])limb.traverse(o=>o.userData.dynamic=true);
+ const shadow=part(group,new THREE.CircleGeometry(.3,16),new THREE.MeshBasicMaterial({color:0x10251c,transparent:true,opacity:.22,depthWrite:false}),0,.015,0);shadow.rotation.x=-Math.PI/2;
+ batchStaticMeshes(group);return {group,leftArm,rightArm,leftLeg,rightLeg,outfit(id){shirt.color.setHex(id==='shirt'?0xcc993d:colors.shirt);shoes.color.setHex(id==='trainers'?0xeeeecc:0x232525)},animate(t,moving){const phase=t*8,step=moving?Math.sin(phase)*.5:0;leftLeg.rotation.x=step;rightLeg.rotation.x=-step;leftArm.rotation.x=-step*.7;rightArm.rotation.x=step*.7;knees[0].rotation.x=moving?Math.max(0,-Math.sin(phase))*.7:0;knees[1].rotation.x=moving?Math.max(0,Math.sin(phase))*.7:0;elbows.forEach(e=>e.rotation.x=-.15-Math.abs(step)*.3);group.position.y=moving?Math.abs(Math.sin(phase))*.018:Math.sin(t*2)*.003}};
 }
-function createCar(color=0x236f91){
-  const group=new THREE.Group(),paint=new THREE.MeshStandardMaterial({color,metalness:.42,roughness:.3}),glass=new THREE.MeshStandardMaterial({color:0x36515b,metalness:.25,roughness:.12}),rubber=new THREE.MeshStandardMaterial({color:0x1d2529,roughness:.9}),chrome=new THREE.MeshStandardMaterial({color:0xd4d8d3,metalness:.85,roughness:.23});
-  const part=(geometry,material,x,y,z)=>{const mesh=new THREE.Mesh(geometry,material);mesh.position.set(x,y,z);group.add(mesh);return mesh};
-  part(new THREE.BoxGeometry(1.75,.48,3.6),paint,0,.73,0);part(new THREE.BoxGeometry(1.54,.62,1.9),paint,0,1.22,.08);part(new THREE.BoxGeometry(1.41,.45,.04),glass,0,1.27,-.88);part(new THREE.BoxGeometry(1.41,.42,.04),glass,0,1.27,1.04);for(const sign of [-1,1]){part(new THREE.BoxGeometry(.04,.4,1.2),glass,sign*.78,1.28,.02);for(const z of [-1.17,1.17]){const wheel=part(new THREE.CylinderGeometry(.36,.36,.2,16),rubber,sign*.94,.36,z);wheel.rotation.z=Math.PI/2;const hub=part(new THREE.CylinderGeometry(.17,.17,.205,12),chrome,sign*1.03,.36,z);hub.rotation.z=Math.PI/2}part(new THREE.BoxGeometry(.31,.13,.06),new THREE.MeshBasicMaterial({color:0xffe7ac}),sign*.57,.77,-1.82);part(new THREE.BoxGeometry(.28,.13,.06),new THREE.MeshBasicMaterial({color:0xc7352e}),sign*.57,.77,1.82)}
-  part(new THREE.BoxGeometry(1.8,.14,.09),chrome,0,.53,-1.81);part(new THREE.BoxGeometry(1.8,.14,.09),chrome,0,.53,1.81);
-  const shadow=new THREE.Mesh(new THREE.PlaneGeometry(2.3,4.1),new THREE.MeshBasicMaterial({color:0x071413,transparent:true,opacity:.25,depthWrite:false}));shadow.rotation.x=-Math.PI/2;shadow.position.y=.015;group.add(shadow);
-  return {group};
+export function createCar(color=0x236f91){
+ const group=new THREE.Group(),paint=new THREE.MeshStandardMaterial({color,metalness:.65,roughness:.28}),glass=new THREE.MeshStandardMaterial({color:0x304b58,metalness:.65,roughness:.14}),rubber=new THREE.MeshStandardMaterial({color:0x14191b,roughness:.93}),chrome=new THREE.MeshStandardMaterial({color:0xadb9be,metalness:.8,roughness:.25}),wheels=[];
+ const part=(geo,mat,x,y,z)=>{const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.castShadow=true;group.add(m);return m};
+ const profile=(points,width,mat)=>{const shape=new THREE.Shape(points.map(([z,y])=>new THREE.Vector2(z,y)));const geo=new THREE.ExtrudeGeometry(shape,{depth:width,bevelEnabled:true,bevelSize:.045,bevelThickness:.035,bevelSegments:2,steps:1});const mesh=part(geo,mat,width/2,0,0);mesh.rotation.y=-Math.PI/2;return mesh};
+ profile([[-1.74,.49],[-1.8,.7],[-1.42,.89],[-.82,.96],[.95,.95],[1.76,.78],[1.8,.49]],1.66,paint);
+ profile([[-.98,.91],[-.53,1.46],[.5,1.46],[1.07,.91]],1.38,glass);
+ part(new THREE.BoxGeometry(1.4,.065,1.12),paint,0,1.48,-.01);
+ for(const sign of [-1,1]){
+  part(new THREE.BoxGeometry(.045,.54,.055),paint,sign*.711,1.18,.05);part(new THREE.BoxGeometry(.04,.065,1.5),chrome,sign*.727,.95,.05);
+  part(new THREE.BoxGeometry(.045,.42,.025),rubber,sign*.856,.68,.23);part(new THREE.BoxGeometry(.05,.025,.17),chrome,sign*.875,.83,.35);part(new THREE.BoxGeometry(.17,.12,.23),paint,sign*.94,1.07,-.7);
+  for(const z of [-1.17,1.17]){const wheel=part(new THREE.CylinderGeometry(.34,.34,.22,20),rubber,sign*.92,.34,z);wheel.rotation.z=Math.PI/2;wheels.push(wheel);const hub=part(new THREE.CylinderGeometry(.23,.23,.235,12),chrome,sign*.93,.34,z);hub.rotation.z=Math.PI/2;const center=part(new THREE.CylinderGeometry(.1,.1,.24,10),rubber,sign*.94,.34,z);center.rotation.z=Math.PI/2;}
+  part(new THREE.BoxGeometry(.42,.13,.045),new THREE.MeshStandardMaterial({color:0xe4f2ff,emissive:0x9cbed7,emissiveIntensity:.35}),sign*.59,.72,-1.81);part(new THREE.BoxGeometry(.37,.12,.045),new THREE.MeshStandardMaterial({color:0xac2222,emissive:0x770800,emissiveIntensity:.3}),sign*.62,.74,1.81);
+ }
+ part(new THREE.BoxGeometry(.86,.2,.06),rubber,0,.56,-1.81);for(const y of [.51,.56,.61])part(new THREE.BoxGeometry(.76,.014,.07),chrome,0,y,-1.82);
+ part(new THREE.BoxGeometry(.38,.105,.065),new THREE.MeshStandardMaterial({color:0xe9c743}),0,.64,1.83);
+ const shadow=part(new THREE.PlaneGeometry(2.1,3.9),new THREE.MeshBasicMaterial({color:0x071413,transparent:true,opacity:.22,depthWrite:false}),0,.015,0);shadow.rotation.x=-Math.PI/2;
+ batchStaticMeshes(group);return {group};
 }
+
 function createMotorcycle(){
   const group=new THREE.Group(),paint=new THREE.MeshStandardMaterial({color:0xd8ad3c,metalness:.4,roughness:.35}),dark=new THREE.MeshStandardMaterial({color:0x253336}),chrome=new THREE.MeshStandardMaterial({color:0xaabbbc,metalness:.8,roughness:.25});
   const part=(geo,mat,x,y,z)=>{const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);group.add(m);return m};
@@ -75,6 +88,7 @@ export function createWorld3D(map,mapboxgl){
   const light=new THREE.DirectionalLight(0xffedcb,1.35);light.position.set(-8,18,10);scene.add(light);
   const own=createActor('🧑🏾');own.group.scale.setScalar(1);scene.add(own.group);
   let parkedCar=createCar(0xc34842);scene.add(parkedCar.group);const aircraft=createAircraft();scene.add(aircraft.group);aircraft.group.visible=false;let flying=false,altitude=0,vehicleKind='car';const architectureItems=new Map();let architectureKey="";const sceneryItems=new Map();let scenerySource=null;const others=new Map(),ambientActors=new Map(),beacons=[],doors=[];
+  let beaconKey='',architectureSource=null,pendingArchitecture=[];
   let frameTime=performance.now(),roadBounce=0,roadRoll=0,roadHoles=[];
   let renderer=null,enabled=false,driving=false,cabinView=false,position=[-0.1949,5.5682],carPosition=null,carHeading=0,heading=0,moving=false,ownsVehicle=true,actionUntil=0;
   const layer={id:'accralife-3d-people',type:'custom',renderingMode:'3d',onAdd(_map,gl){renderer=new THREE.WebGLRenderer({canvas:map.getCanvas(),context:gl,antialias:true});renderer.autoClear=false;renderer.outputColorSpace=THREE.SRGBColorSpace},render(_gl,matrix){if(!renderer||!enabled)return;
@@ -100,10 +114,10 @@ export function createWorld3D(map,mapboxgl){
   }};
   map.addLayer(layer);
   return {
-    setArchitecture(items){const key=items.map(i=>i.id).join(",");if(key===architectureKey)return;architectureKey=key;const ids=new Set(items.map(i=>i.id));for(const data of items)if(!architectureItems.has(data.id)){const model=createBuildingFacade(data);architectureItems.set(data.id,{data,model});scene.add(model.group)}for(const [id,item] of architectureItems)if(!ids.has(id)){scene.remove(item.model.group);disposeModel(item.model.group);architectureItems.delete(id)}},
-    setScenery(items){if(items===scenerySource)return;scenerySource=items;const ids=new Set(items.map(i=>i.id));for(const data of items)if(!sceneryItems.has(data.id)){const model=createStreetProp(data.kind);sceneryItems.set(data.id,{data,model});scene.add(model.group)}for(const [id,item] of sceneryItems)if(!ids.has(id)){scene.remove(item.model.group);disposeModel(item.model.group);sceneryItems.delete(id)}},
+    setArchitecture(items){if(items!==architectureSource){architectureSource=items;const ids=new Set(items.map(i=>i.id));pendingArchitecture=items.filter(i=>!architectureItems.has(i.id));for(const [id,item] of architectureItems)if(!ids.has(id)){scene.remove(item.model.group);disposeModel(item.model.group);architectureItems.delete(id)}}const start=performance.now();while(pendingArchitecture.length&&performance.now()-start<2){const data=pendingArchitecture.shift(),model=createBuildingFacade(data);architectureItems.set(data.id,{data,model});scene.add(model.group)}},
+    setScenery(items){if(items===scenerySource)return;scenerySource=items;const ids=new Set(items.map(i=>i.id));for(const data of items)if(!sceneryItems.has(data.id)){const model=createStreetProp(data.kind);sceneryItems.set(data.id,{data,model});batchStaticMeshes(model.group);scene.add(model.group)}for(const [id,item] of sceneryItems)if(!ids.has(id)){scene.remove(item.model.group);disposeModel(item.model.group);sceneryItems.delete(id)}},
     setEnabled(value){enabled=value;map.triggerRepaint()},
-    setSelf(icon){scene.remove(own.group);Object.assign(own,createActor(icon));scene.add(own.group);map.triggerRepaint()},
+    setSelf(icon){scene.remove(own.group);disposeModel(own.group);Object.assign(own,createActor(icon));scene.add(own.group);map.triggerRepaint()},
     setOutfit(id){own.outfit(id);map.triggerRepaint()},
     setAircraft(value,height=0){flying=value;altitude=height;map.triggerRepaint()},
     setVehicleOwned(value){ownsVehicle=value},
@@ -119,7 +133,7 @@ export function createWorld3D(map,mapboxgl){
     setMoving(value){moving=value},
     playAction(){actionUntil=performance.now()+1300;map.triggerRepaint()},
     setPlayers(players,selfId){const visible=new Set();for(const p of players){if(p.id===selfId||!Number.isFinite(p.lng)||!Number.isFinite(p.lat))continue;visible.add(p.id);let item=others.get(p.id);if(!item||item.driving!==!!p.driving||item.vehicle!==p.vehicle){if(item){scene.remove(item.model.group);disposeModel(item.model.group)}const model=p.driving?(p.vehicle==='bus'?createBus():p.vehicle==='motorcycle'?createMotorcycle():createCar(0x40858c)):createActor(p.avatar);item={model,actor:p.driving?null:model,driving:!!p.driving,vehicle:p.vehicle,position:[p.lng,p.lat],heading:p.heading||0};others.set(p.id,item);scene.add(model.group)}item.target=[p.lng,p.lat];item.targetHeading=p.heading||0}for(const [id,item] of others){if(!visible.has(id)){scene.remove(item.model.group);disposeModel(item.model.group);others.delete(id)}}map.triggerRepaint()},
-    setBeacons(places){for(const item of beacons){scene.remove(item.beacon.group);disposeModel(item.beacon.group)}beacons.length=0;places.slice(0,8).forEach((p,index)=>{const beacon=createBeacon();beacons.push({beacon,lng:p.lng,lat:p.lat,phase:index});scene.add(beacon.group)});map.triggerRepaint()},
+    setBeacons(places){const key=places.slice(0,8).map(p=>p.id).join(',');if(key===beaconKey)return;beaconKey=key;for(const item of beacons){scene.remove(item.beacon.group);disposeModel(item.beacon.group)}beacons.length=0;places.slice(0,8).forEach((p,index)=>{const beacon=createBeacon();beacons.push({beacon,lng:p.lng,lat:p.lat,phase:index});scene.add(beacon.group)});map.triggerRepaint()},
     setDoors(entries){entries.slice(0,3).forEach((p,index)=>{let item=doors[index];if(!item){const door=createDoorway();item={door};doors[index]=item;scene.add(door.group)}Object.assign(item,{lng:p.lng,lat:p.lat,heading:p.heading||0});item.door.group.visible=true});for(let i=entries.length;i<doors.length;i++)doors[i].door.group.visible=false;map.triggerRepaint()},
     destroy(){if(map.getLayer(layer.id))map.removeLayer(layer.id);renderer?.dispose()}
   };
