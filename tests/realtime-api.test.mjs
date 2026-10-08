@@ -21,3 +21,22 @@ test('live presence, validated movement, action checkpoint, private isolation an
   const bad=connect(a.cookie,'https://other.example');const code=await new Promise(resolve=>{bad.ws.on('unexpected-response',(_req,res)=>{resolve(res.statusCode);res.resume();bad.ws.terminate()});bad.ws.on('error',()=>{})});assert.equal(code,403);
  }finally{ca.ws.close();cb.ws.close()}
 });
+
+test('routine revision sync, header-free refresh and reconnect keep the latest live location',async()=>{
+ const a=await join('Position Stability'),c=connect(a.cookie);let again;
+ try{
+  await wait(c,'welcome');await new Promise(r=>setTimeout(r,250));
+  const first=a.self.lng+.00001,last=a.self.lng+.00003;
+  c.ws.send(JSON.stringify({type:'move',lng:first,lat:a.self.lat,heading:90,seq:1}));await wait(c,'ack');
+  const saved=await fetch(base+'/api/game',{method:'POST',headers:{Cookie:a.cookie,Origin:base,'Content-Type':'application/json'},body:JSON.stringify({type:'heartbeat'})});assert.equal(saved.status,200);
+  await new Promise(r=>setTimeout(r,250));c.ws.send(JSON.stringify({type:'move',lng:last,lat:a.self.lat,heading:90,seq:2}));await wait(c,'ack');
+  // A non-position life write finishes after the checkpoint but before sync.
+  const script="import sqlite3,sys\nfrom pathlib import Path\np=next(x for x in Path('.wrangler/state/v3/d1/miniflare-D1DatabaseObject').glob('*.sqlite') if x.name!='metadata.sqlite')\nc=sqlite3.connect(p)\nc.execute('UPDATE players SET revision=revision+1 WHERE id=?',(sys.argv[1],))\nc.commit()";
+  assert.equal(spawnSync('python3',['-c',script,a.self.id]).status,0);
+  c.ws.send(JSON.stringify({type:'sync',seq:3}));await wait(c,'synced');
+  const current=await fetch(base+'/api/game',{headers:{Cookie:a.cookie}});assert.equal((await current.json()).self.lng,last,'a reload without a room header reads the live location');
+  assert.equal(c.inbox.some(x=>x.type==='correct'),false,'normal updates do not send rollback corrections');
+  const closed=new Promise(r=>c.ws.once('close',r));c.ws.close();await closed;
+  again=connect(a.cookie);const welcome=await wait(again,'welcome');assert.equal(welcome.players.find(p=>p.id===a.self.id).lng,last,'reconnect keeps the newest move');
+ }finally{c.ws.terminate();again?.ws.terminate()}
+});

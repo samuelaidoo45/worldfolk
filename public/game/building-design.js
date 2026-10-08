@@ -2,12 +2,18 @@ import {buildingStyle,stableHash} from './districts.js';
 import {interiorKind} from './venue-layouts.js';
 import {distanceMetres,projectOnSegment} from './motion.js';
 export const PAINTS=[
- {wall:'#e6c28d',trim:'#faf0d7',accent:'#387c78',roof:'#76544a'},
- {wall:'#b8cdbb',trim:'#f4eedc',accent:'#25584e',roof:'#596d66'},
- {wall:'#d9957b',trim:'#ffe7cb',accent:'#873f35',roof:'#744b3d'},
- {wall:'#c0d6e2',trim:'#f4f3e9',accent:'#315976',roof:'#5e6d79'},
- {wall:'#d4bdd3',trim:'#f9eadb',accent:'#67476b',roof:'#71636e'},
- {wall:'#e4dba9',trim:'#fff6dd',accent:'#8a7041',roof:'#82694f'}
+ {wall:'#d1c4a9',trim:'#e9e4d6',accent:'#32695e',roof:'#754536'},
+ {wall:'#b9bdae',trim:'#d9ddce',accent:'#38534c',roof:'#626d6a'},
+ {wall:'#c49d87',trim:'#e2d2b9',accent:'#774537',roof:'#905343'},
+ {wall:'#acbec3',trim:'#dfe2d9',accent:'#3d5d6a',roof:'#778182'},
+ {wall:'#d1cec0',trim:'#e8e5d8',accent:'#4f575b',roof:'#484d50'},
+ {wall:'#c5b786',trim:'#e1d8b9',accent:'#67543e',roof:'#877467'},
+ {wall:'#aaa89d',trim:'#d0cdbb',accent:'#54453c',roof:'#8e553b'},
+ {wall:'#ddd5be',trim:'#eeeadf',accent:'#466c72',roof:'#828e8c'},
+ {wall:'#b6c4bc',trim:'#d9e1d5',accent:'#456755',roof:'#555c55'},
+ {wall:'#bbad97',trim:'#e0d7c5',accent:'#5b4140',roof:'#746c63'},
+ {wall:'#cdbaa4',trim:'#e7dbca',accent:'#816d45',roof:'#9a6047'},
+ {wall:'#d7d8d0',trim:'#ecece2',accent:'#395263',roof:'#637679'}
 ];
 export function insideBuilding(point,rings){const inside=ring=>{let yes=false;for(let i=0,j=ring.length-1;i<ring.length;j=i++){const a=ring[i],b=ring[j];if((a[1]>point[1])!==(b[1]>point[1])&&point[0]<(b[0]-a[0])*(point[1]-a[1])/(b[1]-a[1])+a[0])yes=!yes}return yes};return !!rings?.length&&inside(rings[0])&&!rings.slice(1).some(inside)}
 export function buildingDistance(point,building){if(insideBuilding(point,building.rings))return 0;let d=Infinity;for(const ring of building.rings)for(let i=1;i<ring.length;i++)d=Math.min(d,projectOnSegment(point,ring[i-1],ring[i]).distance);return d}

@@ -1,3 +1,4 @@
+import {movementFailure,correctedPosition,newestPlayer} from './movement-sync.js';
 import {CITY_DESTINATIONS} from './city-destinations.js';
 import {trafficSpeed} from './traffic-routing.js';
 import {signalSpeedLimit} from './traffic-signals.js';
@@ -83,16 +84,18 @@ const AVATARS=['🧑🏾','👩🏾','👨🏾','👩🏿','👨🏿','🧑🏽'
 const NEEDS=[['hunger','Hunger','🍲'],['energy','Energy','⚡'],['fun','Fun','🎉'],['social','Social','💬'],['hygiene','Hygiene','🫧']];
 const state={view:'3d',cameraMode:'third',running:false,overheadFollowing:true,movementSpeed:0,lifeUI:null,residences:[],flightCompleting:false,walkVelocity:[0,0],steer:0,cameraPosition:null,cameraHeading:0,cityLife:null,navigation:null,nearResident:null,interactionPending:false,lastHud:0,map:null,engine:null,world3d:null,physics:null,interior:null,mode:'walk',cabinView:false,roam:false,mapModeRequested:false,position:null,carPosition:null,carHeading:0,carSpeed:0,heading:0,cameraBearing:0,keys:new Set(),joystick:{x:0,y:0},nearestPlace:null,nearDoor:null,nearCar:false,indoorPlace:null,blockedHint:false,spawnCorrectionPending:false,actionMenuOpen:false,chatOpen:false,lastFrame:0,lastCamera:0,lastMoveSend:0,lastNearbyCheck:0,lastSentPosition:null,moveInFlight:false,poiMarkers:new Map(),selectedMarker:null,playerMarkers:[],self:null,players:[],messages:[],selectedPlace:'home',panelTab:'life',placeQuery:'',searchResults:[],searchSeq:0,chatChannel:'city',avatar:AVATARS[0],loaded:false,tilted:false,chatCollapsed:false,busy:false,muted:new Set(JSON.parse(localStorage.getItem('accralife_muted')||'[]'))};
 let toastTimer, pollTimer, heartbeatTimer, searchTimer, finalMoveTimer;
-const realtime=createRealtime({onPlayers(players){state.players=players;state.world3d?.setPlayers(players,state.self?.id);renderTop();if(state.chatOpen)renderChat();if(!state.roam)renderMapMarkers()},onCorrection(p){if(!state.position)return;state.position=[p.lng,p.lat];state.lastSentPosition=[...state.position];state.world3d?.setPosition(...state.position,state.heading)},onStatus(text){document.body.dataset.connection=text;const el=document.getElementById('connectionStatus');if(el)el.textContent=text}});
+const realtime=createRealtime({onPlayers(players){state.players=players;state.world3d?.setPlayers(players,state.self?.id);renderTop();if(state.chatOpen)renderChat();if(!state.roam)renderMapMarkers()},onCorrection(p){if(correctedPosition(state,p))followCamera(true)},onStatus(text){state.sessionPaused=['Active in another tab','Session ended'].includes(text);document.body.dataset.connection=text;const el=document.getElementById('connectionStatus');if(el)el.textContent=state.sessionPaused?text+' · Reload this tab to continue here':text}});
 
 function toast(message){const el=$('toast');el.textContent=message;el.classList.remove('hidden');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.add('hidden'),3400)}
 function clockText(){return worldAtmosphere().label}
 function updateCityLight(){state.atmosphere?.update(state.view==='2d'?{...worldAtmosphere(),preset:'day',weather:'clear'}:undefined)}
 function safeText(el,value){el.textContent=String(value??'')}
 async function api(method,body,query=''){
+  if(method==='POST'&&state.sessionPaused)throw new Error('This session is paused. Continue in your active game tab.');
   const response=await fetch(`/api/game${query}`,{method,credentials:'same-origin',cache:'no-store',headers:{...(body?{'Content-Type':'application/json'}:{}),...(realtime.connected?{'X-World-Room':realtime.room}:{})},body:body?JSON.stringify(body):undefined});
   const data=await response.json().catch(()=>({error:'The city is unavailable'}));
-  if(!response.ok)throw new Error(data.error||'The city is unavailable');
+  if(!response.ok){const error=new Error(data.error||'The city is unavailable');error.status=response.status;throw error}
+  if(data.self)data.self=newestPlayer(state.self,data.self);
   if(method==='POST'&&data.self&&realtime.connected)await realtime.sync().catch(()=>{});
   return data;
 }
@@ -293,7 +296,7 @@ function roamFrame(now){
   requestAnimationFrame(roamFrame);
   state.sceneLoading?.update();
   const dt=Math.min(.05,(now-state.lastFrame)/1000||0);state.lastFrame=now;
-  const locked=(state.mode!=='indoor'&&!state.sceneLoading?.ready)||document.body.classList.contains('game-menu-open')||document.body.classList.contains('mobile-paused')||(state.self?.life?.health<=0||state.self?.life?.arrested)||state.transit?.isOpen||state.actionMenuOpen||state.chatOpen||state.navigation?.isOpen||state.interactionPending||state.lifeUI?.isOpen||state.accountUI?.isOpen||workLocked()||/INPUT|TEXTAREA/.test(document.activeElement?.tagName||'');
+  const locked=state.sessionPaused||state.moveSyncPaused||(state.mode!=='indoor'&&!state.sceneLoading?.ready)||document.body.classList.contains('game-menu-open')||document.body.classList.contains('mobile-paused')||(state.self?.life?.health<=0||state.self?.life?.arrested)||state.transit?.isOpen||state.actionMenuOpen||state.chatOpen||state.navigation?.isOpen||state.interactionPending||state.lifeUI?.isOpen||state.accountUI?.isOpen||workLocked()||/INPUT|TEXTAREA/.test(document.activeElement?.tagName||'');
   if(now-(state.lastLifeHud||0)>250){state.lastLifeHud=now;state.lifeUI?.tick();updateLifeStatus();updateSurvival()}
   if(state.mode!=='indoor'){state.roadGeometry?.update(state.position);state.roadSurface?.update(state.position);state.world3d.setPotholes(state.roadSurface?.holes||[]);if(state.view!=='2d'){state.architecture?.update(state.position);state.world3d.setArchitecture(state.architecture?.details||[]);}}
   if((state.self?.life?.health<=0||state.self?.life?.arrested)){state.overhead?.update(now);return}if(state.self?.life?.transit&&state.transit){for(let step=0;step<state.transit.rate;step++){state.transit.tick(dt);state.cityLife?.tick(dt,state.position,now,state.mode)}updateDistrict();state.scenery?.update(state.position);state.world3d.setScenery(state.scenery?.items||[]);state.world3d.setAmbient(state.cityLife?.actors||[]);followCamera(false,dt);state.overhead?.update(now);return}if(state.mode==='flight'){flightFrame(now);state.overhead?.update(now);return}
@@ -340,7 +343,24 @@ function roamFrame(now){
   state.overhead?.update(now);
 }
 async function flushMove(){while(state.moveInFlight)await new Promise(resolve=>setTimeout(resolve,40));if(performance.now()-state.lastMoveSend<200)await new Promise(resolve=>setTimeout(resolve,200));await sendMove()}
-async function sendMove(){if(!state.position||['indoor','flight','transit'].includes(state.mode)||(state.self?.life?.health<=0||state.self?.life?.arrested)||workLocked()||state.moveInFlight||state.lastSentPosition&&metersBetween(state.position,state.lastSentPosition)<.04)return;state.lastMoveSend=performance.now();state.moveInFlight=true;const position=[...state.position];try{const move={lng:position[0],lat:position[1],heading:state.heading,spawnCorrection:state.spawnCorrectionPending};if(realtime.connected)await realtime.move(move);else await api('POST',{type:'move',...move});state.lastSentPosition=position;state.spawnCorrectionPending=false}catch(error){if(error.message==='Slow down'){clearTimeout(finalMoveTimer);finalMoveTimer=setTimeout(sendMove,250)}else if(state.spawnCorrectionPending&&error.message==='Move through the city to get there'){clearTimeout(finalMoveTimer);finalMoveTimer=setTimeout(sendMove,8000)}else{console.warn('Movement sync',error);const fresh=await api('GET').catch(()=>null);if(fresh?.self){state.position=[fresh.self.lng,fresh.self.lat];state.lastSentPosition=[...state.position];state.spawnCorrectionPending=false;state.world3d?.setPosition(...state.position,state.heading);followCamera(true)}}}finally{state.moveInFlight=false}}
+async function sendMove(){
+ if(state.sessionPaused||!state.position||['indoor','flight','transit'].includes(state.mode)||(state.self?.life?.health<=0||state.self?.life?.arrested)||workLocked()||state.moveInFlight||state.lastSentPosition&&metersBetween(state.position,state.lastSentPosition)<.04)return;
+ state.lastMoveSend=performance.now();state.moveInFlight=true;const position=[...state.position];
+ try{
+  const move={lng:position[0],lat:position[1],heading:state.heading,spawnCorrection:state.spawnCorrectionPending};
+  if(realtime.connected)await realtime.move(move);else await api('POST',{type:'move',...move});
+  state.lastSentPosition=position;state.spawnCorrectionPending=false;state.moveSyncPaused=false;
+ }catch(error){
+  const reason=movementFailure(error);
+  if(reason==='corrected')return;
+  if(reason==='rejected'&&!state.spawnCorrectionPending){const fresh=await api('GET').catch(()=>null);if(fresh?.self&&correctedPosition(state,fresh.self))followCamera(true)}
+  else{
+   if(reason==='offline'&&!state.moveSyncPaused)toast('Connection interrupted · keeping your place while reconnecting');
+   state.moveSyncPaused=reason!=='retry';if(state.moveSyncPaused){state.carSpeed=0;state.walkVelocity=[0,0];state.carDrift=[0,0]}
+   clearTimeout(finalMoveTimer);finalMoveTimer=setTimeout(sendMove,reason==='retry'?300:reason==='rejected'?8000:1000);
+  }
+ }finally{state.moveInFlight=false}
+}
 function showActions(place,onlyIds=null){state.actionMenuOpen=true;state.keys.clear();$('roamActionMenu').classList.remove('hidden');$('roamActionTitle').textContent=place.name;const list=$('roamActionList');list.replaceChildren();(onlyIds||[...place.activities,'connect']).forEach((id,index)=>{const activity=ACTIVITIES[id];if(!activity)return;const button=document.createElement('button');button.type='button';button.className='roam-action';button.innerHTML=`<span class="roam-action-key">${index+1}</span><span class="roam-action-icon">${activity.emoji}</span><span><strong></strong><small></small></span>`;button.querySelector('strong').textContent=activity.name;button.querySelector('small').textContent=activity.detail;button.addEventListener('click',async()=>{button.disabled=true;const result=await postAction({type:'act',actionId:id});if(result){state.world3d?.playAction();closeActions()}else button.disabled=false});list.appendChild(button)})}
 function closeActions(){state.actionMenuOpen=false;$('roamActionMenu').classList.add('hidden')}
 
@@ -447,3 +467,6 @@ function syncHomeMarker(){
  Object.assign(place,{lng:home.lng,lat:home.lat,area:home.area,name:'Your home',description:`Your private ${home.name}. Rest, cook and keep your belongings here.`});
  state.poiMarkers.get('home')?.setLngLat([home.lng,home.lat]);
 }
+
+// Keep the last validated journey when the browser suspends or reloads this tab.
+window.addEventListener('pagehide',()=>{if(state.sessionPaused||!state.self||!state.position||!['walk','drive'].includes(state.mode)||state.moveSyncPaused)return;fetch('/api/game',{method:'POST',credentials:'same-origin',keepalive:true,headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'move',lng:state.position[0],lat:state.position[1],heading:state.heading,spawnCorrection:state.spawnCorrectionPending})}).catch(()=>{})});

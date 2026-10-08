@@ -11,7 +11,7 @@ type Member = { player:WorldPlayer; at:number; savedAt:number; dirty:boolean; la
 export function roomFor(lng:number,lat:number){return `accra:${Math.floor((lng+.36)/.02)}:${Math.floor((lat-5.43)/.02)}`}
 function life(p:WorldPlayer){try{return JSON.parse(p.life_json||'{}')}catch{return {}}}
 function compact(p:WorldPlayer):WorldPlayer{const l=life(p);return {id:p.id,session_token:p.session_token,session_expires_at:p.session_expires_at,name:p.name,avatar:p.avatar,place_id:p.place_id,pos_lng:p.pos_lng,pos_lat:p.pos_lat,heading:p.heading,driving:p.driving,revision:p.revision,last_move_at:p.last_move_at,last_action_at:p.last_action_at,life_json:JSON.stringify({arrested:!!l.arrested,health:l.health??100,vehicle:l.vehicle,drivingSince:l.drivingSince,shift:l.shift?{jobId:l.shift.jobId}:null,flight:!!l.flight,transit:!!l.transit})}}
-function publicPlayer(p:WorldPlayer){const l=life(p);return {id:p.id,name:p.name,avatar:p.avatar,placeId:p.place_id,lng:p.pos_lng,lat:p.pos_lat,heading:p.heading,driving:!!p.driving,vehicle:l.vehicle,health:l.health??100}}
+function publicPlayer(p:WorldPlayer){const l=life(p);return {id:p.id,revision:p.revision,name:p.name,avatar:p.avatar,placeId:p.place_id,lng:p.pos_lng,lat:p.pos_lat,heading:p.heading,driving:!!p.driving,vehicle:l.vehicle,health:l.health??100}}
 export function validMove(m:Member,input:Record<string,unknown>,now:number){
   const {lng,lat,heading}=input;
   if(typeof lng!=='number'||typeof lat!=='number'||typeof heading!=='number'||![lng,lat,heading].every(Number.isFinite)||lng<-.36||lng>.07||lat<5.43||lat>5.78)return false;
@@ -19,7 +19,7 @@ export function validMove(m:Member,input:Record<string,unknown>,now:number){
   const metres=Math.hypot((lng-p.pos_lng)*111320*Math.cos(lat*Math.PI/180),(lat-p.pos_lat)*111320);
   const seconds=Math.min(8,Math.max(0,(now-m.at)/1000));
   const correction=input.spawnCorrection===true&&metres<=35&&(p.last_move_at===p.last_action_at||now-m.at>=8000);
-  return correction||metres<=.15+seconds*(p.driving?12+Math.max(0,(now-(l.drivingSince||now))/1000)*6:7);
+  return correction||metres<=2.5+seconds*(p.driving?12+Math.max(0,(now-(l.drivingSince||now))/1000)*6:7);
 }
 
 // Each geographic room owns a bounded set of live sockets. Durable progress remains in D1.
@@ -35,15 +35,20 @@ export class WorldRoom extends DurableObject<Cloudflare.Env> {
     const p=m.player,now=Date.now();
     const result=await this.env.DB.prepare('UPDATE players SET pos_lng=?,pos_lat=?,heading=?,last_move_at=?,last_seen_at=? WHERE id=? AND session_token=? AND revision=? AND last_move_at<=?')
       .bind(p.pos_lng,p.pos_lat,p.heading,m.at,now,p.id,p.session_token,p.revision,m.savedAt).run();
-    if(!result.meta.changes){await this.reload(ws,m,true);return}
+    if(!result.meta.changes){await this.reload(ws,m,true);if(m.dirty){const latest=m.player;const retried=await this.env.DB.prepare('UPDATE players SET pos_lng=?,pos_lat=?,heading=?,last_move_at=?,last_seen_at=? WHERE id=? AND session_token=? AND revision=? AND last_move_at<=?').bind(latest.pos_lng,latest.pos_lat,latest.heading,m.at,now,latest.id,latest.session_token,latest.revision,m.savedAt).run();if(retried.meta.changes){m.savedAt=m.at;m.dirty=false;ws.serializeAttachment(m)}}return}
     m.savedAt=m.at;m.dirty=false;ws.serializeAttachment(m);
     });
   }
   async reload(ws:WebSocket,m:Member,correct=false){
     const p=await this.env.DB!.prepare('SELECT * FROM players WHERE id=? AND session_token=?').bind(m.player.id,m.player.session_token).first<WorldPlayer>();
     if(!p){ws.close(4003,'Session ended');return}
-    m.player=compact(p);m.at=p.last_move_at||Date.now();m.savedAt=p.last_move_at;m.dirty=false;ws.serializeAttachment(m);
-    if(correct)this.send(ws,{type:'correct',player:publicPlayer(p)});this.broadcast({type:'player',player:publicPlayer(p)},ws);
+    // A life/needs update can finish while newer movement is already in flight.
+    // Preserve that movement unless the action actually moved/locked the player.
+    const l=life(p),keep=m.dirty&&p.last_move_at===m.savedAt&&p.driving===m.player.driving&&p.place_id===m.player.place_id&&!l.transit&&!l.flight&&!l.arrested&&(l.health??100)>0&&(!l.shift||l.shift.jobId==='driver');
+    const live=m.player,at=m.at;m.player=compact(p);m.savedAt=p.last_move_at;m.dirty=keep;
+    if(keep){m.player.pos_lng=live.pos_lng;m.player.pos_lat=live.pos_lat;m.player.heading=live.heading;m.player.last_move_at=at;m.at=at}else m.at=p.last_move_at||Date.now();
+    ws.serializeAttachment(m);
+    if(correct&&!keep)this.send(ws,{type:'correct',player:publicPlayer(p)});this.broadcast({type:'player',player:publicPlayer(m.player)},ws);
   }
   async fetch(request:Request){
     const url=new URL(request.url);
@@ -75,9 +80,9 @@ export class WorldRoom extends DurableObject<Cloudflare.Env> {
     const m=ws.deserializeAttachment() as Member,now=Date.now();
     if(m.player.session_expires_at&&m.player.session_expires_at<=now){ws.close(4003,'Session expired');return}
     if(input.type==='sync'){if(now-(m.lastSync||0)<300){ws.close(1008,'Sync rate exceeded');return}m.lastSync=now;await this.ctx.blockConcurrencyWhile(()=>this.reload(ws,m));this.send(ws,{type:'synced',seq:input.seq});if(roomFor(m.player.pos_lng,m.player.pos_lat)!==m.room.split(':instance:')[0])ws.close(4001,'Entering next district');return}
-    if(now-m.lastPacket<150){this.send(ws,{type:'ack',seq:input.seq});return} m.lastPacket=now;ws.serializeAttachment(m);
+    if(now-m.lastPacket<150){this.send(ws,{type:'retry',seq:input.seq});return} m.lastPacket=now;ws.serializeAttachment(m);
     if(input.type!=='move')return;
-    if(!validMove(m,input,now)){this.send(ws,{type:'correct',player:publicPlayer(m.player)});return}
+    if(!validMove(m,input,now)){this.send(ws,{type:'correct',seq:input.seq,player:publicPlayer(m.player)});return}
     m.player.pos_lng=Number(input.lng);m.player.pos_lat=Number(input.lat);m.player.heading=((Number(input.heading)%360)+360)%360;m.at=now;m.player.last_move_at=now;m.dirty=true;ws.serializeAttachment(m);
     this.send(ws,{type:'ack',seq:input.seq});
     this.broadcast({type:'player',player:publicPlayer(m.player)},ws);

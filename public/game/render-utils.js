@@ -12,7 +12,7 @@ export function batchStaticMeshes(root){
  }
  root.userData.batching={before,after};return {before,after};
 }
-export function disposeScene(root){const gs=new Set(),ms=new Set(),ts=new Set();root.traverse(o=>{if(o.geometry)gs.add(o.geometry);for(const m of Array.isArray(o.material)?o.material:o.material?[o.material]:[]){ms.add(m);for(const v of Object.values(m))if(v?.isTexture)ts.add(v)}});ts.forEach(t=>{if(!t.userData.shared)t.dispose()});gs.forEach(g=>{if(!g.userData.shared)g.dispose()});ms.forEach(m=>{if(!m.userData.shared)m.dispose()})}
+export function disposeScene(root){root.userData.releaseResources?.();delete root.userData.releaseResources;const gs=new Set(),ms=new Set(),ts=new Set();root.traverse(o=>{if(o.geometry)gs.add(o.geometry);for(const m of Array.isArray(o.material)?o.material:o.material?[o.material]:[]){ms.add(m);for(const v of Object.values(m))if(v?.isTexture)ts.add(v)}});ts.forEach(t=>{if(!t.userData.shared)t.dispose()});gs.forEach(g=>{if(!g.userData.shared)g.dispose()});ms.forEach(m=>{if(!m.userData.shared)m.dispose()})}
 export function interiorRenderer(canvas){const r=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});r.setPixelRatio(Math.min(devicePixelRatio||1,matchMedia('(pointer:coarse)').matches?1.25:1.5));r.outputColorSpace=THREE.SRGBColorSpace;r.toneMapping=THREE.ACESFilmicToneMapping;r.toneMappingExposure=1.1;r.shadowMap.enabled=true;r.shadowMap.type=THREE.PCFSoftShadowMap;r.shadowMap.autoUpdate=false;return r}
 
 // Identical animated rigs share GPU geometry. Bone transforms still update per person.

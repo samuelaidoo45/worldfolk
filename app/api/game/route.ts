@@ -65,7 +65,7 @@ const cookieId = (request: Request) => request.headers.get("cookie")?.match(/(?:
 
 function view(p: Player) {
   const [lng,lat]=playerPosition(p);
-  return {id:p.id,name:p.name,avatar:p.avatar,placeId:p.place_id,money:p.money,
+  return {id:p.id,revision:p.revision,name:p.name,avatar:p.avatar,placeId:p.place_id,money:p.money,
     lng,lat,heading:p.heading,driving:!!p.driving,life:lifeView(p),
     energy:p.energy,hunger:p.hunger,fun:p.fun,social:p.social,hygiene:p.hygiene,
     xp:p.xp,level:Math.floor(p.xp/100)+1,day:p.day,minute:p.minute,
@@ -75,7 +75,7 @@ function playerPosition(p:Player):[number,number]{return p.pos_lng!==null&&p.pos
 async function ownPlayer(db: D1Database, request: Request) {
   let player=await loadPlayer<Player>(db,request);
   const room=player?sessionName(player.id):null;
-  if(player?.session_token&&room&&env.WORLD_SESSIONS&&(request.method==='POST'||request.headers.has('X-World-Room'))){
+  if(player?.session_token&&room&&env.WORLD_SESSIONS){
     const response=await env.WORLD_SESSIONS.get(env.WORLD_SESSIONS.idFromName(room)).fetch('https://room/checkpoint',{method:'POST',body:JSON.stringify({player,persist:request.method==='POST'})});
     const live=await response.json() as {player:Player|null};
     if(request.method==='POST')player=await db.prepare('SELECT * FROM players WHERE id=?').bind(player.id).first<Player>();
