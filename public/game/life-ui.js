@@ -1,10 +1,10 @@
 import {EXPERIENCES,workStep,workReady,jobPay} from './work-catalog.js';
 import {sellsAtVenue} from './venue-shopping.js';
 import {STREET_SERVICES} from './street-services.js';
-import {HOMES,GOODS,JOBS,TERMINALS,propertyId} from './life-catalog.js';
+import {HOMES,GOODS,JOBS,TERMINALS,propertyId,rideFare} from './life-catalog.js';
 import {distanceMetres} from './motion.js';
 export function createLifeUI({state,action,navigate,enterHome,places}){
- let open=false,tab='bag',signature='',busy=false,lastPass='',workCategory='All';
+ let open=false,tab='bag',signature='',busy=false,lastPass='',workCategory='All',selectedJob=null,arrivalPending=false,selectionOwner=null;
  const launch=document.createElement('button');launch.className='life-launch';launch.textContent='I · My life';document.body.append(launch);
  const panel=document.createElement('section');panel.className='life-drawer hidden';panel.setAttribute('aria-label','My virtual life');panel.innerHTML='<header><div><small>YOUR LIFE IN ACCRA</small><h2>Make yourself at home</h2></div><button aria-label="Close my life">×</button></header><div class="life-wallet"></div><nav aria-label="Life sections"></nav><div class="life-content"></div><p class="life-note">All prices and ownership are part of the game. Progress saves automatically.</p>';document.body.append(panel);
  const content=panel.querySelector('.life-content'),wallet=panel.querySelector('.life-wallet');
@@ -15,11 +15,29 @@ export function createLifeUI({state,action,navigate,enterHome,places}){
  const near=p=>state.position&&distanceMetres(state.position,[p.lng,p.lat])<85;
  const place=id=>places.find(p=>p.id===id);
  function route(p){close();navigate(p)}
+ function saveSelection(){try{sessionStorage.setItem(`worldfolk_work_${state.self.id}`,JSON.stringify({jobId:selectedJob,arrivalPending}))}catch{}}
+ function selectJob(job){selectedJob=job.id;arrivalPending=false;saveSelection();render();content.scrollTop=0}
+ async function startWork(job){
+  if(busy)return;busy=true;render();
+  try{
+   if(state.self.life.job!==job.id&&!await action({type:'job-apply',jobId:job.id}))return;
+   if(await action({type:'shift-start'})){arrivalPending=false;saveSelection();show('work')}
+  }finally{busy=false;render()}
+ }
+ async function travelToWork(job,kind){
+  const q=place(job.place);if(!q||busy)return;
+  arrivalPending=true;saveSelection();navigate(q);
+  if(!kind){close();return}
+  busy=true;render();
+  try{if(await action({type:'ride-book',kind,lng:q.lng,lat:q.lat,name:q.name}))close();else{arrivalPending=false;saveSelection()}}
+  finally{busy=false;render()}
+ }
+
  function heading(text,detail){const h=document.createElement('h3');h.textContent=text;content.append(h);if(detail){const p=document.createElement('p');p.className='life-description';p.textContent=detail;content.append(p)}}
  function row(title,detail){const el=document.createElement('article');el.className='life-item';const h=document.createElement('strong'),p=document.createElement('p'),buttons=document.createElement('div');h.textContent=title;p.textContent=detail;buttons.className='life-actions';el.append(h,p,buttons);content.append(el);return buttons}
  function button(parent,label,fn,disabled=false){const b=document.createElement('button');b.textContent=label;b.disabled=disabled||busy;b.onclick=fn;parent.append(b);return b}
  async function transact(input){if(busy)return null;busy=true;render();try{const result=await action(input);if(result?.pass)lastPass=`${result.pass} · valid for one guest, for 24 hours`;return result}finally{busy=false;render()}}
- function render(){if(!open||!state.self)return;const p=state.self,life=p.life;content.replaceChildren();wallet.textContent=`${life.background?life.background+' · ':''}₵${p.money.toLocaleString()} · ${life.homeName} · apartment ${life.apartment}`;panel.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
+ function render(){if(!open||!state.self)return;const p=state.self,life=p.life;content.replaceChildren();panel.querySelector('h2').textContent=tab==='work'?'Work & careers':'Make yourself at home';wallet.textContent=`${life.background?life.background+' · ':''}₵${p.money.toLocaleString()} · ${life.homeName} · apartment ${life.apartment}`;panel.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
  if(tab==='momo'){heading('MoMo agents',`Game money only · saved MoMo balance: ₵${life.momo||0}. Deposit cash for safekeeping or withdraw it to spend in the city.`);const agent=STREET_SERVICES.find(s=>near(s)&&distanceMetres(state.position,[s.lng,s.lat])<=45);if(agent){heading(agent.name);const form=document.createElement('form'),amount=document.createElement('input');amount.type='number';amount.min='1';amount.max='100000';amount.step='1';amount.placeholder='Amount in game cedis';amount.setAttribute('aria-label','MoMo amount');form.append(amount);for(const operation of ['deposit','withdraw']){const b=document.createElement('button');b.type='button';b.textContent=operation==='deposit'?'Deposit cash':'Withdraw cash';b.disabled=busy||p.driving;b.onclick=()=>transact({type:'momo',operation,amount:Number(amount.value)});form.append(b)}content.append(form)}else for(const agent of STREET_SERVICES){const b=row(agent.name,'Fictional game agent · no real-money transactions');button(b,'Find agent',()=>route({...agent,emoji:'💛'}))}}
  if(tab==='bag'){const health=row('Health',`${Math.ceil(life.health??100)} / 100 · ${life.deaths||0} restarts`);button(health,'Rest and recover at home',()=>transact({type:'recover'}),state.mode!=='indoor'||!p.placeId.startsWith(`p_${p.id}_`)||(life.health??100)>=100);
   heading('Your bag','Buy groceries and goods in the city. Eat food wherever you are; place furniture inside your own home.');let count=0;
@@ -41,7 +59,7 @@ export function createLifeUI({state,action,navigate,enterHome,places}){
   for(const item of GOODS.filter(g=>indoor?sellsAtVenue(g,indoor)||g.shops.some(id=>nearby.some(q=>q.id===id)):!nearby.length||g.shops.some(id=>nearby.some(q=>q.id===id)))){const available=!!indoor&&sellsAtVenue(item,indoor)||item.shops.some(id=>nearby.some(q=>q.id===id)),owned=item.kind==='vehicle'&&life.vehicles.includes(item.id);const b=row(`${item.icon} ${item.name}`,`₵${item.price} · ${item.shops.map(id=>place(id)?.name).join(' / ')}`);button(b,owned?'Owned':available?'Buy':'Visit shop to buy',()=>transact({type:'buy',itemId:item.id}),owned||!available||p.driving||p.money<item.price)}
  }
  if(tab==='work'){
-  heading('Earn your living','Choose a profession, travel to work and complete its tasks. Driving shifts include a work vehicle. Five completed shifts increase your pay; earnings buy goods, homes, services and experiences.');
+  heading('Find work','Select a job below, travel to its workplace and start your shift on arrival. Driving shifts include a work vehicle. Five completed shifts increase your pay; earnings buy goods, homes, services and experiences.');
   if(life.shift){
    const shift=life.shift,job=JOBS.find(j=>j.id===shift.jobId),task=shift.version===2?workStep(job,shift):null,ready=workReady(job,shift),b=row(job.name,`${job.task} · Pay ₵${jobPay(job,life.career)}`),timer=document.createElement('p');timer.className='shift-timer';b.before(timer);
    if(task){const q=place(task.place);heading(`Task ${(shift.step||0)+1} / ${job.steps.length} · ${task.label}`,`${q?.name||task.place} · ${task.prompt}`);
@@ -54,11 +72,28 @@ export function createLifeUI({state,action,navigate,enterHome,places}){
    button(b,'Collect wages',()=>transact({type:'shift-complete'}),!ready||p.driving);button(b,'Cancel shift',()=>transact({type:'shift-cancel'}),p.driving);
    return;
   }
+  const chosen=JOBS.find(j=>j.id===selectedJob);
+  if(chosen){
+   const q=place(chosen.place),distance=q&&state.position?distanceMetres(state.position,[q.lng,q.lat]):0,arrived=q&&near(q)&&!['transit','flight'].includes(state.mode);
+   if(q){
+    const actions=row(`Selected · ${chosen.name}`,`${q.name} · ${Math.round(distance)} m away · ₵${jobPay(chosen,life.career)} per shift`);actions.parentElement.classList.add('selected-work');
+    const detail=document.createElement('p');detail.textContent=chosen.steps.map((step,i)=>`${i+1}. ${step.label}`).join(' → ');actions.before(detail);
+    if(arrived){
+     const message=p.driving?'Park and leave your vehicle to start work.':p.energy<chosen.energy+5?'Rest or eat to restore energy before this shift.':'You are at the workplace. Start work to enter and receive your tasks.';
+     const notice=document.createElement('p');notice.textContent=message;notice.setAttribute('role','status');actions.before(notice);
+     button(actions,'Start work',()=>startWork(chosen),p.driving||p.energy<chosen.energy+5);
+    }else{
+     button(actions,'Walk / drive to workplace',()=>travelToWork(chosen),['transit','flight'].includes(state.mode));
+     for(const kind of ['trotro','taxi']){const fare=rideFare(distance,kind);button(actions,`${kind==='trotro'?'Tro-tro':'Taxi'} to work · ₵${fare}`,()=>travelToWork(chosen,kind),!['walk','indoor'].includes(state.mode)||p.money<fare||distance<100)}
+     const note=document.createElement('p');note.textContent=state.mode==='transit'?'On your way. Work opens when you arrive. You can use Skip ride.':'Public transport picks you up and takes you to this workplace. You can skip the ride after boarding.';actions.before(note);
+    }
+    button(actions,'Choose another job',()=>{selectedJob=null;arrivalPending=false;saveSelection();render()});
+   }
+  }
   const filter=document.createElement('select');filter.setAttribute('aria-label','Filter professions');filter.className='work-category';for(const category of ['All',...new Set(JOBS.map(j=>j.category))]){const o=document.createElement('option');o.value=category;o.textContent=category;filter.append(o)}filter.value=workCategory;filter.onchange=()=>{workCategory=filter.value;render()};content.append(filter);
   for(const job of JOBS.filter(j=>workCategory==='All'||j.category===workCategory)){
-   const q=place(job.place);if(!q)continue;const hired=life.job===job.id,record=life.career?.[job.id],b=row(job.name,`${q.name} · ₵${jobPay(job,life.career)} / shift · ${job.steps.length} tasks · about ${job.seconds}s plus travel${job.vehicle?' · work vehicle included':''}${record?` · ${record.shifts} shifts, ₵${record.earned} earned`:''}`);
-   if(!near(q)){button(b,'Set route to work',()=>route(q));button(b,'Ride to work',()=>{close();navigate(q);state.transit?.show()})}
-   else button(b,hired?'Start shift':'Apply for job',async()=>{const result=await transact({type:hired?'shift-start':'job-apply',jobId:job.id});if(result&&hired)close()},p.driving||p.energy<job.energy+5);
+   const q=place(job.place);if(!q)continue;const record=life.career?.[job.id],b=row(job.name,`${q.name} · ₵${jobPay(job,life.career)} / shift · ${job.steps.length} tasks · about ${job.seconds}s plus travel${job.vehicle?' · work vehicle included':''}${record?` · ${record.shifts} shifts, ₵${record.earned} earned`:''}`);
+   button(b,selectedJob===job.id?'Selected':'Select job',()=>selectJob(job),selectedJob===job.id);
   }
  }
  if(tab==='homes'){
@@ -79,8 +114,12 @@ export function createLifeUI({state,action,navigate,enterHome,places}){
   const from=TERMINALS.find(t=>near(t));for(const t of TERMINALS){if(t.id===from?.id)continue;const b=row(t.name,from?`From ${from.name} · ₵65`:'Visit a terminal to board');button(b,from?'Board flight':'Go to terminal',async()=>{if(from){const r=await transact({type:'flight-book',destination:t.id});if(r)close()}else route(place(t.id))},from&&(p.money<65||p.driving||!!life.shift)||!!life.flight)}
  }
  }
- function sync(){launch.classList.toggle('hidden',!state.self);const s=JSON.stringify([state.self?.life,state.self?.money,state.self?.driving,state.mode,state.residences?.length]);if(signature!==s){signature=s;render()}}
- let lastReady='';function tick(){if(!open)return;const shift=state.self?.life?.shift,job=JOBS.find(j=>j.id===shift?.jobId),task=shift?.version===2?workStep(job,shift):null,ready=!!job&&workReady(job,shift),stamp=`${ready}:${!!task&&Date.now()>=(shift.nextTaskAt||0)}`;if(stamp!==lastReady){lastReady=stamp;render()}const timer=panel.querySelector('.shift-timer');if(timer)timer.textContent=ready?'Assignment finished. Park and collect your wages.':task?Date.now()>=(shift.nextTaskAt||0)?'Task ready · choose the correct action at the task location.':`Preparing task · ${Math.max(0,Math.ceil((shift.nextTaskAt-Date.now())/1000))}s remaining`:`${Math.max(0,Math.ceil((shift.endsAt-Date.now())/1000))} seconds remaining`}
+ function sync(){if(state.self&&selectionOwner!==state.self.id){selectionOwner=state.self.id;selectedJob=null;arrivalPending=false;try{const saved=JSON.parse(sessionStorage.getItem(`worldfolk_work_${selectionOwner}`)||'null');if(JOBS.some(j=>j.id===saved?.jobId)){selectedJob=saved.jobId;arrivalPending=!!saved.arrivalPending}}catch{}}launch.classList.toggle('hidden',!state.self);const s=JSON.stringify([state.self?.life,state.self?.money,state.self?.driving,state.mode,state.residences?.length]);if(signature!==s){signature=s;render()}}
+ let lastReady='';function tick(){
+  const chosen=JOBS.find(j=>j.id===selectedJob),workplace=chosen&&place(chosen.place);
+  if(arrivalPending&&workplace&&near(workplace)&&['walk','indoor'].includes(state.mode)&&!state.interactionPending&&!state.self?.life?.shift){arrivalPending=false;saveSelection();show('work')}
+  if(!open)return;
+const shift=state.self?.life?.shift,job=JOBS.find(j=>j.id===shift?.jobId),task=shift?.version===2?workStep(job,shift):null,ready=!!job&&workReady(job,shift),stamp=`${ready}:${!!task&&Date.now()>=(shift.nextTaskAt||0)}:${workplace&&near(workplace)}:${state.mode}`;if(stamp!==lastReady){lastReady=stamp;render()}const timer=panel.querySelector('.shift-timer');if(timer)timer.textContent=ready?'Assignment finished. Park and collect your wages.':task?Date.now()>=(shift.nextTaskAt||0)?'Task ready · choose the correct action at the task location.':`Preparing task · ${Math.max(0,Math.ceil((shift.nextTaskAt-Date.now())/1000))}s remaining`:`${Math.max(0,Math.ceil((shift.endsAt-Date.now())/1000))} seconds remaining`}
 
  return {show,close,sync,tick,get isOpen(){return open}};
 }

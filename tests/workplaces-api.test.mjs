@@ -4,7 +4,7 @@ import {CITY_DESTINATIONS} from '../public/game/city-destinations.js';
 import {JOBS} from '../public/game/life-catalog.js';
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
-const base='http://127.0.0.1:3000';
+const base=process.env.GAME_TEST_URL||'http://127.0.0.1:3000';
 async function call(cookie,body){const r=await fetch(base+'/api/game',{method:body?'POST':'GET',headers:{...(cookie?{cookie}:{}),...(body?{'content-type':'application/json',origin:base}:{})},body:body?JSON.stringify(body):undefined});return {status:r.status,body:await r.json(),cookie:r.headers.get('set-cookie')?.split(';')[0]}}
 async function player(name){const r=await call(null,{type:'join',name,avatar:'🧑🏾'});assert.equal(r.status,201);const id=r.body.self.id;fixture(id,{pos_lng:-.1949,pos_lat:5.5682,place_id:`p_${id}_starter`,money:120,life_json:'{}'});const stable=await call(r.cookie);return {id,cookie:r.cookie,self:stable.body.self}}
 function fixture(id,values){const script=`import sqlite3,json,sys\nfrom pathlib import Path\np=next(x for x in Path('.wrangler/state/v3/d1/miniflare-D1DatabaseObject').glob('*.sqlite') if x.name!='metadata.sqlite')\nc=sqlite3.connect(p)\nv=json.loads(sys.argv[2])\nc.execute('UPDATE players SET '+','.join(k+'=?' for k in v)+' WHERE id=?',list(v.values())+[sys.argv[1]])\nc.commit()`;const r=spawnSync('python3',['-c',script,id,JSON.stringify(values)],{encoding:'utf8'});assert.equal(r.status,0,r.stderr)}
@@ -59,4 +59,20 @@ test('earned wages buy goods and experiences with server prices and atomic payme
  at(guest.id,'osu',{hunger:10,hygiene:20});const purchases=await Promise.all([call(guest.cookie,{type:'experience-buy',experienceId:'haircut',price:0}),call(guest.cookie,{type:'experience-buy',experienceId:'haircut'})]);assert.equal(purchases.filter(r=>r.status===200).length,1);
  const saved=(await call(guest.cookie)).body.self;assert.equal(saved.money,63);assert.equal(saved.hygiene,50,'service benefit persisted');
  fixture(guest.id,{money:0,life_json:JSON.stringify({...saved.life,lastServiceAt:0})});assert.equal((await call(guest.cookie,{type:'experience-buy',experienceId:'haircut'})).status,400);
+});
+
+test('commute to a selected job, arrive, start work and earn after the fare',async()=>{
+ const guest=await player('Work Commuter'),job=JOBS.find(j=>j.id==='cafe');
+ const [lng,lat]=point(job.place);
+ at(guest.id,'airport',{money:200,energy:100});
+ assert.equal((await call(guest.cookie,{type:'job-apply',jobId:job.id})).status,400,'work cannot start remotely');
+ const booked=await call(guest.cookie,{type:'ride-book',kind:'taxi',lng,lat,name:'Workplace'});
+ assert.equal(booked.status,200,JSON.stringify(booked.body));const trip=booked.body.self.life.transit;
+ const arrived=await call(guest.cookie,{type:'ride-skip',rideId:trip.rideId});
+ assert.equal(arrived.status,200);assert.equal(arrived.body.self.life.transit,null);
+ assert.equal((await call(guest.cookie,{type:'job-apply',jobId:job.id})).status,200,'ride drops the player within workplace reach');
+ const start=await call(guest.cookie,{type:'shift-start'});assert.equal(start.status,200);
+ await tasks(guest,job,start.body.self.life);
+ const paid=await call(guest.cookie,{type:'shift-complete'});assert.equal(paid.status,200);
+ assert.equal(paid.body.self.money,200-trip.fare+job.wage);
 });

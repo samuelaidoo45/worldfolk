@@ -197,3 +197,5 @@ body[data-connection="Active in another tab"] .connection-status,body[data-conne
 .work-assignment button{min-height:44px;padding:8px 14px;border:1px solid #b9dcc8;border-radius:12px;background:#18483ce8;color:#fff;font:700 12px inherit}
 body.touch-device.roam-mode .life-shift.work-assignment{top:calc(var(--safe-top) + 100px);bottom:auto;left:var(--safe-left);transform:none;max-width:148px}
 body.touch-device.roam-mode.mobile-paused .life-shift.work-assignment{visibility:hidden}
+
+.selected-work{border:2px solid #218663;background:#edf8f1}.selected-work .life-actions{display:flex;flex-wrap:wrap;gap:8px}.selected-work .life-actions button{min-height:44px;flex:1 1 150px}
