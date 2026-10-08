@@ -1,0 +1,93 @@
+/* Final touch layout: one set of thumb zones across phones and tablets. */
+body.touch-device.roam-mode {
+ --thumb-size:clamp(96px,27vw,120px); --radar-size:clamp(96px,26vw,124px);
+ --action-width:144px; --toolbar-bottom:calc(var(--safe-bottom) + 124px);
+ --hud-left:var(--safe-left); --hud-right:var(--safe-right); --hud-bottom:var(--safe-bottom);
+}
+body.touch-device.roam-mode .touch-controls {inset:auto var(--safe-right) var(--safe-bottom) var(--safe-left);padding:0;gap:16px}
+body.touch-device.roam-mode .touch-right {width:var(--action-width);grid-template-columns:60px 76px;gap:8px}
+body.touch-device.roam-mode .touch-turn {grid-column:1/-1;gap:8px}
+body.touch-device.roam-mode .touch-turn button {width:44px;height:44px}
+body.touch-device.roam-mode .touch-interact {width:76px;height:56px;min-height:44px;padding:6px;border-radius:18px}
+body.touch-device.roam-mode .touch-extras button {min-width:60px;min-height:48px}
+body.touch-device.roam-mode .mobile-menu-toggle,
+body.touch-device.roam-mode .roam-chat-toggle,
+body.touch-device.roam-mode .view-mode-button {top:auto;bottom:var(--toolbar-bottom);width:44px;height:44px}
+body.touch-device.roam-mode .mobile-menu-toggle {right:var(--safe-right)}
+body.touch-device.roam-mode .roam-chat-toggle {right:calc(var(--safe-right) + 50px)}
+body.touch-device.roam-mode .view-mode-button {right:calc(var(--safe-right) + 100px)}
+body.touch-device.roam-mode .vehicle-button {bottom:calc(var(--toolbar-bottom) + 52px);width:var(--action-width);min-height:44px;max-height:56px;overflow:hidden}
+/* Context text belongs beside its action, without another floating panel. */
+body.touch-device.roam-mode .roam-prompt,
+body.touch-device.roam-mode.indoor-mode .roam-prompt {left:auto;right:var(--safe-right);bottom:calc(var(--toolbar-bottom) + 104px);width:var(--action-width);min-height:0;max-height:42px;padding:5px 7px;font-size:10px;line-height:1.3;overflow:hidden}
+body.touch-device.roam-mode .game-minimap {left:var(--safe-left);bottom:calc(var(--safe-bottom) + var(--thumb-size) + 18px);width:var(--radar-size)}
+body.touch-device.roam-mode .game-minimap.collapsed {width:44px;height:44px}
+body.touch-device.roam-mode .game-minimap .minimap-places {font-size:9px;min-height:22px}
+body.touch-device.roam-mode .roam-status {top:var(--safe-top);bottom:auto;left:var(--safe-left);width:176px;max-width:calc(50vw - 20px);padding:7px;background:#102c35ba}
+body.touch-device.roam-mode .roam-status .roam-speed {font-size:17px;margin:2px 0}
+body.touch-device.roam-mode .roam-status .roam-meter {font-size:8px;margin-top:3px}
+body.touch-device.roam-mode .roam-status #wantedLevel {font-size:9px;line-height:1.3;margin-top:3px}
+body.touch-device.roam-mode .navigation-card {left:auto;right:var(--safe-right);top:var(--safe-top);bottom:auto;transform:none;width:210px;max-width:calc(50vw - 20px);padding:7px}
+body.touch-device.roam-mode .navigation-card>div {gap:4px;align-items:start}
+body.touch-device.roam-mode .navigation-card>div>div {min-width:0;flex:1}
+body.touch-device.roam-mode .navigation-card .nav-title {display:block;padding:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.touch-device.roam-mode .navigation-card p {white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.35}
+body.touch-device.roam-mode .navigation-card .nav-cancel {width:44px;height:44px;margin:-3px -3px 0 0}
+body.touch-device.roam-mode.map-play .overhead-tools {left:var(--safe-left);bottom:calc(var(--safe-bottom) + var(--thumb-size) + 18px);flex-direction:row;gap:4px}
+body.touch-device.roam-mode .touch-look {left:24%;right:24%;top:25%;bottom:calc(var(--safe-bottom) + 122px)}
+/* Drawers fit the visible area, including a raised software keyboard. */
+body.touch-device.roam-mode .mobile-game-menu:not(.hidden),
+body.touch-device.roam-mode .life-drawer,
+body.touch-device.roam-mode .world-panel,
+body.touch-device.roam-mode .destination-panel,
+body.touch-device.roam-mode .roam-action-menu,
+body.touch-device.roam-mode .right-stack.roam-chat-open {
+ top:calc(var(--visible-top,0px) + var(--safe-top));bottom:auto;right:var(--safe-right);left:auto;
+ width:min(420px,calc(100vw - var(--safe-left) - var(--safe-right)));
+ max-height:calc(var(--visible-height,100dvh) - var(--safe-top) - var(--safe-bottom));
+ overscroll-behavior:contain;scroll-padding:12px;box-sizing:border-box;
+}
+body.touch-device.roam-mode .mobile-game-menu:not(.hidden) {height:auto;width:min(360px,calc(100vw - var(--safe-left) - var(--safe-right)))}
+body.touch-device .account-dialog {max-height:calc(var(--visible-height,100dvh) - 24px);max-width:calc(100vw - var(--safe-left) - var(--safe-right));overflow:auto}
+body.touch-device.keyboard-open .account-dialog {position:fixed;top:calc(var(--visible-top,0px) + 12px);bottom:auto;margin:0 auto}
+body.touch-device.keyboard-open .touch-controls,body.touch-device.keyboard-open .touch-look {visibility:hidden}
+body.touch-device .death-screen {padding:var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);overflow:auto}
+body.touch-device .death-screen h2 {font-size:clamp(26px,6vw,54px)}
+body.touch-device .death-screen p {font-size:13px;max-width:340px}
+body.touch-device .death-screen button {min-height:48px}
+body.touch-device.roam-mode .ride-options {max-height:min(320px,calc(var(--visible-height,100dvh) - 144px));overscroll-behavior:contain}
+body.touch-device.roam-mode.transit-mode .ride-console {left:var(--safe-left);right:var(--safe-right);bottom:calc(var(--safe-bottom) + 54px);width:auto}
+body.touch-device.roam-mode.transit-mode .game-minimap {bottom:calc(var(--safe-bottom) + 122px)}
+body.touch-device.roam-mode.transit-mode .mobile-menu-toggle,
+body.touch-device.roam-mode.transit-mode .roam-chat-toggle,
+body.touch-device.roam-mode.transit-mode .view-mode-button {top:auto;bottom:var(--safe-bottom)}
+body.touch-device.roam-mode.transit-mode .overhead-tools {bottom:calc(var(--safe-bottom) + 122px)}
+body.touch-device.roam-mode.transit-mode .maplibregl-ctrl-bottom-right {bottom:calc(var(--safe-bottom) + 14px)!important;left:var(--safe-left)}
+/* Landscape uses the width, rather than stacking buttons over the road. */
+body.touch-device.roam-mode[data-display-orientation='landscape'] {--thumb-size:clamp(88px,23vh,120px);--radar-size:clamp(88px,23vh,120px)}
+body.touch-device.roam-mode[data-display-orientation='landscape'] .mobile-menu-toggle,
+body.touch-device.roam-mode[data-display-orientation='landscape'] .roam-chat-toggle,
+body.touch-device.roam-mode[data-display-orientation='landscape'] .view-mode-button {top:var(--safe-top);bottom:auto}
+body.touch-device.roam-mode[data-display-orientation='landscape'] .game-minimap {left:calc(var(--safe-left) + var(--thumb-size) + 16px);bottom:var(--safe-bottom)}
+body.touch-device.roam-mode[data-display-orientation='landscape'] .vehicle-button {bottom:calc(var(--safe-bottom) + 116px)}
+body.touch-device.roam-mode[data-display-orientation='landscape'] .roam-prompt {bottom:calc(var(--safe-bottom) + 168px)}
+body.touch-device.roam-mode[data-display-orientation='landscape'] .navigation-card {left:50%;right:auto;transform:translateX(-50%);width:240px;max-width:calc(100vw - 392px)}
+body.touch-device.roam-mode[data-display-orientation='landscape'] .roam-status {max-width:176px}
+body.touch-device.roam-mode.map-play[data-display-orientation='landscape'] .overhead-tools {left:calc(var(--safe-left) + var(--thumb-size) + 16px);bottom:var(--safe-bottom)}
+body.touch-device.roam-mode.transit-mode[data-display-orientation='landscape'] .game-minimap {left:var(--safe-left)}
+body.touch-device.roam-mode.transit-mode[data-display-orientation='landscape'] .ride-console {left:auto;right:var(--safe-right);bottom:var(--safe-bottom);width:min(340px,calc(100vw - var(--radar-size) - 56px))}
+body.touch-device.roam-mode.transit-mode[data-display-orientation='landscape'] .ride-options {max-height:calc(var(--visible-height,100dvh) - 140px)}
+body.touch-device.roam-mode.transit-mode.map-play[data-display-orientation='landscape'] .overhead-tools {left:var(--safe-left);bottom:var(--safe-bottom)}
+body.touch-device.roam-mode.transit-mode[data-display-orientation='landscape'] .maplibregl-ctrl-bottom-right {bottom:calc(var(--safe-bottom) + var(--radar-size) + 38px)!important}
+@media(max-height:420px) {
+ body.touch-device.roam-mode[data-display-orientation='landscape'] .roam-status .roam-meter {display:inline-flex;width:46%;margin-right:3%}
+ body.touch-device.roam-mode[data-display-orientation='landscape'] .roam-status .roam-meter span {width:28px}
+ body.touch-device.roam-mode[data-display-orientation='landscape'] .roam-prompt {display:none}
+ body.touch-device .life-shift,body.touch-device .resident-dialogue {top:var(--safe-top);bottom:auto;max-width:40vw;max-height:100px;overflow:auto}
+}
+@media(min-width:600px) and (min-height:600px) {
+ body.touch-device.roam-mode {--thumb-size:128px;--radar-size:136px;--toolbar-bottom:calc(var(--safe-bottom) + 140px)}
+ body.touch-device.roam-mode .touch-interact {height:64px}
+ body.touch-device.roam-mode .touch-turn button {width:48px;height:48px}
+}
+@media(prefers-reduced-motion:reduce) {body.touch-device .mobile-game-menu,body.touch-device .ride-console {animation:none;transition:none}}
