@@ -1,3 +1,4 @@
+import {installPlaceIcons,placeEmoji} from './place-icons.js';
 import {movementFailure,correctedPosition,newestPlayer} from './movement-sync.js';
 import {CITY_DESTINATIONS} from './city-destinations.js';
 import {trafficSpeed} from './traffic-routing.js';
@@ -127,6 +128,7 @@ function initMap(){
   state.engine=Engine;
   const options={container:'map',center:[-0.1905,5.5704],zoom:12.7,minZoom:10,pitch:28,bearing:0,maxZoom:26,maxPitch:78,canvasContextAttributes:{antialias:true},maxBounds:[[-.39,5.41],[.11,5.82]],style:cityMapStyle()};
   state.map=new Engine.Map(options);
+  installPlaceIcons(state.map);
   state.sceneLoading=createSceneLoading(state.map,()=>state.mode);
   const canvas=state.map.getCanvas();let looking=false,lastLook=null;canvas.addEventListener('contextmenu',e=>{if(state.roam)e.preventDefault()});canvas.addEventListener('pointerdown',e=>{if(e.button!==2||!state.roam||state.view==='2d')return;looking=true;lastLook=[e.clientX,e.clientY];canvas.setPointerCapture(e.pointerId)});canvas.addEventListener('pointermove',e=>{if(!looking)return;const dx=e.clientX-lastLook[0],dy=e.clientY-lastLook[1];lastLook=[e.clientX,e.clientY];if(state.mode==='indoor'){state.interior?.look?.(-dx*.2,dy*.12);return}if(state.mode==='walk')state.cameraBearing-=dx*.2;else state.lookOffset=(state.lookOffset||0)-dx*.2;state.lookPitch=Math.max(-18,Math.min(3,(state.lookPitch||0)+dy*.12))});for(const event of ['pointerup','pointercancel'])canvas.addEventListener(event,()=>{looking=false});
 
@@ -136,7 +138,7 @@ function initMap(){
   state.map.on('moveend',()=>{if(state.panelTab==='places'&&!state.placeQuery)renderPlaces()});
   state.map.on('error',e=>console.warn('Map error',e.error?.message||String(e.error)));
 }
-function emojiForFeature(props){const kind=String(props?.class||props?.group||'');if(/food|restaurant|cafe|bar/.test(kind))return '🥘';if(/shop|retail|commercial/.test(kind))return '🛍️';if(/school|education|university/.test(kind))return '📚';if(/park|garden|natural/.test(kind))return '🌳';if(/transit|station|airport/.test(kind))return '🚏';return '📍'}
+function emojiForFeature(props){return placeEmoji(props)}
 let cachedMapPlaces=[],lastMapPlaces=0;
 function visibleMapPlaces(){if(performance.now()-lastMapPlaces<1000)return cachedMapPlaces;lastMapPlaces=performance.now();if(!state.map?.isStyleLoaded())return [];const found=new Map();try{for(const feature of state.map.querySourceFeatures('accralife-streets',{sourceLayer:'poi'})){const coords=feature.geometry?.coordinates,name=feature.properties?.name;if(feature.geometry?.type!=='Point'||!name||state.position&&metersBetween(state.position,coords)>500)continue;const place=geoPlace(coords[0],coords[1],String(name),String(feature.properties?.type||feature.properties?.class||'Local place'),emojiForFeature(feature.properties));if(place&&!found.has(place.id))found.set(place.id,place);if(found.size>=70)break}}catch(error){console.warn('Could not read map places',error)}cachedMapPlaces=[...found.values()];return cachedMapPlaces}
 
