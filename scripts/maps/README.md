@@ -11,7 +11,8 @@ The extract covers [-0.40, 5.40, 0.12, 5.83]; the game remains bounded to Accra.
    `node scripts/maps/build-tiles.mjs /tmp/accra-map`.
 5. Run `node scripts/maps/pack-graph.mjs`, then
    `node scripts/maps/fetch-fonts.mjs /tmp/accra-map`.
-6. Run the map tests, build, then deploy the site normally.
+6. Run `node scripts/maps/build-street-search.mjs` to generate the named-street search index.
+7. Run the map tests, build, then deploy the site normally.
 
 The PBF, raw intermediate layers and tools are build-time only. The map asset
 folder is versioned: use a new folder name when updating data, and update
@@ -29,7 +30,15 @@ supported. Conditional and via-way turn restrictions are not supported yet.
 Client routes run in a Web Worker using A* so pathfinding does not block drawing.
 Public transport routes are recomputed server-side from the same graph; the
 client cannot submit a fake path. No straight-line fallback passes through walls.
-Search reads a cached place index locally; only locations in the extract exist.
+Search reads the complete place and named-street indexes locally, with paginated results.
+Only locations in the extract exist. City-home exploration validates the selected
+place and its name against these same indexes on the server before moving the
+player to a walkable arrival point. Existing homes, inventory and balances persist.
+
+Verified place logos are stored in `public/game/logos/`; `sources.json` records
+the original official page and asset URL. `place-logo-catalog.js` matches exact
+mapped names to those assets. Locations without a verified logo use category
+icons. Add actual source artwork and a verified name mapping when expanding it.
 
 Satellite is off by default. To add imagery you have rights to distribute, set
 `ACCRALIFE_CONFIG.imagery = {tiles:["https://your-domain/{z}/{x}/{y}.jpg"],

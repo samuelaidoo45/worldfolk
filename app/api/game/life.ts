@@ -1,3 +1,4 @@
+import {inAccra} from '../../../public/game/map-region.js';
 import {EXPERIENCES,shiftCanMove,canUseVehicle,taskSeconds,workStep,workReady,restoreWorkVehicle,jobPay} from '../../../public/game/work-catalog.js';
 import {MAX_RIDE_PROGRESS_SPEED} from '../../../public/game/ride-speed.js';
 import {CITY_DESTINATIONS} from '../../../public/game/city-destinations.js';
@@ -44,7 +45,7 @@ export async function handleLife(db:D1Database,p:LifePlayer,input:Record<string,
   }
   if(now-life.lastDriveSkipAt<2000)return fail('Please wait before skipping another drive',429);
   const lng=Number(input.lng),lat=Number(input.lat);
-  if(!Number.isFinite(lng)||!Number.isFinite(lat)||lng<-.36||lng>.07||lat<5.43||lat>5.78)return fail('Choose a destination inside Accra');
+  if(!Number.isFinite(lng)||!Number.isFinite(lat)||!inAccra(lng,lat))return fail('Choose a destination inside Accra');
   let route;try{route=await roadRoute([p.pos_lng??0,p.pos_lat??0],[lng,lat])}catch{return fail('No road route to this destination. Choose a nearby street.',503)}
   const end=route.coordinates.at(-1)!,before=route.coordinates.at(-2)||end;
   const heading=(Math.atan2((end[0]-before[0])*Math.cos(end[1]*Math.PI/180),end[1]-before[1])*180/Math.PI+360)%360;
@@ -78,7 +79,7 @@ export async function handleLife(db:D1Database,p:LifePlayer,input:Record<string,
  }
  if(type==='ride-book'){
   const kind=input.kind==='taxi'?'taxi':input.kind==='trotro'?'trotro':null,lng=Number(input.lng),lat=Number(input.lat),from=[p.pos_lng??0,p.pos_lat??0];
-  if(!kind||!Number.isFinite(lng)||!Number.isFinite(lat)||lng<-.36||lng>.05||lat<5.43||lat>5.8)return fail('Choose a destination in Accra');
+  if(!kind||!Number.isFinite(lng)||!Number.isFinite(lat)||!inAccra(lng,lat))return fail('Choose a destination in Accra');
   if(p.driving||life.shift)return fail('Park or finish work before requesting pickup');
   const distance=metres(from,[lng,lat]);if(distance<100)return fail('You are already close enough to walk');
   const fare=rideFare(distance,kind);if(p.money<fare)return fail(`You need ₵${fare} for this ride`);

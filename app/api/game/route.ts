@@ -1,3 +1,4 @@
+import {ACCRA_BOUNDS} from '../../../public/game/map-region.js';
 import {walkingArrival} from '../../../server/maps/router';
 import {resolveStartingPlace} from '../../../server/maps/starting-places';
 import {TRAFFIC_MODELS} from '../../../public/game/vehicle-catalog.js';
@@ -28,7 +29,6 @@ const PLACE_COORDS: Record<string, [number, number]> = {
   dubois: [-0.1698, 5.5815], mall: [-0.1738, 5.6224], airport: [-0.1787, 5.6093],
   eastlegon: [-0.1572, 5.6357], legon: [-0.1874, 5.6510], kaneshie: [-0.2346, 5.5724],
 };
-const ACCRA_BOUNDS={west:-0.36,south:5.43,east:0.07,north:5.78};
 function placeCoords(id:string): [number,number]|null {
   if(Object.hasOwn(PLACE_COORDS,id))return PLACE_COORDS[id];
   const match=/^g_(-?\d{1,6})_(-?\d{1,6})$/.exec(id);
@@ -128,7 +128,7 @@ export async function POST(request: Request) {
       if(name.length<2||name.length>24||!/^[\p{L}\p{N} _'-]+$/u.test(name))return json({error:"Choose a name of 2–24 letters or numbers"},400);
       const avatar=String(input.avatar||"");if(!AVATARS.has(avatar))return json({error:"Choose an avatar"},400);
       const id=crypto.randomUUID(),token=crypto.randomUUID();
-      const selected=input.startPlaceId?await resolveStartingPlace(String(input.startPlaceId)):null;if(input.startPlaceId&&!selected)return json({error:'Choose a public place on the city map'},400);
+      const selected=input.startPlaceId?await resolveStartingPlace(String(input.startPlaceId),typeof input.startPlaceName==='string'?input.startPlaceName:undefined):null;if(input.startPlaceId&&!selected)return json({error:'Choose a public place on the city map'},400);
       const rolls=crypto.getRandomValues(new Uint32Array(2)),start=startingLife(rolls[0]/4294967296,rolls[1]/4294967296,selected);
       if(selected){try{[start.lng,start.lat]=await walkingArrival([selected.lng,selected.lat])}catch{return json({error:'This entrance is unavailable. Choose another place.'},503)}}
       await db.prepare("INSERT INTO players (id,name,avatar,session_token,place_id,pos_lng,pos_lat,money,life_json,last_seen_at,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)").bind(id,name,avatar,token,selected?.id||propertyId(id,start.life.home),start.lng,start.lat,start.money,JSON.stringify(start.life),now,now).run();
@@ -138,8 +138,21 @@ export async function POST(request: Request) {
     }
     let p=await ownPlayer(db,request);if(!p)return json({error:"Create your Sim to play"},401);
     if(p.driving&&!readLife(p).drivingSince){const migrated={...readLife(p),drivingSince:now-30000};await db.prepare("UPDATE players SET life_json=?,revision=revision+1 WHERE id=? AND revision=?").bind(JSON.stringify(migrated),p.id,p.revision).run();const updated=await db.prepare("SELECT *, (SELECT username FROM accounts WHERE player_id=players.id) AS handle FROM players WHERE id=?").bind(p.id).first<Player>();if(updated)p=updated;}
+    if(type==='explore-place'){
+      const life=readLife(p);
+      if(life.health<=0||life.arrested)return json({error:'Restart at home to continue'},400);
+      if(life.shift)return json({error:'Finish or cancel your work shift before exploring another place'},400);
+      if(life.explorationPending)return json({error:'Choose your starting place first'},409);
+      const place=await resolveStartingPlace(String(input.placeId),typeof input.placeName==='string'?input.placeName:undefined);
+      if(!place)return json({error:'Choose a public place from the city map'},400);
+      let point:number[];try{point=await walkingArrival([place.lng,place.lat])}catch{return json({error:'This entrance is unavailable. Choose another place.'},503)}
+      const changed={...life,transit:null,flight:null,drivingSince:0};
+      const result=await db.prepare('UPDATE players SET pos_lng=?,pos_lat=?,heading=0,driving=0,place_id=?,life_json=?,last_move_at=?,last_seen_at=?,revision=revision+1 WHERE id=? AND revision=?').bind(point[0],point[1],place.id,JSON.stringify(changed),now,now,p.id,p.revision).run();
+      if(!result.meta.changes)return json({error:'Your position changed. Please try again.'},409);
+      const updated=await db.prepare('SELECT *, (SELECT username FROM accounts WHERE player_id=players.id) AS handle FROM players WHERE id=?').bind(p.id).first<Player>();return json({self:view(updated!),event:`Arrived near ${place.name}`});
+    }
     if(type==='start-exploring'){
-      const life=readLife(p),place=await resolveStartingPlace(String(input.placeId));
+      const life=readLife(p),place=await resolveStartingPlace(String(input.placeId),typeof input.placeName==='string'?input.placeName:undefined);
       if(!life.explorationPending)return json({error:'Your journey has already started. Use destinations to travel.'},409);
       if(!place||p.driving||life.shift||life.transit||life.flight)return json({error:'Choose an available public place'},400);
       const home=[...HOMES].sort((a,b)=>Math.hypot(a.lng-place.lng,a.lat-place.lat)-Math.hypot(b.lng-place.lng,b.lat-place.lat))[0];

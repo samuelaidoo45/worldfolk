@@ -1,3 +1,4 @@
+import {placeLogoExpression,installPlaceLogos} from './place-logos.js';
 // One small, cached map sprite per category, shared by all POIs in the tile data.
 const categories=[
  ['mosque','🕌',['mosque'],'#e3f1df'],['church','⛪',['church','chapel'],'#eee6f5'],
@@ -30,9 +31,10 @@ export const placeEmoji=props=>categories.find(([id])=>id===placeCategory(props)
 export function placeIconExpression(){
  const name=['downcase',['coalesce',['get','name'],'']],type=['downcase',['coalesce',['get','class'],['get','type'],'']];
  const match=['match',type,...categories.filter(c=>c[2].length).flatMap(([id,,types])=>[[...new Set(types.flatMap(t=>[t,t.replaceAll('_',' ')]))],`place-${id}`]),'place-place'];
- return ['case',['all',['in',type,['literal',['place_of_worship','place of worship']]],['any',...['mosque','masjid','islam'].map(n=>['in',n,name])]],'place-mosque',['all',['in',type,['literal',['place_of_worship','place of worship']]],['any',...['church','chapel','cathedral','presbyter'].map(n=>['in',n,name])]],'place-church',match];
+ return placeLogoExpression(['case',['all',['in',type,['literal',['place_of_worship','place of worship']]],['any',...['mosque','masjid','islam'].map(n=>['in',n,name])]],'place-mosque',['all',['in',type,['literal',['place_of_worship','place of worship']]],['any',...['church','chapel','cathedral','presbyter'].map(n=>['in',n,name])]],'place-church',match]);
 }
 export function installPlaceIcons(map){
+ installPlaceLogos(map);
  function add(id){const category=categories.find(c=>`place-${c[0]}`===id);if(!category||map.hasImage(id))return;
   const canvas=document.createElement('canvas');canvas.width=canvas.height=72;const ctx=canvas.getContext('2d');
   ctx.beginPath();ctx.arc(36,36,32,0,Math.PI*2);ctx.fillStyle=category[3];ctx.fill();ctx.lineWidth=4;ctx.strokeStyle='#ffffff';ctx.stroke();

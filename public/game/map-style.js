@@ -12,8 +12,8 @@ export function cityMapStyle(){
  layer('worldfolk-roads','line','road',{'line-color':['case',['==',['get','surface'],'unpaved'],'#a99982','#292e32'],'line-width':width(0)},{layout:{'line-cap':'round','line-join':'round'},filter:['!', ['in',['get','class'],['literal',['path','steps','pedestrian']]]]}),
  layer('worldfolk-paths','line','road',{'line-color':'#8d918b','line-width':['interpolate',['exponential',2],['zoom'],14,.21,18,3.36,22,53.76]},{filter:['in',['get','class'],['literal',['path','steps','pedestrian']]]}),
  layer('worldfolk-road-labels','symbol','road',{'text-color':'#f8f3e8','text-halo-color':'#333b3c','text-halo-width':1.2},{minzoom:14,maxzoom:20,layout:{'symbol-placement':'point','text-pitch-alignment':'viewport','text-rotation-alignment':'viewport','text-field':['get','name'],'text-font':font,'text-size':12,'text-max-angle':30}}),
- layer('worldfolk-poi-dots','circle','poi',{'circle-radius':3,'circle-color':'#248361','circle-stroke-color':'#fff6df','circle-stroke-width':1},{minzoom:15}),
- layer('worldfolk-poi-labels','symbol','poi',{'text-color':'#163f39','text-halo-color':'#f6f3e8','text-halo-width':1.5},{minzoom:15,layout:{'icon-image':placeIconExpression(),'icon-size':0,'icon-padding':6,'icon-pitch-alignment':'viewport','icon-rotation-alignment':'viewport','text-optional':true,'text-field':['get','name'],'text-font':font,'text-size':12,'text-offset':[0,1],'text-anchor':'top','text-max-width':12}}),
+ layer('worldfolk-poi-dots','circle','poi',{'circle-radius':0,'circle-color':'#248361','circle-stroke-color':'#fff6df','circle-stroke-width':1},{minzoom:15}),
+ layer('worldfolk-poi-labels','symbol','poi',{'text-color':'#163f39','text-halo-color':'#f6f3e8','text-halo-width':1.5},{minzoom:15,layout:{'icon-image':placeIconExpression(),'icon-size':.8,'icon-padding':6,'icon-pitch-alignment':'viewport','icon-rotation-alignment':'viewport','text-optional':true,'text-field':['get','name'],'text-font':font,'text-size':12,'text-offset':[0,1],'text-anchor':'top','text-max-width':12}}),
  layer('worldfolk-place-labels','symbol','place',{'text-color':'#354947','text-halo-color':'#f6f3e8','text-halo-width':2},{layout:{'text-field':['get','name'],'text-font':font,'text-size':['interpolate',['linear'],['zoom'],10,12,15,18]}})
  ]};
 }
@@ -21,7 +21,7 @@ export function cityMapStyle(){
 export function setMapPresentation(map,overhead){
  setOverheadPlacesMode(map,overhead);
  if(map.getLayer('worldfolk-poi-dots'))map.setLayoutProperty('worldfolk-poi-dots','visibility',overhead?'none':'visible');
- if(map.getLayer('worldfolk-poi-labels')){map.setLayoutProperty('worldfolk-poi-labels','icon-size',overhead?.85:0);map.setLayoutProperty('worldfolk-poi-labels','text-offset',overhead?[0,1.6]:[0,1]);}
+ if(map.getLayer('worldfolk-poi-labels')){map.setLayoutProperty('worldfolk-poi-labels','icon-size',overhead?.85:.8);map.setLayoutProperty('worldfolk-poi-labels','text-offset',overhead?[0,1.6]:[0,1]);}
  for(const id of ['worldfolk-overhead-shadow','worldfolk-overhead-buildings','worldfolk-overhead-markings','worldfolk-map-places'])if(map.getLayer(id))map.setLayoutProperty(id,'visibility',overhead?'visible':'none');
  if(map.getLayer('worldfolk-road-labels')){
   map.setLayoutProperty('worldfolk-road-labels','symbol-placement',overhead?'line':'point');

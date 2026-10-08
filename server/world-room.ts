@@ -1,3 +1,4 @@
+import {inAccra} from '../public/game/map-region.js';
 import { DurableObject } from 'cloudflare:workers';
 
 export type WorldPlayer = {
@@ -14,7 +15,7 @@ function compact(p:WorldPlayer):WorldPlayer{const l=life(p);return {id:p.id,sess
 function publicPlayer(p:WorldPlayer){const l=life(p);return {id:p.id,revision:p.revision,name:p.name,handle:p.handle,avatar:p.avatar,placeId:p.place_id,lng:p.pos_lng,lat:p.pos_lat,heading:p.heading,driving:!!p.driving,vehicle:l.vehicle,health:l.health??100}}
 export function validMove(m:Member,input:Record<string,unknown>,now:number){
   const {lng,lat,heading}=input;
-  if(typeof lng!=='number'||typeof lat!=='number'||typeof heading!=='number'||![lng,lat,heading].every(Number.isFinite)||lng<-.36||lng>.07||lat<5.43||lat>5.78)return false;
+  if(typeof lng!=='number'||typeof lat!=='number'||typeof heading!=='number'||![lng,lat,heading].every(Number.isFinite)||!inAccra(lng,lat))return false;
   const p=m.player,l=life(p);if(l.health<=0||l.arrested||(l.shift&&l.shift.version!==2&&l.shift.jobId!=='driver')||l.flight||l.transit)return false;
   const metres=Math.hypot((lng-p.pos_lng)*111320*Math.cos(lat*Math.PI/180),(lat-p.pos_lat)*111320);
   const seconds=Math.min(8,Math.max(0,(now-m.at)/1000));

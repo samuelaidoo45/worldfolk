@@ -1,0 +1,65 @@
+[
+  {
+    "id": "absa",
+    "path": "/game/logos/absa.png",
+    "source": "https://www.absa.com.gh/personal/",
+    "asset": "https://www.absa.com.gh/content/dam/ghana/absa/logos/absa-logo-bg-gh.png",
+    "bytes": 10989
+  },
+  {
+    "id": "accra-mall",
+    "path": "/game/logos/accra-mall.jpg",
+    "source": "https://www.accramall.com/",
+    "asset": "https://cdn.prod.website-files.com/651590ace3ae5c8295a6ce8f/651593d4210f36f401bd5ef0_iconmed_am.jpg",
+    "bytes": 42608
+  },
+  {
+    "id": "standard-chartered",
+    "path": "/game/logos/standard-chartered.png",
+    "source": "https://www.sc.com/gh/",
+    "asset": "https://av.sc.com/gh/content/images/content/images/cropped-512x512-1-200x200.png",
+    "bytes": 7848
+  },
+  {
+    "id": "goil",
+    "path": "/game/logos/goil.png",
+    "source": "https://goil.com.gh/",
+    "asset": "https://goil.com.gh/wp-content/uploads/2020/06/gllg1-1.png",
+    "bytes": 11217
+  },
+  {
+    "id": "mtn",
+    "path": "/game/logos/mtn.svg",
+    "source": "https://mtn.com.gh/",
+    "asset": "https://mtn.com.gh/wp-content/themes/mtn-vivid-wp/public/img/mtn-logo.svg",
+    "bytes": 629
+  },
+  {
+    "id": "shell",
+    "path": "/game/logos/shell.png",
+    "source": "https://www.shell.com.gh/",
+    "asset": "https://www.shell.com.gh/etc.clientlibs/amidala/clientlibs/theme-base/resources/favicon/apple-touch-icon.png",
+    "bytes": 4161
+  },
+  {
+    "id": "kfc",
+    "path": "/game/logos/kfc.svg",
+    "source": "https://www.kfc.com.gh/",
+    "asset": "https://cdn.tictuk.com/3308313640535757/assets/logoDesktopHeader.svg",
+    "bytes": 3407
+  },
+  {
+    "id": "stanbic",
+    "path": "/game/logos/stanbic.png",
+    "source": "https://www.stanbicbank.com.gh/",
+    "asset": "https://www.stanbicbank.com.gh/static_file/assets/favicons/apple-icon-114x114.png",
+    "bytes": 21877
+  },
+  {
+    "id": "totalenergies",
+    "path": "/game/logos/totalenergies.svg",
+    "source": "https://totalenergies.com.gh/",
+    "asset": "https://totalenergies.com.gh/themes/custom/butterfly_theme/logo.svg?v=1.2",
+    "bytes": 110595
+  }
+]

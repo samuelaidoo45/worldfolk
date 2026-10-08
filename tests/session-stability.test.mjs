@@ -5,7 +5,7 @@ import ts from 'typescript';
 import {movementFailure,correctedPosition,newestPlayer} from '../public/game/movement-sync.js';
 import {facadeLayout} from '../public/game/facade-layout.js';
 import {buildingDesign} from '../public/game/building-design.js';
-const compiled=ts.transpileModule(fs.readFileSync('server/world-room.ts','utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ESNext}}).outputText.replace("import { DurableObject } from 'cloudflare:workers';",'class DurableObject {constructor(ctx,env){this.ctx=ctx;this.env=env}}');
+const compiled=ts.transpileModule(fs.readFileSync('server/world-room.ts','utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ESNext}}).outputText.replaceAll("'../public/game/map-region.js'",JSON.stringify(new URL('../public/game/map-region.js',import.meta.url).href)).replace("import { DurableObject } from 'cloudflare:workers';",'class DurableObject {constructor(ctx,env){this.ctx=ctx;this.env=env}}');
 globalThis.WebSocketRequestResponsePair=class {};
 const {WorldRoom,validMove}=await import('data:text/javascript;base64,'+Buffer.from(compiled).toString('base64'));
 function fixture(){

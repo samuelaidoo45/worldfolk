@@ -126,3 +126,19 @@ test('map-selected starting places are validated, persisted and cannot reset an 
  const results=await Promise.all([call(pending.cookie,{type:'start-exploring',placeId:'osu'}),call(pending.cookie,{type:'start-exploring',placeId:'labadi'})]);assert.equal(results.filter(r=>r.status===200).length,1,'only one initial location choice commits');
  saved=(await call(pending.cookie)).body.self;assert.equal(saved.life.explorationPending,false);assert.ok(['osu','labadi'].includes(saved.life.startPlaceId));assert.equal(saved.money,100000);
 });
+
+test('city exploration jumps to validated places without resetting wealth, home or career',async()=>{
+ const joined=await call(null,{type:'join',name:'City Home Traveller',avatar:'🧑🏾',startPlaceId:'mall'});assert.equal(joined.status,201);
+ const life={...joined.body.self.life,health:83,inventory:{water:4},career:{coder:{shifts:3,earned:400}},wanted:2};fixture(joined.body.self.id,{money:76543,life_json:JSON.stringify(life),driving:1});
+ const destination=await call(joined.cookie,{type:'explore-place',placeId:'labadi',lng:30,lat:0});assert.equal(destination.status,200,JSON.stringify(destination.body));const self=destination.body.self;
+ assert.equal(self.money,76543);assert.equal(self.life.home,life.home);assert.deepEqual(self.life.properties,life.properties);assert.deepEqual(self.life.inventory,life.inventory);assert.deepEqual(self.life.career,life.career);assert.equal(self.life.wanted,2);assert.equal(self.life.health,83);assert.equal(self.driving,false);assert.equal(self.placeId,'labadi');assert.ok(Math.hypot((self.lng+.140846)*111000,(self.lat-5.561955)*111000)<1000);
+ assert.equal((await call(joined.cookie,{type:'explore-place',placeId:'home'})).status,400);assert.equal((await call(joined.cookie,{type:'explore-place',placeId:'p_somebody_starter'})).status,400);assert.equal((await call(joined.cookie,{type:'explore-place',placeId:'g_0_0'})).status,400);
+ fixture(self.id,{life_json:JSON.stringify({...life,arrested:true})});assert.equal((await call(joined.cookie,{type:'explore-place',placeId:'mall'})).status,400);
+ fixture(self.id,{life_json:JSON.stringify({...life,health:0})});assert.equal((await call(joined.cookie,{type:'explore-place',placeId:'mall'})).status,400);
+ fixture(self.id,{life_json:JSON.stringify({...life,shift:{id:'busy',jobId:'coder'}})});assert.equal((await call(joined.cookie,{type:'explore-place',placeId:'mall'})).status,400);
+ fixture(self.id,{life_json:JSON.stringify({...life,transit:{rideId:'old-ride'},flight:{endsAt:Date.now()+100000}})});const left=await call(joined.cookie,{type:'explore-place',placeId:'osu'});assert.equal(left.status,200,JSON.stringify(left.body));assert.equal(left.body.self.life.transit,null);assert.equal(left.body.self.life.flight,null);
+ const fs=await import('node:fs'),mapped=JSON.parse(fs.readFileSync('public/maps/accra-v1/places.json')),outer=mapped.find(p=>p.lat>5.78&&p.lat<5.8&&p.type==='school');assert.ok(outer);const id=`g_${Math.round(outer.lng*10000)}_${Math.round(outer.lat*10000)}`;
+ const edge=await call(joined.cookie,{type:'explore-place',placeId:id,placeName:outer.name});assert.equal(edge.status,200,JSON.stringify(edge.body));assert.ok(edge.body.self.lat>5.77);assert.equal(edge.body.self.money,76543);
+ assert.equal((await call(joined.cookie,{type:'explore-place',placeId:id,placeName:'Invented name'})).status,400);
+ const streets=JSON.parse(fs.readFileSync('public/maps/accra-v1/streets.json')),street=streets.find(p=>p.name==='Giffard Road');const streetResult=await call(joined.cookie,{type:'explore-place',placeId:`g_${Math.round(street.lng*10000)}_${Math.round(street.lat*10000)}`,placeName:street.name});assert.equal(streetResult.status,200,JSON.stringify(streetResult.body));
+});

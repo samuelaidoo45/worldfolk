@@ -1,3 +1,4 @@
+import {placeLogoExpression} from './place-logos.js';
 import {placeCategory} from './place-icons.js';
 const knownCategories={home:'home',square:'museum',nkrumah:'park',jamestown:'museum',makola:'market',osu:'food',labadi:'beach',arts:'museum',theatre:'cinema',dubois:'museum',mall:'mall',airport:'office',eastlegon:'park',legon:'school',kaneshie:'market'};
 const source='accralife-streets',placeFilters=new WeakMap(),mapModes=new WeakMap();
@@ -10,7 +11,7 @@ export function installOverheadMap(map){
  add({id:'worldfolk-overhead-buildings',type:'fill',source,'source-layer':'building',minzoom:14,layout:{visibility:'none'},paint:{'fill-color':overheadRoofColor,'fill-outline-color':'#968f85','fill-opacity':1}},'worldfolk-road-casing');
  add({id:'worldfolk-overhead-markings',type:'line',source,'source-layer':'road',minzoom:17,layout:{visibility:'none','line-cap':'butt'},filter:['all',['in',['get','class'],['literal',['motorway','trunk','primary','secondary','tertiary']]],['!=',['get','surface'],'unpaved']],paint:{'line-color':'#f8edc9','line-width':.8,'line-dasharray':[3,7],'line-opacity':.65}},'worldfolk-road-labels');
  if(!map.getSource('worldfolk-map-places'))map.addSource('worldfolk-map-places',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
- add({id:'worldfolk-map-places',type:'symbol',source:'worldfolk-map-places',minzoom:13,layout:{visibility:'none','icon-image':['get','icon'],'icon-size':['interpolate',['linear'],['zoom'],13,.75,17,.95],'icon-padding':12,'text-field':['get','name'],'text-font':['Noto Sans Regular'],'text-size':12,'text-offset':[0,1.7],'text-anchor':'top','text-max-width':10,'text-padding':8,'text-optional':true,'symbol-sort-key':['get','priority']},paint:{'text-color':'#203d43','text-halo-color':'#ffffff','text-halo-width':2}},'worldfolk-poi-labels');
+ add({id:'worldfolk-map-places',type:'symbol',source:'worldfolk-map-places',minzoom:13,layout:{visibility:'none','icon-image':placeLogoExpression(['get','icon']),'icon-size':['interpolate',['linear'],['zoom'],13,.75,17,.95],'icon-padding':12,'text-field':['get','name'],'text-font':['Noto Sans Regular'],'text-size':12,'text-offset':[0,1.7],'text-anchor':'top','text-max-width':10,'text-padding':8,'text-optional':true,'symbol-sort-key':['get','priority']},paint:{'text-color':'#203d43','text-halo-color':'#ffffff','text-halo-width':2}},'worldfolk-poi-labels');
 }
 export function updateOverheadPlaces(map,places,selected){
  if(!map.getSource('worldfolk-map-places'))return;
