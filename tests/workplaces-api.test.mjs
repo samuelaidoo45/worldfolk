@@ -1,7 +1,7 @@
 // Integration tests against the local server only. Fixtures alter local SQLite.
 import test from 'node:test';
 import {CITY_DESTINATIONS} from '../public/game/city-destinations.js';
-import {JOBS} from '../public/game/life-catalog.js';
+import {JOBS,GOODS} from '../public/game/life-catalog.js';
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 const base=process.env.GAME_TEST_URL||'http://127.0.0.1:3000';
@@ -93,4 +93,17 @@ test('personal driving supports validated speeds and atomic road arrival without
  assert.equal(result.driving,true);assert.equal(result.money,120);assert.equal(result.life.autoDriveRate,1);
  assert.ok(Math.hypot((result.lng-lng)*111000,(result.lat-lat)*111000)<85,'arrives on the road near the workplace');
  const saved=(await call(guest.cookie)).body.self;assert.equal(saved.lng,result.lng);assert.equal(saved.lat,result.lat);
+});
+
+test('new vehicle models can be bought, selected and retain their identity after theft',async()=>{
+ const guest=await player('Car Collector');at(guest.id,'mall',{money:30000,life_json:'{"vehicles":[],"vehicle":"car"}'});
+ let balance=30000;
+ for(const vehicle of ['hatchback','suv','pickup','van','taxi']){
+  assert.equal((await call(guest.cookie,{type:'vehicle-select',vehicle})).status,400,'ownership required');
+  const bought=await call(guest.cookie,{type:'buy',itemId:vehicle,price:1});assert.equal(bought.status,200,JSON.stringify(bought.body));balance-=GOODS.find(g=>g.id===vehicle).price;assert.equal(bought.body.self.money,balance);
+  assert.equal((await call(guest.cookie,{type:'buy',itemId:vehicle})).status,400,'no duplicate purchase');
+  const selected=await call(guest.cookie,{type:'vehicle-select',vehicle});assert.equal(selected.status,200);assert.equal(selected.body.self.life.vehicle,vehicle);
+ }
+ const [lng,lat]=point('mall');fixture(guest.id,{life_json:'{"vehicles":[],"vehicle":"car"}'});
+ const stolen=await call(guest.cookie,{type:'vehicle-steal',vehicle:'pickup',npcId:'ambient-42',lng,lat,heading:90});assert.equal(stolen.status,200);assert.equal(stolen.body.self.life.vehicle,'pickup');assert.deepEqual(stolen.body.self.life.vehicles,['pickup']);
 });

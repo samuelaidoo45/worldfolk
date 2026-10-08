@@ -28,3 +28,21 @@ test('animated crowds share draw calls while preserving individual positions and
  const matrix=new THREE.Matrix4();crowd.group.children.at(-1).getMatrixAt(21,matrix);assert.ok(Math.abs(matrix.elements[12]-63)<.001);
  assert.notEqual(actors[2].leftLeg.rotation.x,actors[3].leftLeg.rotation.x);
 });
+
+test('car variants have distinct silhouettes and remain efficiently batched',()=>{
+ const signatures=new Set();
+ for(const kind of ['car','hatchback','suv','pickup','van','taxi']){
+  const {group}=createCar(0xcc4422,kind),box=new THREE.Box3().setFromObject(group);let calls=0,vertices=0;
+  group.traverse(m=>{if(m.isMesh){calls++;vertices+=m.geometry.attributes.position.count}});
+  assert.ok(calls<18,kind+' draw calls');assert.ok(box.max.x-box.min.x<2.3);assert.ok(box.max.z-box.min.z<4.2);
+  signatures.add([vertices,box.max.y].join(':'));
+ }
+ assert.equal(signatures.size,6,'each model has its own geometry');
+});
+
+test('billboards render readable ads on both faces above traffic',async()=>{
+ const old=globalThis.document,labels=[];
+ globalThis.document={createElement:()=>({getContext:()=>({fillRect(){},fillText(text){labels.push(text)}})})};
+ try{const {createBillboard,BILLBOARD_ADS}=await import('../public/game/billboards.js');
+ for(let i=0;i<BILLBOARD_ADS.length;i++){const {group}=createBillboard(i),faces=group.children.filter(m=>m.material.map);assert.equal(faces.length,2);assert.ok(faces.every(m=>m.position.y>5));assert.ok(labels.includes(BILLBOARD_ADS[i].headline));assert.ok(faces[0].material.map.image.width>=1024)}}finally{globalThis.document=old}
+});

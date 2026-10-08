@@ -1,3 +1,4 @@
+import {TRAFFIC_MODELS} from '../../../public/game/vehicle-catalog.js';
 import {shiftCanMove,canUseVehicle} from '../../../public/game/work-catalog.js';
 import {loadPlayer} from '../../../server/player-session';
 import {startingLife} from '../../../public/game/life-catalog.js';
@@ -160,7 +161,7 @@ export async function POST(request: Request) {
       const lng=Number(input.lng),lat=Number(input.lat),heading=Number(input.heading);
       if(p.driving||life.shift||!/^ambient-\d+$/.test(String(input.npcId))||![lng,lat,heading].every(Number.isFinite)||distanceKm(playerPosition(p),[lng,lat])>.006)return json({error:"Walk close to a stopped NPC car first"},400);
       if(now-life.lastTheftAt<30000)return json({error:"Wait a moment before taking another vehicle"},429);
-      const wanted=Math.min(3,life.wanted+1);const changed={...life,wanted,arrested:wanted>=3,arrests:life.arrests+(wanted>=3?1:0),lastTheftAt:now,drivingSince:now,vehicle:'car',vehicles:[...new Set([...life.vehicles,'car'])]};
+      const vehicle=TRAFFIC_MODELS.includes(String(input.vehicle))?String(input.vehicle):'car';const wanted=Math.min(3,life.wanted+1);const changed={...life,wanted,arrested:wanted>=3,arrests:life.arrests+(wanted>=3?1:0),lastTheftAt:now,drivingSince:now,vehicle,vehicles:[...new Set([...life.vehicles,vehicle])]};
       const result=await db.prepare("UPDATE players SET driving=1,pos_lng=?,pos_lat=?,heading=?,last_move_at=?,last_seen_at=?,life_json=?,revision=revision+1 WHERE id=? AND revision=?").bind(lng,lat,((heading%360)+360)%360,now,now,JSON.stringify(changed),p.id,p.revision).run();
       if(!result.meta.changes)return json({error:"Your state changed. Try again."},409);
       const updated=await db.prepare("SELECT *, (SELECT username FROM accounts WHERE player_id=players.id) AS handle FROM players WHERE id=?").bind(p.id).first<Player>();return json({self:view(updated!)});

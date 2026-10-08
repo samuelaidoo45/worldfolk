@@ -1,3 +1,4 @@
+import {vehicleName} from './vehicle-catalog.js';
 import {EXPERIENCES,workStep,workReady,jobPay} from './work-catalog.js';
 import {sellsAtVenue} from './venue-shopping.js';
 import {STREET_SERVICES} from './street-services.js';
@@ -109,7 +110,7 @@ export function createLifeUI({state,action,navigate,enterHome,places}){
   for(const experience of EXPERIENCES){const q=place(experience.place);if(!q)continue;const b=row(experience.name,`₵${experience.price} · ${q.name} · ${experience.description}`);if(near(q))button(b,'Buy experience',()=>transact({type:'experience-buy',experienceId:experience.id}),p.driving||!!life.shift||p.money<experience.price);else{button(b,'Set route',()=>route(q));button(b,'Get a ride',()=>{close();navigate(q);state.transit?.show()})}}
  }
  if(tab==='transport'){const bus=row('🚐 Tro-tro or taxi','Pickup at your current location · choose any listed destination');button(bus,'Request pickup',()=>{close();state.transit?.show()});
-  heading('Your garage','Vehicles depend on your starting background. Buy a car or motorcycle in the city, or request public transport.');for(const id of life.vehicles){const b=row(id==='motorcycle'?'🏍️ City motorcycle':'🚗 City compact car',life.vehicle===id?'Selected vehicle':'Owned');button(b,life.vehicle===id?'Selected':'Use vehicle',()=>transact({type:'vehicle-select',vehicle:id}),p.driving||life.vehicle===id||!state.nearCar)}
+  heading('Your garage','Vehicles depend on your starting background. Buy a car or motorcycle in the city, or request public transport.');for(const id of life.vehicles){const b=row(`${id==='motorcycle'?'🏍️':'🚙'} ${vehicleName(id)}`,life.vehicle===id?'Selected vehicle':'Owned');button(b,life.vehicle===id?'Selected':'Use vehicle',()=>transact({type:'vehicle-select',vehicle:id}),p.driving||life.vehicle===id||!state.nearCar)}
   heading('✈ City air shuttle','Fictional game terminals connect Airport City, La and Legon. Tickets cost ₵65; flights take 60 seconds and continue after reconnecting.');
   const from=TERMINALS.find(t=>near(t));for(const t of TERMINALS){if(t.id===from?.id)continue;const b=row(t.name,from?`From ${from.name} · ₵65`:'Visit a terminal to board');button(b,from?'Board flight':'Go to terminal',async()=>{if(from){const r=await transact({type:'flight-book',destination:t.id});if(r)close()}else route(place(t.id))},from&&(p.money<65||p.driving||!!life.shift)||!!life.flight)}
  }

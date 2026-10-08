@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {roadContinuation,makeRoadPath,advanceRoad,trafficSpeed,vehiclesOverlap} from '../public/game/traffic-routing.js';
+import {roadContinuation,makeRoadPath,advanceRoad,trafficSpeed,vehiclesOverlap,separateTraffic} from '../public/game/traffic-routing.js';
 import {offsetMetres,distanceMetres} from '../public/game/motion.js';
 const origin=[-.19,5.56],p=(x,y)=>offsetMetres(origin,x,y);
 test('traffic connects through a T junction and never reverses down its incoming road',()=>{
@@ -54,4 +54,15 @@ test('bus footprints need more clearance than cars',()=>{
 test('unrecoverable traffic is cleared instead of permanently blocking the road',async()=>{
  const {createCityLife}=await import('../public/game/city-life.js');const physics={count:1,collision:()=>null,move:(a,b)=>({position:a,blocked:true}),moveVehicle:(a,b)=>({position:a,blocked:true})},line=[p(0,-150),p(0,150)];const city=createCityLife({querySourceFeatures:()=>[{geometry:{type:'LineString',coordinates:line},properties:{class:'motorway'}}]},physics);city.tick(.02,p(50,0),3000);const ids=city.actors.filter(a=>a.driving).map(a=>a.id);assert.ok(ids.length);
  for(let i=0;i<1100;i++)city.tick(.02,p(50,0),3001);assert.ok(!city.actors.some(a=>ids.includes(a.id)));
+});
+
+test('overlapping cars and buses separate gradually without new contacts or wall crossings',()=>{
+ const physics={moveVehicle:(a,b)=>({position:b,blocked:false})};
+ const actors=[{id:'a',position:p(0,0),heading:0,driving:true,vehicle:'bus'},{id:'b',position:p(.4,1),heading:0,driving:true,vehicle:'bus'},{id:'c',position:p(.8,2),heading:0,driving:true,vehicle:'car'}];
+ for(let frame=0;frame<600;frame++){const before=actors.map(a=>[...a.position]);separateTraffic(actors,physics,1/60);actors.forEach((a,i)=>assert.ok(distanceMetres(before[i],a.position)<.024));}
+ for(let i=0;i<actors.length;i++)for(let j=i+1;j<actors.length;j++)assert.equal(vehiclesOverlap(actors[i].position,0,actors[j].position,0,actors[i].vehicle,actors[j].vehicle),false);
+ const trapped=[{...actors[0],position:p(0,0)},{...actors[1],position:p(0,1)}],positions=trapped.map(a=>a.position);
+ assert.equal(separateTraffic(trapped,{moveVehicle:(a,b)=>({position:a,blocked:true})},.1),0);assert.deepEqual(trapped.map(a=>a.position),positions);
+ const player={position:p(-2.7,0),driving:true,heading:0};
+ for(let i=0;i<300;i++){separateTraffic(trapped,physics,1/60,player);for(const car of trapped)assert.equal(vehiclesOverlap(car.position,0,player.position,0,car.vehicle,'car'),false)}
 });

@@ -1,3 +1,4 @@
+import {VEHICLE_MODELS} from './vehicle-catalog.js';
 import {EXTRA_JOBS,prepareJobs} from './work-catalog.js';
 import {HOME_LOCATIONS} from './home-locations.js';
 // Shared game catalogue: virtual prices and facilities, not real-world offers.
@@ -8,7 +9,9 @@ export const HOMES=[
  {id:'coastal-villa',name:'La coastal villa',area:'La',lng:-.1345,lat:5.5637,price:14000}
 ];
 HOMES.forEach((home,index)=>Object.assign(home,HOME_LOCATIONS[index]));
+/** @type {Array<{id:string,name:string,icon:string,price:number,shops:string[],kind:string,hunger?:number,energy?:number,fun?:number,social?:number}>} */
 export const GOODS=[
+ ...['hatchback','suv','pickup','van','taxi'].map(id=>({id,name:VEHICLE_MODELS[id].name,icon:'🚙',price:VEHICLE_MODELS[id].price,shops:['mall','airport'],kind:'vehicle'})),
  {id:'waakye',name:'Waakye takeaway',icon:'🍲',price:12,shops:['makola','kaneshie','osu'],kind:'food',hunger:35},
  {id:'jollof',name:'Jollof and chicken',icon:'🥘',price:22,shops:['osu','mall'],kind:'food',hunger:55},
  {id:'fruit',name:'Fresh fruit',icon:'🥭',price:8,shops:['makola','kaneshie','mall'],kind:'food',hunger:20},

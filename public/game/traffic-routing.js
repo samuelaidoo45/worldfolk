@@ -1,4 +1,4 @@
-import {driveWithContacts} from './vehicle-contacts.js';
+import {driveWithContacts,bodyContact} from './vehicle-contacts.js';
 import {distanceMetres,bearingTo,offsetMetres,projectOnSegment} from './motion.js';
 export const angleDifference=(a,b)=>Math.abs(((a-b+540)%360)-180);
 // Forward corridor plus braking distance: cars in the opposite lane do not stop us.
@@ -31,10 +31,7 @@ export function roadContinuation(npc,roads){
  return candidates.length?{...candidates[(Number(npc.id.replace(/\D/g,''))+ (npc.turns||0))%candidates.length],choices:candidates.length}:null;
 }
 export function vehiclesOverlap(a,heading,b,otherHeading=heading,kind='car',otherKind='car'){
- const delta=distanceMetres(a,b),angle=bearingTo(a,b)*Math.PI/180,x=delta*Math.sin(angle),y=delta*Math.cos(angle);
- // Separating axes for two car-sized footprints. Adjacent lanes stay independent.
- for(const axis of [heading,heading+90,otherHeading,otherHeading+90]){const r=axis*Math.PI/180,project=Math.abs(x*Math.sin(r)+y*Math.cos(r)),extent=(h,k)=>(k==='bus'?3.9:2.35)*Math.abs(Math.cos((h-axis)*Math.PI/180))+(k==='bus'?1.3:1.05)*Math.abs(Math.sin((h-axis)*Math.PI/180));if(project>=extent(heading,kind)+extent(otherHeading,otherKind))return false}
- return true;
+ return !!bodyContact({position:a,heading,driving:true,vehicle:kind},{position:b,heading:otherHeading,driving:true,vehicle:otherKind});
 }
 export function makeRoadPath(coordinates,lane=0){
  const normals=coordinates.map((p,i)=>{const before=bearingTo(coordinates[Math.max(0,i-1)],p),after=bearingTo(p,coordinates[Math.min(coordinates.length-1,i+1)]),a=(i===0?after:before)*Math.PI/180,b=(i===coordinates.length-1?before:after)*Math.PI/180,x=Math.cos(a)+Math.cos(b),y=-Math.sin(a)-Math.sin(b),length=Math.hypot(x,y)||1;return [x/length,y/length]});
@@ -74,10 +71,30 @@ export function recoverTraffic(npc,dt,physics,actors){
   const change=goal-side;if(Math.abs(change)<.12)continue;
   const step=Math.sign(change)*Math.min(Math.abs(change),dt*1.2);
   const target=offsetMetres(npc.position,Math.cos(r)*step,-Math.sin(r)*step);
-  const resolved=physics.moveVehicle(npc.position,target,heading);
+  const resolved=physics.moveVehicle(npc.position,target,heading,npc.vehicle);
   if(resolved.blocked||distanceMetres(npc.position,resolved.position)<.001)continue;
   if(actors.some(a=>a.id!==npc.id&&(a.driving?vehiclesOverlap(resolved.position,heading,a.position,a.heading,npc.vehicle,a.vehicle):distanceMetres(resolved.position,a.position)<1.7)))continue;
   return {position:resolved.position,side:side+step,goal};
  }
  return null;
+}
+
+// Remove existing penetration with small, checked steps, including vehicles that
+// were pushed into a queue. This never relocates a car through a wall or another car.
+export function separateTraffic(actors,physics,dt,player=null){
+ let moved=0;const travelled=new Map(),budget=Math.max(0,Math.min(dt,.1))*1.4;
+ for(let i=0;i<actors.length;i++)for(let j=i+1;j<actors.length;j++){
+  const a=actors[i],b=actors[j];if(a.cleared||b.cleared||distanceMetres(a.position,b.position)>9)continue;
+  const contact=bodyContact(a,b);if(!contact)continue;
+  for(const [car,sign] of [[a,-1],[b,1]]){
+   const step=Math.min(contact.depth/2+.01,budget-(travelled.get(car)||0));if(step<=0)continue;
+   const target=offsetMetres(car.position,contact.normal[0]*step*sign,contact.normal[1]*step*sign);
+   const result=physics.moveVehicle(car.position,target,car.heading,car.vehicle);if(result.blocked)continue;
+   const next={...car,position:result.position};
+   if([...actors,...(player?[player]:[])].some(other=>{if(other===car||other===a||other===b||other.cleared)return false;const after=bodyContact(next,other);if(!after)return false;const before=bodyContact(car,other);return !before||after.depth>before.depth+1e-7}))continue;
+   const before=bodyContact(car,car===a?b:a),after=bodyContact(next,car===a?b:a);if(after&&before&&after.depth>=before.depth)continue;
+   travelled.set(car,(travelled.get(car)||0)+distanceMetres(car.position,result.position));car.position=result.position;car.speed=0;car.moving=true;moved++;
+  }
+ }
+ return moved;
 }
