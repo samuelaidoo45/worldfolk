@@ -27,8 +27,8 @@ export async function handleLife(db:D1Database,p:LifePlayer,input:Record<string,
  const kinds=['momo','buy','consume','equip','furnish','vehicle-select','job-apply','shift-start','shift-complete','shift-cancel','property-buy','home-set','pass-create','pass-redeem','pass-revoke','flight-book','flight-arrive','cook-inventory','vitals','crash','respawn','recover','ride-book','ride-progress','ride-exit','ride-social','bus-board','bus-arrive','traffic-hit'];
  if(!kinds.includes(type))return null;
  if((life.health<=0||life.arrested)&&!['respawn','vitals'].includes(type))return fail('Restart at home to continue');
- if(life.transit&&!['bus-arrive','ride-progress','ride-exit','ride-social','vitals'].includes(type))return fail('Your bus is travelling');
- if(life.flight&&!['flight-arrive','vitals'].includes(type))return fail('Finish your flight before doing this');
+ if(life.transit&&!['respawn','bus-arrive','ride-progress','ride-exit','ride-social','vitals'].includes(type))return fail('Your bus is travelling');
+ if(life.flight&&!['respawn','flight-arrive','vitals'].includes(type))return fail('Finish your flight before doing this');
  const next={...p};let event='',extra:Record<string,unknown>={};
  async function homeAccess(){const property=await propertyInfo(db,p.place_id);return !!property&&!p.driving&&metres([p.pos_lng??0,p.pos_lat??0],property.coords)<=85&&await canEnter(db,p,p.place_id)}
  async function save(touchAction=true){const result=await db.prepare('UPDATE players SET money=?,life_json=?,place_id=?,energy=?,hunger=?,fun=?,social=?,xp=?,job=?,jobs_done=?,revision=revision+1,last_action_at=?,last_seen_at=? WHERE id=? AND revision=?').bind(next.money,JSON.stringify(life),next.place_id,next.energy,next.hunger,next.fun,next.social,next.xp,next.job,next.jobs_done,touchAction?now:p.last_action_at,now,p.id,p.revision).run();if(!result.meta.changes)return fail('Your state changed. Please try again.',409);const updated=await db.prepare('SELECT * FROM players WHERE id=?').bind(p.id).first();return Response.json({self:view(updated),event,...extra},{headers:{'Cache-Control':'no-store'}})}

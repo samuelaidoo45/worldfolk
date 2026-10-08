@@ -60,3 +60,19 @@ test('three thefts cause arrest; restart clears wanted status and restores movem
  assert.equal((await call(cookie,{type:'vehicle-steal',npcId:'ambient-10',lng:-.1819,lat:5.5598,heading:0})).status,400);
  let r=await call(cookie,{type:'respawn'});assert.equal(r.status,200);assert.equal(r.body.self.life.wanted,0);assert.equal(r.body.self.life.arrested,false);assert.equal(r.body.self.life.arrests,1);assert.equal(r.body.self.driving,false);assert.equal(r.body.self.money,joined.body.self.money);
 });
+
+
+test('death during public transport or a flight can restart at the owned home',async()=>{
+ const joined=await call(null,{type:'join',name:'Restart Tester',avatar:'🧑🏾'}),p=joined.body.self;
+ const {HOMES}=await import('../public/game/life-catalog.js');
+ for(const mode of ['transit','flight','arrest']){
+  const life={...p.life,health:mode==='arrest'?100:0,arrested:mode==='arrest',wanted:3,
+   transit:mode==='transit'?{rideId:'restart-test',routeId:'pickup',kind:'trotro',coordinates:[[-.19,5.56],[-.18,5.56]],startedAt:Date.now()-5000,endsAt:Date.now()+60000,progress:.2}:null,
+   flight:mode==='flight'?{from:'accra',to:'tema',startedAt:Date.now()-5000,endsAt:Date.now()+60000}:null};
+  fixture(p.id,{life_json:JSON.stringify(life),driving:0,place_id:'road',pos_lng:-.18,pos_lat:5.56});
+  const r=await call(joined.cookie,{type:'respawn'});assert.equal(r.status,200,JSON.stringify(r.body));const self=r.body.self,home=HOMES.find(h=>h.id===life.home);
+  assert.equal(self.life.health,100);assert.equal(self.life.transit,null);assert.equal(self.life.flight,null);assert.equal(self.life.arrested,false);assert.equal(self.life.wanted,0);
+  assert.equal(self.lng,home.lng);assert.equal(self.lat,home.lat);assert.equal(self.placeId,self.life.homeId);assert.equal(self.money,p.money);assert.deepEqual(self.life.inventory,p.life.inventory);
+  assert.equal((await call(joined.cookie,{type:'respawn'})).status,400,'living players cannot use restart to teleport');
+ }
+});
