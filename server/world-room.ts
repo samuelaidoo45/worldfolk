@@ -5,6 +5,8 @@ export type WorldPlayer = {
   pos_lng:number; pos_lat:number; heading:number; driving:number; life_json:string;
   revision:number; last_move_at:number; last_action_at:number;
 };
+// Escape UTF-16 code units so names and emoji stay valid HTTP header values.
+export const playerHeader=(player:WorldPlayer)=>JSON.stringify(player).replace(/[\u007f-\uffff]/g,c=>'\\u'+c.charCodeAt(0).toString(16).padStart(4,'0'));
 type Member = { player:WorldPlayer; at:number; savedAt:number; dirty:boolean; lastPacket:number; lastSync?:number; room:string };
 export function roomFor(lng:number,lat:number){return `accra:${Math.floor((lng+.36)/.02)}:${Math.floor((lat-5.43)/.02)}`}
 function life(p:WorldPlayer){try{return JSON.parse(p.life_json||'{}')}catch{return {}}}
@@ -23,7 +25,7 @@ export function validMove(m:Member,input:Record<string,unknown>,now:number){
 // Each geographic room owns a bounded set of live sockets. Durable progress remains in D1.
 export class WorldRoom extends DurableObject<Cloudflare.Env> {
   constructor(ctx:DurableObjectState,env:Cloudflare.Env){super(ctx,env);this.ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair('ping','pong'))}
-  members(){return this.ctx.getWebSockets().map(ws=>({ws,m:ws.deserializeAttachment() as Member})).filter(x=>x.m)}
+  members(){return this.ctx.getWebSockets().map(ws=>({ws,m:ws.deserializeAttachment() as Member})).filter(x=>x.m&&x.ws.readyState===1)}
   send(ws:WebSocket,value:unknown){try{ws.send(JSON.stringify(value))}catch{/* close callback removes the member */}}
   broadcast(value:unknown,except?:WebSocket){for(const {ws} of this.members())if(ws!==except)this.send(ws,value)}
   async save(ws:WebSocket,_member:Member){
@@ -45,40 +47,42 @@ export class WorldRoom extends DurableObject<Cloudflare.Env> {
   }
   async fetch(request:Request){
     const url=new URL(request.url);
-    if(url.pathname==='/checkpoint'){
+    if(url.pathname==='/checkpoint'||url.pathname==='/disconnect'){
       const {id,token,persist}=await request.json() as {id:string;token:string;persist:boolean};
       const member=this.members().find(({m})=>m.player.id===id&&m.player.session_token===token);
       if(!member)return Response.json({player:null});
-      if(persist)await this.save(member.ws,member.m);
+      if(persist||url.pathname==='/disconnect')await this.save(member.ws,member.m);
+      if(url.pathname==='/disconnect'){member.ws.close(4000,'Opened in another tab');this.broadcast({type:'leave',id},member.ws);}
       return Response.json({player:member.ws.deserializeAttachment().player});
     }
     if(request.headers.get('Upgrade')!=='websocket')return new Response('WebSocket required',{status:426});
     let player=compact(JSON.parse(request.headers.get('X-World-Player')!) as WorldPlayer);
     for(const {ws,m} of this.members())if(m.player.id===player.id){await this.save(ws,m);player=compact((await this.env.DB!.prepare('SELECT * FROM players WHERE id=?').bind(player.id).first<WorldPlayer>())!);ws.close(4000,'Opened in another tab')}
-    if(this.members().length>=128)return new Response('This district is full. Try again shortly.',{status:503});
+    // Bounded fan-out per simulation instance; allocator opens more as needed.
+    if(this.members().filter(({ws})=>ws.readyState===1).length>=128)return new Response('Instance full',{status:409});
     const pair=new WebSocketPair(),client=pair[0],server=pair[1];this.ctx.acceptWebSocket(server);
-    const room=roomFor(player.pos_lng,player.pos_lat);
+    const room=request.headers.get('X-World-Room')||roomFor(player.pos_lng,player.pos_lat);
     server.serializeAttachment({player,at:player.last_move_at||Date.now(),savedAt:player.last_move_at,dirty:false,lastPacket:0,room} satisfies Member);
     this.send(server,{type:'welcome',room,players:this.members().map(({m})=>publicPlayer(m.player))});
     this.broadcast({type:'player',player:publicPlayer(player)},server);
     if(!await this.ctx.storage.getAlarm())await this.ctx.storage.setAlarm(Date.now()+60000);
-    return new Response(null,{status:101,webSocket:client});
+    return new Response(null,{status:101,webSocket:client,headers:{'X-World-Room':room}});
   }
   async webSocketMessage(ws:WebSocket,message:string|ArrayBuffer){
     if(typeof message!=='string'||message.length>1024){ws.close(1009,'Message too large');return}
     let input:Record<string,unknown>;try{input=JSON.parse(message)}catch{ws.close(1003,'Invalid JSON');return}
     if(!input||typeof input!=='object'||Array.isArray(input))return;
     const m=ws.deserializeAttachment() as Member,now=Date.now();
-    if(input.type==='sync'){if(now-(m.lastSync||0)<300){ws.close(1008,'Sync rate exceeded');return}m.lastSync=now;await this.ctx.blockConcurrencyWhile(()=>this.reload(ws,m));this.send(ws,{type:'synced',seq:input.seq});if(roomFor(m.player.pos_lng,m.player.pos_lat)!==m.room)ws.close(4001,'Entering next district');return}
+    if(input.type==='sync'){if(now-(m.lastSync||0)<300){ws.close(1008,'Sync rate exceeded');return}m.lastSync=now;await this.ctx.blockConcurrencyWhile(()=>this.reload(ws,m));this.send(ws,{type:'synced',seq:input.seq});if(roomFor(m.player.pos_lng,m.player.pos_lat)!==m.room.split(':instance:')[0])ws.close(4001,'Entering next district');return}
     if(now-m.lastPacket<150){this.send(ws,{type:'ack',seq:input.seq});return} m.lastPacket=now;ws.serializeAttachment(m);
     if(input.type!=='move')return;
     if(!validMove(m,input,now)){this.send(ws,{type:'correct',player:publicPlayer(m.player)});return}
     m.player.pos_lng=Number(input.lng);m.player.pos_lat=Number(input.lat);m.player.heading=((Number(input.heading)%360)+360)%360;m.at=now;m.player.last_move_at=now;m.dirty=true;ws.serializeAttachment(m);
     this.send(ws,{type:'ack',seq:input.seq});
     this.broadcast({type:'player',player:publicPlayer(m.player)},ws);
-    if(roomFor(m.player.pos_lng,m.player.pos_lat)!==m.room){await this.save(ws,m);ws.close(4001,'Entering next district')}
+    if(roomFor(m.player.pos_lng,m.player.pos_lat)!==m.room.split(':instance:')[0]){await this.save(ws,m);ws.close(4001,'Entering next district')}
   }
-  async webSocketClose(ws:WebSocket,code:number,reason:string){const m=ws.deserializeAttachment() as Member;if(m?.dirty)await this.save(ws,m);if(code!==1005&&code!==1006){try{ws.close(code,reason)}catch{/* The runtime may already have acknowledged the close. */}}if(m)this.broadcast({type:'leave',id:m.player.id},ws)}
+  async webSocketClose(ws:WebSocket,code:number,reason:string){const m=ws.deserializeAttachment() as Member;if(m?.dirty)await this.save(ws,m);if(code!==1005&&code!==1006){try{ws.close(code,reason)}catch{/* The runtime may already have acknowledged the close. */}}if(m&&!this.members().some(x=>x.ws!==ws&&x.m.player.id===m.player.id))this.broadcast({type:'leave',id:m.player.id},ws)}
   async webSocketError(ws:WebSocket){await this.webSocketClose(ws,1011,'Reconnect')}
   async alarm(){
     const members=this.members();

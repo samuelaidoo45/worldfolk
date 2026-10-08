@@ -1,5 +1,6 @@
 import { realtime } from '../server/realtime';
 export { WorldRoom } from '../server/world-room';
+export { WorldSession, DistrictAllocator } from '../server/world-routing';
 import handler from "vinext/server/fetch-handler";
 import { runWithConnectorBinding } from "../lib/connector-context";
 import type { ConnectorBinding } from "../lib/connector-contract.mjs";

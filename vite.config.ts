@@ -17,8 +17,8 @@ const managedLinux = readExecutionProfile() === "managed-linux";
 const localBindingConfig = {
   main: "./build/sites-worker.ts",
   compatibility_flags: ["nodejs_compat"],
-  durable_objects: { bindings: [{ name: "WORLD_ROOMS", class_name: "WorldRoom" }] },
-  migrations: [{ tag: "world-rooms-v1", new_sqlite_classes: ["WorldRoom"] }],
+  durable_objects: { bindings: [{ name: "WORLD_ROOMS", class_name: "WorldRoom" }, { name: "WORLD_SESSIONS", class_name: "WorldSession" }, { name: "WORLD_ALLOCATORS", class_name: "DistrictAllocator" }] },
+  migrations: [{ tag: "world-rooms-v1", new_sqlite_classes: ["WorldRoom"] }, { tag: "world-routing-v2", new_sqlite_classes: ["WorldSession", "DistrictAllocator"] }],
   d1_databases: d1
     ? [
         {

@@ -1,5 +1,5 @@
 import {startingLife} from '../../../public/game/life-catalog.js';
-import {roomFor} from '../../../server/world-room';
+import {sessionName} from '../../../server/world-routing';
 import transit from '../../../public/game/transit-routes.json';
 import {routePoint} from '../../../public/game/transit.js';
 import {readLife,lifeView,handleLife,propertyInfo,canEnter,residences} from './life';
@@ -74,10 +74,9 @@ function playerPosition(p:Player):[number,number]{return p.pos_lng!==null&&p.pos
 async function ownPlayer(db: D1Database, request: Request) {
   const id = cookieId(request);
   let player=id ? await db.prepare("SELECT * FROM players WHERE session_token=? OR (id=? AND session_token IS NULL)").bind(id,id).first<Player>() : null;
-  const position=player?playerPosition(player):null;
-  const room=position?roomFor(...position):null;
-  if(player?.session_token&&room&&env.WORLD_ROOMS&&(request.method==='POST'||request.headers.has('X-World-Room'))){
-    const response=await env.WORLD_ROOMS.get(env.WORLD_ROOMS.idFromName(room)).fetch('https://room/checkpoint',{method:'POST',body:JSON.stringify({id:player.id,token:player.session_token,persist:request.method==='POST'})});
+  const room=player?sessionName(player.id):null;
+  if(player?.session_token&&room&&env.WORLD_SESSIONS&&(request.method==='POST'||request.headers.has('X-World-Room'))){
+    const response=await env.WORLD_SESSIONS.get(env.WORLD_SESSIONS.idFromName(room)).fetch('https://room/checkpoint',{method:'POST',body:JSON.stringify({player,persist:request.method==='POST'})});
     const live=await response.json() as {player:Player|null};
     if(request.method==='POST')player=await db.prepare('SELECT * FROM players WHERE id=?').bind(player.id).first<Player>();
     else if(live.player)player={...player,pos_lng:live.player.pos_lng,pos_lat:live.player.pos_lat,heading:live.player.heading};
@@ -104,7 +103,7 @@ export async function GET(request: Request) {
     const safeChannel=channel==="city"?"city":self?.place_id||"city";
     const messages=await db.prepare("SELECT m.id,m.channel,m.body,m.created_at,p.id AS player_id,p.name,p.avatar FROM messages m JOIN players p ON p.id=m.player_id WHERE m.channel=? ORDER BY m.created_at DESC LIMIT 40").bind(safeChannel).all();
     if(messagesOnly)return json({messages:messages.results.reverse(),channel:safeChannel},200,sessionHeaders);
-    return json({self:self?view(self):null,players:online.results.map((p)=>{const life=readLife(p as Player),trip=life.transit,route=transit.routes.find(r=>r.id===trip?.routeId),ride=trip&&(trip.coordinates||route)?routePoint(trip.coordinates||route!.coordinates,trip.progress??(now-trip.startedAt)/(trip.endsAt-trip.startedAt)):null,[lng,lat]=ride?.position||playerPosition(p as Player);return {id:p.id,name:p.name,avatar:p.avatar,placeId:p.place_id,lng,lat,heading:ride?.heading??p.heading,driving:!!p.driving||!!ride,vehicle:ride?(trip?.kind==='taxi'?'car':'bus'):life.vehicle,health:life.health}}),messages:messages.results.reverse(),channel:safeChannel,residences:await residences(db),accessAllowed:!self?.place_id.startsWith("p_")||await canEnter(db,self!,self!.place_id)},200,sessionHeaders);
+    return json({self:self?view(self):null,players:online.results.map((p)=>{const life=readLife(p as Player),trip=life.transit,route=transit.routes.find(r=>r.id===trip?.routeId),ride=trip&&(trip.coordinates||route)?routePoint(trip.coordinates||route!.coordinates,trip.progress??(now-trip.startedAt)/(trip.endsAt-trip.startedAt)):null,[lng,lat]=ride?.position||playerPosition(p as Player);return {id:p.id,name:p.name,avatar:p.avatar,placeId:p.place_id,lng,lat,heading:ride?.heading??p.heading,driving:!!p.driving||!!ride,vehicle:ride?(trip?.kind==='taxi'?'car':'bus'):life.vehicle,health:life.health}}),messages:messages.results.reverse(),channel:safeChannel,residences:await residences(db,self?.id),accessAllowed:!self?.place_id.startsWith("p_")||await canEnter(db,self!,self!.place_id)},200,sessionHeaders);
   } catch(error){console.error("world GET",error);return json({error:"Could not load the city"},500)}
 }
 
@@ -126,7 +125,7 @@ export async function POST(request: Request) {
       const avatar=String(input.avatar||"");if(!AVATARS.has(avatar))return json({error:"Choose an avatar"},400);
       const id=crypto.randomUUID(),token=crypto.randomUUID();
       const rolls=crypto.getRandomValues(new Uint32Array(2)),start=startingLife(rolls[0]/4294967296,rolls[1]/4294967296);
-      await db.prepare("INSERT INTO players (id,name,avatar,session_token,place_id,pos_lng,pos_lat,money,life_json,last_seen_at,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)").bind(id,name,avatar,token,'home',start.lng,start.lat,start.money,JSON.stringify(start.life),now,now).run();
+      await db.prepare("INSERT INTO players (id,name,avatar,session_token,place_id,pos_lng,pos_lat,money,life_json,last_seen_at,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)").bind(id,name,avatar,token,propertyId(id,start.life.home),start.lng,start.lat,start.money,JSON.stringify(start.life),now,now).run();
       const p=await db.prepare("SELECT * FROM players WHERE id=?").bind(id).first<Player>();
       const secure=new URL(request.url).protocol==="https:"?"; Secure":"";
       return json({self:view(p!)},201,{"Set-Cookie":`accralife_session=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=2592000${secure}`});
