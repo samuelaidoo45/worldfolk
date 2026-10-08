@@ -1,4 +1,4 @@
-import {EXPERIENCES,taskSeconds,workStep,workReady,restoreWorkVehicle,jobPay} from '../../../public/game/work-catalog.js';
+import {EXPERIENCES,shiftCanMove,canUseVehicle,taskSeconds,workStep,workReady,restoreWorkVehicle,jobPay} from '../../../public/game/work-catalog.js';
 import {MAX_RIDE_PROGRESS_SPEED} from '../../../public/game/ride-speed.js';
 import {CITY_DESTINATIONS} from '../../../public/game/city-destinations.js';
 import {canShopHere} from '../../../server/maps/venues';
@@ -13,8 +13,8 @@ import {GOODS,HOMES,JOBS,TERMINALS,propertyId} from '../../../public/game/life-c
 export type LifePlayer={id:string;name:string;life_json:string;revision:number;money:number;energy:number;hunger:number;fun:number;social:number;hygiene:number;xp:number;jobs_done:number;job:string;place_id:string;pos_lng:number|null;pos_lat:number|null;driving:number;last_action_at:number};
 type Flight={from:string;to:string;startedAt:number;endsAt:number};
 type WorkShift={jobId:string;endsAt:number;drove?:boolean;version?:number;id?:string;step?:number;nextTaskAt?:number;vehicle?:string;previousVehicle?:string};
-type Life={career:Record<string,{shifts:number;earned:number}>;lastServiceAt:number;wanted:number;arrested:boolean;arrests:number;lastTheftAt:number;momo:number;health:number;deaths:number;lastTrafficHitAt:number;lastVitalAt:number;lastCrashAt:number;drivingSince:number;transit:Ride|null;home:string;inventory:Record<string,number>;vehicles:string[];vehicle:string;properties:string[];job:string|null;shift:WorkShift|null;flight:Flight|null;outfit:string|null;furnished:string[]};
-export function readLife(p:LifePlayer):Life {let saved;try{saved=JSON.parse(p.life_json||'{}')}catch{saved={}}return {career:{},lastServiceAt:0,wanted:0,arrested:false,arrests:0,lastTheftAt:0,momo:0,health:100,deaths:0,lastTrafficHitAt:0,lastVitalAt:0,lastCrashAt:0,drivingSince:0,transit:null,home:'starter',inventory:{},vehicles:['car'],vehicle:'car',properties:['starter'],job:null,shift:null,flight:null,outfit:null,furnished:[],...saved}}
+type Life={autoDriveRate:number;lastDriveSkipAt:number;career:Record<string,{shifts:number;earned:number}>;lastServiceAt:number;wanted:number;arrested:boolean;arrests:number;lastTheftAt:number;momo:number;health:number;deaths:number;lastTrafficHitAt:number;lastVitalAt:number;lastCrashAt:number;drivingSince:number;transit:Ride|null;home:string;inventory:Record<string,number>;vehicles:string[];vehicle:string;properties:string[];job:string|null;shift:WorkShift|null;flight:Flight|null;outfit:string|null;furnished:string[]};
+export function readLife(p:LifePlayer):Life {let saved;try{saved=JSON.parse(p.life_json||'{}')}catch{saved={}}return {autoDriveRate:1,lastDriveSkipAt:0,career:{},lastServiceAt:0,wanted:0,arrested:false,arrests:0,lastTheftAt:0,momo:0,health:100,deaths:0,lastTrafficHitAt:0,lastVitalAt:0,lastCrashAt:0,drivingSince:0,transit:null,home:'starter',inventory:{},vehicles:['car'],vehicle:'car',properties:['starter'],job:null,shift:null,flight:null,outfit:null,furnished:[],...saved}}
 export function lifeView(p:LifePlayer){const life=readLife(p);return {...life,homeId:propertyId(p.id,life.home),homeName:HOMES.find(h=>h.id===life.home)?.name,apartment:p.id.slice(0,6).toUpperCase()}}
 export const metres=(a:number[],b:number[])=>Math.hypot((a[0]-b[0])*111320*Math.cos(a[1]*Math.PI/180),(a[1]-b[1])*111320);
 const publicCoords:Record<string,number[]>={arts:[-.2033,5.5464],theatre:[-.2047,5.5516],dubois:[-.1698,5.5815],home:[-.1949,5.5682],makola:[-.2141,5.5485],kaneshie:[-.2346,5.5724],osu:[-.1819,5.5598],mall:[-.1738,5.6224],airport:[-.1787,5.6093],labadi:[-.140846,5.561955],legon:[-.1874,5.651]};
@@ -27,7 +27,7 @@ export async function residences(db:D1Database,ownerId?:string){const rows=await
 async function hash(code:string){return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(code)))).map(x=>x.toString(16).padStart(2,'0')).join('')}
 export async function handleLife(db:D1Database,p:LifePlayer,input:Record<string,unknown>,view:(p:any)=>unknown):Promise<Response|null>{
  const type=String(input.type),life=readLife(p),now=Date.now();
- const kinds=['momo','buy','consume','equip','furnish','vehicle-select','job-apply','shift-start','work-task','experience-buy','shift-complete','shift-cancel','property-buy','home-set','pass-create','pass-redeem','pass-revoke','flight-book','flight-arrive','cook-inventory','vitals','crash','respawn','recover','ride-book','ride-progress','ride-skip','ride-exit','ride-social','bus-board','bus-arrive','traffic-hit'];
+ const kinds=['drive-speed','drive-skip','momo','buy','consume','equip','furnish','vehicle-select','job-apply','shift-start','work-task','experience-buy','shift-complete','shift-cancel','property-buy','home-set','pass-create','pass-redeem','pass-revoke','flight-book','flight-arrive','cook-inventory','vitals','crash','respawn','recover','ride-book','ride-progress','ride-skip','ride-exit','ride-social','bus-board','bus-arrive','traffic-hit'];
  if(!kinds.includes(type))return null;
  if((life.health<=0||life.arrested)&&!['respawn','vitals'].includes(type))return fail('Restart at home to continue');
  if(life.transit&&!['respawn','bus-arrive','ride-progress','ride-skip','ride-exit','ride-social','vitals'].includes(type))return fail('Your bus is travelling');
@@ -36,6 +36,24 @@ export async function handleLife(db:D1Database,p:LifePlayer,input:Record<string,
  async function homeAccess(){const property=await propertyInfo(db,p.place_id);return !!property&&!p.driving&&metres([p.pos_lng??0,p.pos_lat??0],property.coords)<=85&&await canEnter(db,p,p.place_id)}
  async function save(touchAction=true){const result=await db.prepare('UPDATE players SET money=?,life_json=?,place_id=?,energy=?,hunger=?,fun=?,social=?,hygiene=?,xp=?,job=?,jobs_done=?,revision=revision+1,last_action_at=?,last_seen_at=? WHERE id=? AND revision=?').bind(next.money,JSON.stringify(life),next.place_id,next.energy,next.hunger,next.fun,next.social,next.hygiene,next.xp,next.job,next.jobs_done,touchAction?now:p.last_action_at,now,p.id,p.revision).run();if(!result.meta.changes)return fail('Your state changed. Please try again.',409);const updated=await db.prepare('SELECT *, (SELECT username FROM accounts WHERE player_id=players.id) AS handle FROM players WHERE id=?').bind(p.id).first();return Response.json({self:view(updated),event,...extra},{headers:{'Cache-Control':'no-store'}})}
 
+ if(type==='drive-speed'||type==='drive-skip'){
+  if(!p.driving||!canUseVehicle(life)||!shiftCanMove(life.shift))return fail('Enter a vehicle before using auto-drive');
+  if(type==='drive-speed'){
+   const rate=Number(input.rate);if(![1,2,4,8].includes(rate))return fail('Choose 1×, 2×, 4× or 8×');
+   life.autoDriveRate=rate;return save(false);
+  }
+  if(now-life.lastDriveSkipAt<2000)return fail('Please wait before skipping another drive',429);
+  const lng=Number(input.lng),lat=Number(input.lat);
+  if(!Number.isFinite(lng)||!Number.isFinite(lat)||lng<-.36||lng>.07||lat<5.43||lat>5.78)return fail('Choose a destination inside Accra');
+  let route;try{route=await roadRoute([p.pos_lng??0,p.pos_lat??0],[lng,lat])}catch{return fail('No road route to this destination. Choose a nearby street.',503)}
+  const end=route.coordinates.at(-1)!,before=route.coordinates.at(-2)||end;
+  const heading=(Math.atan2((end[0]-before[0])*Math.cos(end[1]*Math.PI/180),end[1]-before[1])*180/Math.PI+360)%360;
+  life.lastDriveSkipAt=now;life.autoDriveRate=1;
+  const result=await db.prepare('UPDATE players SET life_json=?,pos_lng=?,pos_lat=?,heading=?,last_move_at=?,last_action_at=?,last_seen_at=?,revision=revision+1 WHERE id=? AND revision=?').bind(JSON.stringify(life),end[0],end[1],heading,now,now,now,p.id,p.revision).run();
+  if(!result.meta.changes)return fail('Your drive changed. Please try again.',409);
+  const updated=await db.prepare('SELECT *, (SELECT username FROM accounts WHERE player_id=players.id) AS handle FROM players WHERE id=?').bind(p.id).first();
+  return Response.json({self:view(updated),event:'Arrived by road. Park and leave the vehicle to explore.'},{headers:{'Cache-Control':'no-store'}});
+ }
  if(type==='momo'){
   if(p.driving||life.shift||!STREET_SERVICES.some(s=>metres([p.pos_lng??0,p.pos_lat??0],[s.lng,s.lat])<=45))return fail('Visit a MoMo agent on foot first');
   const result=exchangeMoMo(p.money,life.momo,Number(input.amount),String(input.operation));if(!result)return fail('Choose a valid amount within your available balance');next.money=result.cash;life.momo=result.balance;event=input.operation==='deposit'?'Game cash deposited into your MoMo balance':'Game cash withdrawn from your MoMo balance';return save();
@@ -51,7 +69,7 @@ export async function handleLife(db:D1Database,p:LifePlayer,input:Record<string,
  if(type==='traffic-hit'||type==='crash'){event='Contact · no health lost';return save(false)}
  if(type==='recover'){if(!p.place_id.startsWith(`p_${p.id}_`)||!await homeAccess())return fail('Rest inside your own home to recover');if(life.health>=100)return fail('You are already healthy');life.health=100;event='Rested and recovered at home';return save()}
  if(type==='respawn'){
-  if(life.health>0&&!life.arrested)return fail('You are still alive');life.wanted=0;life.arrested=false;const home=HOMES.find(h=>h.id===life.home)!;life.health=100;restoreWorkVehicle(life);life.shift=null;life.flight=null;life.transit=null;life.drivingSince=0;life.lastVitalAt=now;
+  if(life.health>0&&!life.arrested)return fail('You are still alive');life.wanted=0;life.arrested=false;const home=HOMES.find(h=>h.id===life.home)!;life.health=100;restoreWorkVehicle(life);life.shift=null;life.flight=null;life.transit=null;life.drivingSince=0;life.autoDriveRate=1;life.lastVitalAt=now;
   const result=await db.prepare('UPDATE players SET life_json=?,pos_lng=?,pos_lat=?,place_id=?,driving=0,energy=80,hunger=80,last_move_at=?,last_action_at=?,last_seen_at=?,revision=revision+1 WHERE id=? AND revision=?').bind(JSON.stringify(life),home.lng,home.lat,propertyId(p.id,home.id),now,now,now,p.id,p.revision).run();if(!result.meta.changes)return fail('Please try again',409);const updated=await db.prepare('SELECT *, (SELECT username FROM accounts WHERE player_id=players.id) AS handle FROM players WHERE id=?').bind(p.id).first();return Response.json({self:view(updated),event:'A new day at home. Your belongings are safe.'});
  }
  if(type==='ride-social'){

@@ -76,3 +76,21 @@ test('commute to a selected job, arrive, start work and earn after the fare',asy
  const paid=await call(guest.cookie,{type:'shift-complete'});assert.equal(paid.status,200);
  assert.equal(paid.body.self.money,200-trip.fare+job.wage);
 });
+
+test('personal driving supports validated speeds and atomic road arrival without a fare',async()=>{
+ const guest=await player('Auto Driver'),[lng,lat]=point('osu');
+ assert.equal((await call(null,{type:'drive-skip',lng,lat})).status,401);
+ assert.equal((await call(guest.cookie,{type:'drive-skip',lng,lat})).status,400,'on-foot skipping is forbidden');
+ at(guest.id,'airport',{driving:1,money:120,life_json:JSON.stringify({vehicles:['car'],vehicle:'car',drivingSince:Date.now()})});
+ assert.equal((await call(guest.cookie,{type:'drive-speed',rate:99})).status,400);
+ const fast=await call(guest.cookie,{type:'drive-speed',rate:8});assert.equal(fast.status,200);assert.equal(fast.body.self.life.autoDriveRate,8);
+ fixture(guest.id,{last_move_at:Date.now()-500});
+ assert.equal((await call(guest.cookie,{type:'move',lng:-.17835,lat:5.6093,heading:90})).status,200,'8x movement is accepted by the HTTP fallback');
+ assert.equal((await call(guest.cookie,{type:'drive-skip',lng:30,lat})).status,400);
+ const arrivals=await Promise.all([call(guest.cookie,{type:'drive-skip',lng,lat}),call(guest.cookie,{type:'drive-skip',lng,lat})]);
+ assert.equal(arrivals.filter(r=>r.status===200).length,1,'arrival commits once');
+ const result=arrivals.find(r=>r.status===200).body.self;
+ assert.equal(result.driving,true);assert.equal(result.money,120);assert.equal(result.life.autoDriveRate,1);
+ assert.ok(Math.hypot((result.lng-lng)*111000,(result.lat-lat)*111000)<85,'arrives on the road near the workplace');
+ const saved=(await call(guest.cookie)).body.self;assert.equal(saved.lng,result.lng);assert.equal(saved.lat,result.lat);
+});

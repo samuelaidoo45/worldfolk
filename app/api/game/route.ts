@@ -152,7 +152,7 @@ export async function POST(request: Request) {
       const seconds=p.last_move_at?Math.min(8,(now-p.last_move_at)/1000):8;
       const distance=distanceKm(playerPosition(p),[lng,lat])*1000;
       const spawnCorrection=input.spawnCorrection===true&&distance<=35&&(p.last_move_at===p.last_action_at||now-p.last_move_at>=8000);
-      if(!spawnCorrection&&distance>2.5+seconds*(p.driving?(12+Math.max(0,(now-(life.drivingSince||now))/1000)*6):7))return json({error:"Move through the city to get there"},400);
+      if(!spawnCorrection&&distance>2.5+seconds*(p.driving?Math.max(12+Math.max(0,(now-(life.drivingSince||now))/1000)*6,life.autoDriveRate>1?22*Math.min(8,life.autoDriveRate)+4:0):7))return json({error:"Move through the city to get there"},400);
       await db.prepare("UPDATE players SET pos_lng=?,pos_lat=?,heading=?,last_move_at=?,last_seen_at=? WHERE id=?").bind(lng,lat,((Math.round(heading)%360)+360)%360,now,now,p.id).run();
       return json({ok:true,lng,lat});
     }
@@ -171,7 +171,7 @@ export async function POST(request: Request) {
       if(entering&&p.driving||!entering&&!p.driving)return json({error:entering?"You are already driving":"You are already on foot"},400);
       if(!Number.isFinite(lng)||!Number.isFinite(lat)||lng<ACCRA_BOUNDS.west||lng>ACCRA_BOUNDS.east||lat<ACCRA_BOUNDS.south||lat>ACCRA_BOUNDS.north)return json({error:"Choose a spot in Accra"},400);
       if(distanceKm(playerPosition(p),[lng,lat])>(entering?0.008:0.004))return json({error:"Move closer to the vehicle"},400);
-      await db.prepare("UPDATE players SET driving=?,pos_lng=?,pos_lat=?,last_move_at=?,last_seen_at=?,life_json=?,revision=revision+1 WHERE id=? AND revision=?").bind(entering?1:0,lng,lat,now,now,JSON.stringify({...life,shift:(life.shift?.vehicle||life.shift?.jobId==='driver')&&entering?{...life.shift,drove:true}:life.shift,drivingSince:entering?now:0}),p.id,p.revision).run();
+      await db.prepare("UPDATE players SET driving=?,pos_lng=?,pos_lat=?,last_move_at=?,last_seen_at=?,life_json=?,revision=revision+1 WHERE id=? AND revision=?").bind(entering?1:0,lng,lat,now,now,JSON.stringify({...life,shift:(life.shift?.vehicle||life.shift?.jobId==='driver')&&entering?{...life.shift,drove:true}:life.shift,drivingSince:entering?now:0,autoDriveRate:1}),p.id,p.revision).run();
       const updated=await db.prepare("SELECT *, (SELECT username FROM accounts WHERE player_id=players.id) AS handle FROM players WHERE id=?").bind(p.id).first<Player>();
       return json({self:view(updated!)});
     }

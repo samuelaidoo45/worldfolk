@@ -30,10 +30,28 @@ test('mapped building class, height and colours override neighbourhood guesses',
  const geometry={type:'Polygon',coordinates:[[p(-5,-5),p(5,-5),p(5,5),p(-5,5),p(-5,-5)]]},feature={id:3,geometry,properties:{class:'house',height:3.6,'building:colour':'#b68055','roof:colour':'#8b4e36'}};
  const style=buildingStyle(feature),design=buildingDesign(feature);assert.equal(style.style,'plaster');assert.equal(style.height,3.6);assert.equal(style.roof,'flat');assert.equal(design.palette.wall,'#b68055');assert.equal(design.palette.roof,'#8b4e36');
 });
-test('ambient traffic pulls aside for a public transport corridor without teleporting',()=>{
+test('retired traffic pulls aside for a priority corridor without teleporting',()=>{
  const line=[p(0,-150),p(0,150)],physics={...free,count:1,collision:()=>null};const city=createCityLife({querySourceFeatures:()=>[{geometry:{type:'LineString',coordinates:line},properties:{class:'motorway'}}]},physics);
- city.tick(.016,p(50,0),3000);const npc=city.actors.find(n=>n.driving);assert.ok(npc);for(const n of city.actors)n.position=p(1000,1000);Object.assign(npc,{position:p(1.6,25),heading:0,side:1.6,width:9,speed:0});
+ city.tick(.016,p(50,0),3000);const npc=city.actors.find(n=>n.driving);assert.ok(npc);for(const n of city.actors)n.position=p(1000,1000);Object.assign(npc,{position:p(1.6,25),heading:0,side:1.6,width:9,speed:0,retired:true});
  for(let i=0;i<120;i++){city.setPriority(origin,0,3001+i);const before=[...npc.position];city.tick(1/60,origin,3001+i,'transit');assert.ok(distanceMetres(before,npc.position)<.1)}assert.ok(npc.side>4.3);
 });
 
 test('an interior loads before nearby building tiles arrive',()=>{const d=interiorDesign({lng:origin[0],lat:origin[1],type:'home'},[]);assert.ok(d.palette.wall);});
+
+test('auto-drive can turn toward a route behind the parked car',()=>{
+ const coords=[origin,p(0,120)];let pos=p(1.25,0),speed=0,steer=0,heading=180,done=false;
+ for(let i=0;i<7000;i++){const input=autoDriveInput(coords,pos,heading,speed),next=stepCar(speed,steer,heading,input.throttle,input.turn,input.brake,1/60);({speed,steer,heading}=next);const a=heading*Math.PI/180;pos=offsetMetres(pos,Math.sin(a)*speed/60,Math.cos(a)*speed/60);if(input.done&&speed<.2){done=true;break}}
+ assert.ok(done,JSON.stringify({pos,speed,heading}));assert.ok(distanceMetres(pos,coords.at(-1))<7);
+});
+test('stopped traffic allows gentle recovery but red lights never do',async()=>{
+ const {autoTrafficControl}=await import('../public/game/auto-drive.js');let waiting=0,result;
+ for(let i=0;i<180;i++){result=autoTrafficControl({throttle:1,turn:0,brake:false},0,0,Infinity,waiting,1/60);waiting=result.waiting}
+ assert.equal(result.throttle,1);assert.equal(result.brake,false);
+ const moving=autoTrafficControl({throttle:1,turn:0,brake:false},.5,0,Infinity,waiting,1/60);assert.equal(moving.throttle,1);assert.equal(moving.brake,false);
+ result=autoTrafficControl({throttle:1,turn:0,brake:false},0,0,0,waiting,1/60);assert.equal(result.throttle,0);assert.equal(result.waiting,0);
+});
+test('4x and 8x advance the same car simulation faster without larger physics steps',()=>{
+ const coords=[origin,p(0,200)];
+ function simulate(rate){let pos=p(1.25,0),speed=0,steer=0,heading=0;for(let frame=0;frame<120;frame++)for(let sub=0;sub<rate;sub++){const input=autoDriveInput(coords,pos,heading,speed),next=stepCar(speed,steer,heading,input.throttle,input.turn,input.brake,1/60);({speed,steer,heading}=next);const a=heading*Math.PI/180;pos=offsetMetres(pos,Math.sin(a)*speed/60,Math.cos(a)*speed/60)}return distanceMetres(origin,pos)}
+ assert.ok(simulate(4)>simulate(1)*4);assert.ok(simulate(8)>simulate(4));
+});

@@ -10,7 +10,7 @@ export const playerHeader=(player:WorldPlayer)=>JSON.stringify(player).replace(/
 type Member = { player:WorldPlayer; at:number; savedAt:number; dirty:boolean; lastPacket:number; lastSync?:number; room:string };
 export function roomFor(lng:number,lat:number){return `accra:${Math.floor((lng+.36)/.02)}:${Math.floor((lat-5.43)/.02)}`}
 function life(p:WorldPlayer){try{return JSON.parse(p.life_json||'{}')}catch{return {}}}
-function compact(p:WorldPlayer):WorldPlayer{const l=life(p);return {id:p.id,session_token:p.session_token,session_expires_at:p.session_expires_at,name:p.name,handle:p.handle,avatar:p.avatar,place_id:p.place_id,pos_lng:p.pos_lng,pos_lat:p.pos_lat,heading:p.heading,driving:p.driving,revision:p.revision,last_move_at:p.last_move_at,last_action_at:p.last_action_at,life_json:JSON.stringify({arrested:!!l.arrested,health:l.health??100,vehicle:l.vehicle,drivingSince:l.drivingSince,shift:l.shift?{jobId:l.shift.jobId,version:l.shift.version}:null,flight:!!l.flight,transit:!!l.transit})}}
+function compact(p:WorldPlayer):WorldPlayer{const l=life(p);return {id:p.id,session_token:p.session_token,session_expires_at:p.session_expires_at,name:p.name,handle:p.handle,avatar:p.avatar,place_id:p.place_id,pos_lng:p.pos_lng,pos_lat:p.pos_lat,heading:p.heading,driving:p.driving,revision:p.revision,last_move_at:p.last_move_at,last_action_at:p.last_action_at,life_json:JSON.stringify({arrested:!!l.arrested,health:l.health??100,vehicle:l.vehicle,drivingSince:l.drivingSince,autoDriveRate:l.autoDriveRate,shift:l.shift?{jobId:l.shift.jobId,version:l.shift.version}:null,flight:!!l.flight,transit:!!l.transit})}}
 function publicPlayer(p:WorldPlayer){const l=life(p);return {id:p.id,revision:p.revision,name:p.name,handle:p.handle,avatar:p.avatar,placeId:p.place_id,lng:p.pos_lng,lat:p.pos_lat,heading:p.heading,driving:!!p.driving,vehicle:l.vehicle,health:l.health??100}}
 export function validMove(m:Member,input:Record<string,unknown>,now:number){
   const {lng,lat,heading}=input;
@@ -19,7 +19,7 @@ export function validMove(m:Member,input:Record<string,unknown>,now:number){
   const metres=Math.hypot((lng-p.pos_lng)*111320*Math.cos(lat*Math.PI/180),(lat-p.pos_lat)*111320);
   const seconds=Math.min(8,Math.max(0,(now-m.at)/1000));
   const correction=input.spawnCorrection===true&&metres<=35&&(p.last_move_at===p.last_action_at||now-m.at>=8000);
-  return correction||metres<=2.5+seconds*(p.driving?12+Math.max(0,(now-(l.drivingSince||now))/1000)*6:7);
+  return correction||metres<=2.5+seconds*(p.driving?Math.max(12+Math.max(0,(now-(l.drivingSince||now))/1000)*6,l.autoDriveRate>1?22*Math.min(8,l.autoDriveRate)+4:0):7);
 }
 
 // Each geographic room owns a bounded set of live sockets. Durable progress remains in D1.

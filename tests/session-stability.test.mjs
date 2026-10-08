@@ -50,3 +50,11 @@ test('task-based workers can move between assignments and still cannot teleport'
  assert.equal(validMove(f.m,{lng:-.17993,lat:5.56,heading:0},2300),true);
  assert.equal(validMove(f.m,{lng:-.1,lat:5.56,heading:0},2300),false);
 });
+
+test('validated auto-drive speeds allow fast-forward without allowing walking teleports',async()=>{
+ const f=fixture(),now=2300;f.m.player.driving=1;
+ for(const rate of [4,8]){f.m.player.life_json=JSON.stringify({health:100,drivingSince:2000,autoDriveRate:rate});assert.equal(validMove(f.m,{lng:f.m.player.pos_lng+rate*.000045,lat:5.56,heading:90},now),true)}
+ f.m.player.driving=0;assert.equal(validMove(f.m,{lng:f.m.player.pos_lng+.00036,lat:5.56,heading:90},now),false);
+ f.m.player.driving=1;assert.equal(validMove(f.m,{lng:-.1,lat:5.56,heading:90},now),false);
+ f.row.driving=1;f.row.life_json=JSON.stringify({health:100,autoDriveRate:8});await f.room.reload(f.ws,f.m);assert.equal(JSON.parse(f.ws.deserializeAttachment().player.life_json).autoDriveRate,8);
+});

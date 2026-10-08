@@ -126,3 +126,5 @@ body.touch-device.roam-mode[data-interface-size='compact'] .navigation-card p {-
 body.touch-device.roam-mode[data-interface-size='compact'] .game-minimap .minimap-toggle {right:-12px;top:-12px}
 body.touch-device.roam-mode[data-interface-size='compact'] .ride-summary {min-height:48px;padding:6px 8px}
 body.touch-device.roam-mode[data-interface-size='compact'][data-display-orientation='landscape'] .vehicle-button {bottom:calc(var(--safe-bottom) + 60px)}
+
+.navigation-card .nav-drive-tools{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}.navigation-card .nav-drive-tools.hidden{display:none}.nav-drive-tools button{flex:1;min-height:40px;padding:6px;border:1px solid #91b7a5;border-radius:8px;background:#21493e;color:white;font:600 11px inherit}.nav-drive-tools button:disabled{opacity:.5}.touch-device .nav-drive-tools button{min-height:44px}
