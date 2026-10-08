@@ -104,3 +104,14 @@ test('tangent escape works from a slightly overlapping vehicle footprint',async(
  const r=moveAroundObstacles(from,to,[box],(a,b)=>({position:b,blocked:false}));
  assert.ok(distanceMetres(r.position,to)<.01,'parallel motion can escape an existing overlap');
 });
+
+test('chase camera contracts before a wall and extends smoothly after clearing it',async()=>{
+ const {chaseCamera}=await import('../public/game/chase-camera.js');
+ const wall={collision:p=>distanceMetres(origin,p)>1.8?{height:8}:null};
+ const close=chaseCamera({position:origin,heading:0,physics:wall,previousDistance:7});
+ assert.ok(close.distance<1.8);assert.equal(wall.collision(close.from),null);
+ const clear=chaseCamera({position:origin,heading:0,physics:{collision:()=>null},previousDistance:close.distance});
+ assert.ok(clear.distance>close.distance&&clear.distance<7);
+ const scenic=chaseCamera({position:origin,heading:90,physics:{collision:()=>null},scenic:true});
+ assert.equal(scenic.distance,20);assert.ok(scenic.altitude>7);
+});

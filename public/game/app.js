@@ -1,3 +1,4 @@
+import {chaseCamera} from './chase-camera.js';
 import {installGroundDetail} from './ground-detail.js';
 import {createSceneLoading} from './scene-loading.js';
 import {PUBLIC_VENUES} from './public-venues.js';
@@ -115,7 +116,7 @@ function initMap(){
   const Engine=window.maplibregl;
   if(!Engine){toast('Could not load the map library. Check your connection.');return}
   state.engine=Engine;
-  const options={container:'map',center:[-0.1905,5.5704],zoom:12.7,minZoom:10,pitch:28,bearing:0,maxZoom:24,maxPitch:78,canvasContextAttributes:{antialias:true},maxBounds:[[-.39,5.41],[.11,5.82]],style:cityMapStyle()};
+  const options={container:'map',center:[-0.1905,5.5704],zoom:12.7,minZoom:10,pitch:28,bearing:0,maxZoom:26,maxPitch:78,canvasContextAttributes:{antialias:true},maxBounds:[[-.39,5.41],[.11,5.82]],style:cityMapStyle()};
   state.map=new Engine.Map(options);
   state.sceneLoading=createSceneLoading(state.map,()=>state.mode);
   const canvas=state.map.getCanvas();let looking=false,lastLook=null;canvas.addEventListener('contextmenu',e=>{if(state.roam)e.preventDefault()});canvas.addEventListener('pointerdown',e=>{if(e.button!==2||!state.roam||state.view==='2d')return;looking=true;lastLook=[e.clientX,e.clientY];canvas.setPointerCapture(e.pointerId)});canvas.addEventListener('pointermove',e=>{if(!looking)return;const dx=e.clientX-lastLook[0],dy=e.clientY-lastLook[1];lastLook=[e.clientX,e.clientY];if(state.mode==='indoor'){state.interior?.look?.(-dx*.2,dy*.12);return}if(state.mode==='walk')state.cameraBearing-=dx*.2;else state.lookOffset=(state.lookOffset||0)-dx*.2;state.lookPitch=Math.max(-18,Math.min(3,(state.lookPitch||0)+dy*.12))});for(const event of ['pointerup','pointercancel'])canvas.addEventListener(event,()=>{looking=false});
@@ -236,13 +237,11 @@ function followCamera(force=false,dt=1/60){
   if(force||!state.cameraPosition){state.cameraPosition=[...state.position];state.cameraHeading=state.cameraBearing}
   state.cameraPosition=state.cameraPosition.map((v,i)=>damp(v,state.position[i],12,dt));
   state.cameraHeading=turnToward(state.cameraHeading,state.cameraBearing+(state.lookOffset||0),6,dt);
-  const angle=state.cameraHeading*Math.PI/180,ahead=state.scenicCamera?6:state.mode==='drive'||state.mode==='transit'?(state.cabinView?12:12+Math.min(18,Math.abs(state.carSpeed)*.2)):7;
-  const center=offsetMetres(state.cameraPosition,Math.sin(angle)*ahead,Math.cos(angle)*ahead);
-  let obstructed=state.cameraObstructed||false;if(force||performance.now()-(state.lastObstructionCheck||0)>250){state.lastObstructionCheck=performance.now();obstructed=false;for(let d=2;d<=14;d+=2){if(state.physics?.collision(offsetMetres(state.position,-Math.sin(angle)*d,-Math.cos(angle)*d),.3)){obstructed=true;break}}state.cameraObstructed=obstructed;}
-  const scenic=state.scenicCamera,targetPitch=state.cabinView?78:scenic?60:obstructed?68:74,baseZoom=state.cabinView?23.3:scenic?20.7:obstructed?22.5:state.mode==='transit'?21.15:state.mode==='drive'?21.75:22.2;
-  const targetZoom=baseZoom+Math.min(0,Math.log2(Math.max(240,innerHeight)/800));
-  state.cameraPitch=force?targetPitch:damp(state.cameraPitch??targetPitch,targetPitch,5,dt);state.cameraZoom=force?targetZoom:damp(state.cameraZoom??targetZoom,targetZoom,5,dt);
-  const bump=['drive','transit'].includes(state.mode)?state.roadSurface?.sample():null;state.world3d?.setRoadJolt(bump?.bounce||0,bump?.roll||0);state.map.jumpTo({center,zoom:state.cameraZoom,pitch:Math.max(0,Math.min(78,state.cameraPitch+(bump?.pitch||0))),bearing:state.cameraHeading});
+  const pose=chaseCamera({position:state.position,heading:state.cameraHeading,physics:state.physics,driving:['drive','transit'].includes(state.mode),scenic:state.scenicCamera,cabin:state.cabinView,speed:state.carSpeed,previousDistance:force?undefined:state.cameraDistance,dt});
+  state.cameraDistance=pose.distance;state.world3d?.setCameraDistance(pose.distance);
+  const bump=['drive','transit'].includes(state.mode)?state.roadSurface?.sample():null;state.world3d?.setRoadJolt(bump?.bounce||0,bump?.roll||0);
+  const camera=state.map.calculateCameraOptionsFromTo(pose.from,pose.altitude+(bump?.bounce||0)*.4,pose.to,pose.targetAltitude);
+  state.map.jumpTo({...camera,pitch:Math.max(0,Math.min(78,camera.pitch+(bump?.pitch||0)+(state.lookPitch||0))),bearing:state.cameraHeading});
 }
 function openDrivingHeading(position){if(!state.physics?.count)return state.heading;let best=state.heading,bestDistance=-1;for(let heading=0;heading<360;heading+=30){const angle=heading*Math.PI/180;let distance=0;for(let metres=2;metres<=16;metres+=2){const point=[position[0]+Math.sin(angle)*metres/(111320*Math.cos(position[1]*Math.PI/180)),position[1]+Math.cos(angle)*metres/111320];if(state.physics.collision(point,1.15))break;distance=metres}if(distance>bestDistance){best=heading;bestDistance=distance}}return best}
 function enterRoam(){
