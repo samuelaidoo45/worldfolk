@@ -37,36 +37,98 @@
 .roam-mode .life-drawer,.roam-mode .world-panel{top:16px;bottom:82px;max-height:none}
 .roam-mode.game-menu-open .roam-prompt,.roam-mode.game-menu-open .vehicle-button{visibility:hidden}
 @media(max-width:1050px),(max-height:600px){.roam-mode{--radar-size:140px;--hud-left:max(12px,env(safe-area-inset-left));--hud-right:max(12px,env(safe-area-inset-right));--hud-bottom:max(20px,env(safe-area-inset-bottom))}.roam-mode .roam-status{width:155px;padding:7px}.roam-mode .roam-status strong{font-size:12px}.roam-mode .navigation-card{width:190px;bottom:calc(var(--hud-bottom) + 130px)}}
-/* Landscape phone: radar beside the movement thumb, actions beside the other. */
-.touch-device.roam-mode{--radar-size:112px;--hud-left:calc(var(--safe-left) + 112px);--hud-right:var(--safe-right);--hud-bottom:var(--safe-bottom)}
-.touch-device.roam-mode .topbar{display:none!important}
-.touch-device.roam-mode .game-minimap{left:var(--hud-left);top:auto;bottom:var(--hud-bottom);width:var(--radar-size)}
-.touch-device .game-minimap .minimap-open canvas{height:100%}.touch-device .game-minimap .minimap-open{min-height:0}.touch-device .game-minimap .minimap-toggle{width:44px;height:44px;min-height:44px;top:-10px;right:-8px;font-size:23px}
-.touch-device .game-minimap .minimap-places{display:block;min-height:26px;font-size:9px}.touch-device .game-minimap .minimap-caption{font-size:9px;padding:0}
-.touch-device.roam-mode .game-minimap.collapsed{width:44px;height:44px}.touch-device .game-minimap.collapsed .minimap-toggle{inset:0}
-.touch-device.roam-mode .roam-status,.touch-device.roam-mode:not(.minimap-enabled) .roam-status,.touch-device.roam-mode.indoor-mode .roam-status{left:var(--hud-left);top:auto;bottom:calc(var(--hud-bottom) + 151px);width:140px;max-width:24vw;padding:6px;background:#071c2480;border:0;border-radius:8px}
-.touch-device.roam-mode:not(.minimap-enabled) .roam-status,.touch-device.roam-mode.indoor-mode .roam-status{bottom:calc(var(--hud-bottom) + 54px)}
-.touch-device.roam-mode .roam-status strong{font-size:11px}.touch-device.roam-mode .roam-status>span:nth-child(3){display:none}.touch-device.roam-mode .roam-status .roam-speed{font-size:17px;margin-bottom:3px}
-.touch-device.roam-mode .roam-status .roam-meter{display:flex;width:auto;margin:4px 0 0}.touch-device.roam-mode .roam-meter span{width:30px;font-size:7px}.touch-device.roam-mode .roam-status #wantedLevel{font-size:10px;margin-top:3px}
-.touch-device.roam-mode .joystick-pad{width:96px;height:96px}
-.touch-device.roam-mode .mobile-menu-toggle{top:auto;bottom:calc(var(--safe-bottom) + 132px);right:var(--safe-right);width:44px;height:44px;border-radius:50%}
-.touch-device.roam-mode .roam-chat-toggle{display:block!important;right:calc(var(--safe-right) + 54px);bottom:calc(var(--safe-bottom) + 132px);width:44px;height:44px;font-size:0;padding:0}
-.touch-device.roam-mode .mobile-game-menu:not(.hidden){top:var(--safe-top);bottom:calc(var(--safe-bottom) + 56px);right:var(--safe-right);max-height:none;width:min(320px,calc(100vw - 32px))}
-.touch-device.roam-mode .vehicle-button{right:var(--safe-right);bottom:calc(var(--safe-bottom) + 186px);width:132px;max-width:none;min-height:44px;font-size:10px}
-.touch-device.roam-mode .roam-hud[data-mode='drive'] .vehicle-button{bottom:calc(var(--safe-bottom) + 186px)}
-.touch-device.roam-mode .roam-prompt{left:auto;right:var(--safe-right);bottom:calc(var(--safe-bottom) + 238px);transform:none;width:150px;max-width:25vw;min-width:0;padding:7px;font-size:10px}
-.touch-device.roam-mode.indoor-mode .roam-prompt{bottom:calc(var(--safe-bottom) + 186px)}
-.touch-device.roam-mode .navigation-card{left:var(--hud-left);top:auto;bottom:calc(var(--safe-bottom) + 254px);width:170px;max-width:28vw;padding:5px 7px;transform:none}.touch-device.roam-mode .navigation-card .nav-title,.touch-device.roam-mode .navigation-card .nav-arrow{display:none}.touch-device.roam-mode .navigation-card p{font-size:9px;max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.touch-device.roam-mode .navigation-card .nav-cancel{width:32px;height:32px}
-.touch-device.roam-mode .connection-status{display:none}
-.touch-device.roam-mode .touch-look{left:42%;right:160px;top:10%;bottom:110px}
-@media(orientation:landscape) and (max-height:350px){.touch-device.roam-mode{--radar-size:96px}.touch-device.roam-mode .roam-status{bottom:calc(var(--safe-bottom) + 134px)}.touch-device.roam-mode .navigation-card{bottom:calc(var(--safe-bottom) + 231px)}.touch-device.roam-mode .roam-prompt{bottom:calc(var(--safe-bottom) + 233px)}}
+/* Touch layout: movement left, actions right, a free centre in both orientations. */
+.touch-device.roam-mode{--radar-size:112px;--hud-left:var(--safe-left);--hud-right:var(--safe-right);--hud-bottom:var(--safe-bottom);--thumb-size:112px}
+.touch-device.roam-mode .touch-controls{z-index:25}
+.touch-device.roam-mode .joystick-pad{width:var(--thumb-size);height:var(--thumb-size)}
+.joystick-pad::after{content:'MOVE';position:absolute;bottom:8px;left:0;right:0;text-align:center;font-size:8px;letter-spacing:.1em;color:#d9e9e0;pointer-events:none}
+[data-travel='drive'] .joystick-pad::after{content:'STEER / DRIVE'}
+.touch-device .touch-right{grid-template-columns:64px 76px;gap:8px}
+.touch-device .touch-turn button{width:48px;height:48px}
+.touch-device .touch-interact{width:76px;height:64px;font-size:12px}
+.touch-device .touch-extras button{min-width:64px;min-height:52px;font-size:12px}
+.touch-device.roam-mode .game-minimap{left:var(--safe-left);top:auto;bottom:calc(var(--safe-bottom) + 140px);width:var(--radar-size)}
+.touch-device .game-minimap .minimap-open canvas{height:100%}
+.touch-device .game-minimap .minimap-toggle{width:44px;height:44px;min-height:44px;top:-8px;right:-8px;font-size:23px}
+.touch-device .game-minimap .minimap-places{min-height:26px;font-size:10px}
+.touch-device .game-minimap .minimap-caption{font-size:10px;padding:0}
+.touch-device.roam-mode .game-minimap.collapsed{width:44px;height:44px}
+.touch-device .game-minimap.collapsed .minimap-toggle{inset:0}
+.touch-device.roam-mode .roam-status,.touch-device.roam-mode:not(.minimap-enabled) .roam-status,.touch-device.roam-mode.indoor-mode .roam-status,.touch-device.roam-mode.map-play .roam-status{left:var(--safe-left);top:var(--safe-top);bottom:auto;width:190px;max-width:calc(50vw - 20px);padding:8px;background:#071c248c;border:0;border-radius:10px}
+.touch-device.roam-mode .roam-status strong{font-size:12px}
+.touch-device.roam-mode .roam-status>span:nth-child(3){display:none}
+.touch-device.roam-mode .roam-status .roam-speed{font-size:20px;margin:3px 0}
+.touch-device.roam-mode .roam-status .roam-meter{display:flex;width:auto;margin:4px 0 0}
+.touch-device.roam-mode .roam-meter span{width:32px;font-size:8px}
+.touch-device.roam-mode .roam-status #wantedLevel{font-size:10px;margin-top:3px}
+.touch-device.roam-mode .mobile-menu-toggle,.touch-device.roam-mode .roam-chat-toggle,.touch-device.roam-mode .view-mode-button{top:auto;bottom:calc(var(--safe-bottom) + 132px);width:44px;height:44px;border-radius:50%}
+.touch-device.roam-mode .mobile-menu-toggle{right:var(--safe-right)}
+.touch-device.roam-mode .roam-chat-toggle{display:block!important;right:calc(var(--safe-right) + 52px);font-size:0;padding:0}
+.touch-device.roam-mode .view-mode-button{right:calc(var(--safe-right) + 104px)}
+.touch-device.roam-mode .vehicle-button,.touch-device.roam-mode .roam-hud[data-mode='drive'] .vehicle-button{right:var(--safe-right);bottom:calc(var(--safe-bottom) + 188px);width:148px;max-width:none;min-height:48px;font-size:11px}
+.touch-device.roam-mode .roam-hud[data-mode='drive'] .vehicle-button{display:none!important} /* Exit is the primary action while driving. */
+.touch-device.roam-mode .roam-prompt,.touch-device.roam-mode.indoor-mode .roam-prompt{left:auto;right:var(--safe-right);bottom:calc(var(--safe-bottom) + 246px);transform:none;width:148px;max-width:none;min-width:0;padding:8px;font-size:11px;pointer-events:none}
+.touch-device.roam-mode .navigation-card,.touch-device.roam-mode.map-play .navigation-card{left:auto;right:var(--safe-right);top:var(--safe-top);bottom:auto;width:220px;max-width:calc(50vw - 20px);padding:8px;transform:none}
+.touch-device.roam-mode .navigation-card .nav-title{font-size:11px;padding-right:40px;overflow-wrap:anywhere}
+.touch-device.roam-mode .navigation-card .nav-arrow{display:none}
+.touch-device.roam-mode .navigation-card p{font-size:10px;max-width:none;white-space:normal;margin:4px 0}
+.touch-device.roam-mode .navigation-card .nav-cancel{width:44px;height:44px}
+.touch-device.roam-mode .navigation-card .nav-auto{min-height:44px;font-size:11px}
+.touch-device.roam-mode .connection-status,.touch-device.roam-mode .road-warning{display:none!important}
+.touch-device.roam-mode .touch-look{left:25%;right:25%;top:25%;bottom:140px}
+.touch-device.roam-mode.map-play .overhead-tools{left:var(--safe-left);bottom:calc(var(--safe-bottom) + var(--thumb-size) + 48px);flex-direction:column}
+.touch-device.roam-mode .mobile-game-menu:not(.hidden){top:calc(var(--visible-top,0px) + var(--safe-top));bottom:auto;right:var(--safe-right);max-height:calc(var(--visible-height,100dvh) - var(--safe-top) - var(--safe-bottom));width:min(360px,calc(100vw - var(--safe-left) - var(--safe-right)))}
+.game-menu-close{grid-column:1/-1;justify-content:space-between;font-weight:700}
+.roam-mode.game-menu-open .mobile-menu-toggle,.touch-device.mobile-panel-open .mobile-menu-toggle{visibility:hidden}
+.touch-device.mobile-paused .game-minimap,.touch-device.mobile-paused .roam-status,.touch-device.mobile-paused .navigation-card,.touch-device.mobile-paused .overhead-tools,.touch-device.mobile-paused .view-mode-button,.touch-device.mobile-paused .roam-chat-toggle{visibility:hidden}
+.touch-device.roam-mode .life-drawer,.touch-device.roam-mode .world-panel,.touch-device.roam-mode .destination-panel,.touch-device.roam-mode .roam-action-menu,.touch-device.roam-mode .right-stack.roam-chat-open{top:calc(var(--visible-top,0px) + var(--safe-top));bottom:auto;left:auto;right:var(--safe-right);width:min(420px,calc(100vw - var(--safe-left) - var(--safe-right)));height:calc(var(--visible-height,100dvh) - var(--safe-top) - var(--safe-bottom));max-height:none;overflow:auto}
+.touch-device .right-stack.roam-chat-open .chat-panel{height:100%;min-height:0}
+.touch-device .destination-panel input,.touch-device .world-panel input,.touch-device #chatInput,.touch-device input,.touch-device select,.touch-device textarea{font-size:16px}
+.touch-device .life-shift,.touch-device .resident-dialogue{max-width:calc(100vw - 32px);bottom:calc(var(--safe-bottom) + 310px)}
+.touch-device .toast{top:calc(var(--safe-top) + 120px);bottom:auto;max-width:calc(100vw - 32px)}
+.touch-device button:focus-visible{outline:3px solid #ffd16c;outline-offset:3px}
+@media(orientation:landscape){
+ .touch-device.roam-mode .game-minimap{left:calc(var(--safe-left) + var(--thumb-size) + 16px);bottom:var(--safe-bottom)}
+ .touch-device.roam-mode .navigation-card,.touch-device.roam-mode.map-play .navigation-card{left:50%;right:auto;transform:translateX(-50%);max-width:calc(100vw - 440px);width:250px}
+ .touch-device.roam-mode .navigation-card .nav-title{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ .touch-device.roam-mode .navigation-card p{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ .touch-device.roam-mode.map-play .overhead-tools{left:calc(var(--safe-left) + var(--thumb-size) + 16px);bottom:var(--safe-bottom);flex-direction:row}
+ .touch-device .toast{top:var(--safe-top);max-width:45vw}
+}
+@media(orientation:landscape) and (max-height:420px){
+ .touch-device.roam-mode{--thumb-size:96px;--radar-size:96px}
+ .touch-device.roam-mode .roam-status{width:170px;padding:6px}
+ .touch-device.roam-mode .roam-status .roam-meter{display:inline-flex;width:46%;margin-right:3%}
+ .touch-device.roam-mode .roam-status .roam-meter span{width:28px}
+ .touch-device.roam-mode .roam-prompt{bottom:calc(var(--safe-bottom) + 240px)}
+ .touch-device.roam-mode .navigation-card{padding:6px}
+}
+@media(orientation:portrait) and (min-width:600px){
+ .touch-device.roam-mode{--thumb-size:132px;--radar-size:144px}
+ .touch-device.roam-mode .touch-controls{bottom:calc(var(--safe-bottom) + 12px)}
+ .touch-device.roam-mode .game-minimap{bottom:calc(var(--safe-bottom) + 170px)}
+}
+/* Small mouse/keyboard windows keep the same clear centre. */
+@media(max-width:600px){
+ .roam-mode:not(.touch-device){--radar-size:112px}
+ .roam-mode:not(.touch-device) .roam-status{top:12px;bottom:auto;left:12px;max-width:45vw}
+ .roam-mode:not(.touch-device) .navigation-card{left:auto;right:12px;top:12px;bottom:auto;max-width:45vw}
+ .roam-mode:not(.touch-device) .roam-prompt,.roam-mode:not(.touch-device) .vehicle-button{max-width:46vw}
+ .roam-mode:not(.touch-device) .view-mode-button{bottom:calc(var(--hud-bottom) + 170px);right:var(--hud-right)}
+ .roam-mode:not(.touch-device) .run-toggle-button{bottom:calc(var(--hud-bottom) + 170px);right:calc(var(--hud-right) + 56px)}
+}
 
 .mobile-game-menu button:disabled{opacity:.42;cursor:not-allowed}.mobile-game-menu button:focus-visible,.mobile-menu-toggle:focus-visible{outline:3px solid #ffd16c;outline-offset:2px}
-/* Passenger controls use the free thumb zones without covering the radar. */
-.touch-device.roam-mode.transit-mode .game-minimap{left:var(--safe-left)}
-.touch-device.roam-mode.transit-mode .ride-console{left:calc(var(--safe-left) + var(--radar-size) + 12px);right:calc(var(--safe-right) + 64px);width:auto;transform:none;bottom:var(--safe-bottom)}
-.touch-device.roam-mode.transit-mode .mobile-menu-toggle{bottom:calc(var(--safe-bottom) + 112px)}
-.touch-device.roam-mode.transit-mode .roam-chat-toggle{right:var(--safe-right);bottom:calc(var(--safe-bottom) + 58px)}
+/* Passenger actions scroll within their own tray rather than covering the road. */
+.touch-device.roam-mode.transit-mode .game-minimap{left:var(--safe-left);bottom:calc(var(--safe-bottom) + 184px)}
+.touch-device.roam-mode.transit-mode .ride-console{left:var(--safe-left);right:var(--safe-right);width:auto;transform:none;bottom:var(--safe-bottom);padding:10px;max-height:164px;overflow:auto}
+.touch-device .ride-controls{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;overscroll-behavior-x:contain}
+.touch-device .ride-controls button{min-height:48px;flex:0 0 auto}
+.touch-device .ride-conversation{max-height:38px;overflow:auto}
+.touch-device.roam-mode.transit-mode .mobile-menu-toggle,.touch-device.roam-mode.transit-mode .roam-chat-toggle,.touch-device.roam-mode.transit-mode .view-mode-button{bottom:calc(var(--safe-bottom) + 184px)}
+.touch-device.roam-mode.transit-mode .passenger-window{inset:0 0 176px;border-width:10px 14px}
+.touch-device.mobile-paused .ride-console{visibility:hidden}
+@media(orientation:landscape){.touch-device.roam-mode.transit-mode .game-minimap{bottom:var(--safe-bottom)}.touch-device.roam-mode.transit-mode .ride-console{left:calc(var(--safe-left) + var(--radar-size) + 16px);right:calc(var(--safe-right) + 56px);max-height:140px}.touch-device.roam-mode.transit-mode .mobile-menu-toggle{bottom:calc(var(--safe-bottom) + 104px)}.touch-device.roam-mode.transit-mode .roam-chat-toggle{right:var(--safe-right);bottom:calc(var(--safe-bottom) + 52px)}.touch-device.roam-mode.transit-mode .view-mode-button{right:var(--safe-right);bottom:var(--safe-bottom)}}
 
 /* The overhead camera is another playable view of the same world. */
 .overhead-actors,.overhead-tools{display:none}
@@ -88,12 +150,6 @@
 .map-play .touch-look,.map-play .vehicle-cabin,.map-play .ride-cabin-scene,.map-play .passenger-window{display:none!important}
 .map-play .touch-turn{visibility:hidden}
 .touch-device.roam-mode .run-toggle-button{display:none}
-.touch-device.roam-mode .view-mode-button{right:calc(var(--safe-right) + 108px);bottom:calc(var(--safe-bottom) + 132px);width:44px;height:44px}
-.touch-device.roam-mode.map-play .roam-status{left:var(--hud-left);bottom:calc(var(--safe-bottom) + 12px)}
-.touch-device.roam-mode.map-play .overhead-tools{left:var(--hud-left);bottom:calc(var(--safe-bottom) + 116px)}
-.touch-device.roam-mode.map-play .navigation-card{bottom:calc(var(--safe-bottom) + 170px)}
-.touch-device.roam-mode.map-play.transit-mode .roam-status,.touch-device.roam-mode.map-play.transit-mode .overhead-tools{left:var(--safe-left)}
-
 /* Current location stays readable beside the radar in every travel mode. */
 .roam-mode .roam-status .roam-kicker{display:block;font-size:8px;line-height:1.4;letter-spacing:.08em;color:#a7e2d0;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;margin-bottom:4px}
 .touch-device.roam-mode .roam-status .roam-kicker{font-size:7px;margin-bottom:3px}
