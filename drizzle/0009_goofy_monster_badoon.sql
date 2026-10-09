@@ -1,0 +1,1 @@
+CREATE INDEX `players_presence` ON `players` (`last_seen_at`,`session_expires_at`);

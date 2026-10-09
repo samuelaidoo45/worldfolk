@@ -1,3 +1,6 @@
+import {startingLife,propertyId} from '../../../public/game/life-catalog.js';
+import {resolveStartingPlace} from '../../../server/maps/starting-places';
+import {walkingArrival} from '../../../server/maps/router';
 import {env} from 'cloudflare:workers';
 import {loadPlayer,sessionCookie} from '../../../server/player-session';
 import {digest,hashPassword,verifyPassword,randomSecret,DUMMY_HASH} from '../../../server/passwords';
@@ -23,7 +26,7 @@ export async function GET(request:Request){
  if(!env.DB)return reply({error:'Account storage unavailable'},503);
  const player=await loadPlayer<WorldPlayer>(env.DB,request);if(!player)return reply({mode:'none'});
  const account=await env.DB.prepare('SELECT username FROM accounts WHERE player_id=?').bind(player.id).first<{username:string}>();
- return reply({mode:account?'account':'guest',username:account?.username,playerName:player.name});
+ return reply({mode:account?'account':'unregistered',username:account?.username,playerName:player.name});
 }
 export async function POST(request:Request){
  if(!env.DB)return reply({error:'Account storage unavailable'},503);const db=env.DB;
@@ -46,14 +49,28 @@ export async function POST(request:Request){
   const account=await db.prepare('SELECT * FROM accounts WHERE username=?').bind(username).first<Account>();
   const token=crypto.randomUUID(),expires=Date.now()+2592000000;
   if(action==='register'){
-   if(!player)return reply({error:'Start your character first, then save your life to an account.'},401);
-   if(await db.prepare('SELECT id FROM accounts WHERE player_id=?').bind(player.id).first())return reply({error:'This life already belongs to an account.'},409);
+   if(player&&await db.prepare('SELECT id FROM accounts WHERE player_id=?').bind(player.id).first())return reply({error:'This life already belongs to an account.'},409);
    if(account)return reply({error:'That username is unavailable.'},409);
    const passwordHash=await hashPassword(password),recoveryCode=randomSecret(),recoveryHash=await digest(recoveryCode);
+   if(!player){
+    const name=String(input.name||'').trim().replace(/\s+/g,' '),avatar=String(input.avatar||'🧑🏾');
+    if(name.length<2||name.length>24||!/^[\p{L}\p{N} _'-]+$/u.test(name))return reply({error:'Choose a character name of 2–24 letters or numbers'},400);
+    if(!['🧑🏾','👩🏾','👨🏾','👩🏿','👨🏿','🧑🏽','👩🏽','👨🏽'].includes(avatar))return reply({error:'Choose an avatar'},400);
+    const selected=input.startPlaceId?await resolveStartingPlace(String(input.startPlaceId),typeof input.startPlaceName==='string'?input.startPlaceName:undefined):null;
+    if(input.startPlaceId&&!selected)return reply({error:'Choose a public place on the city map'},400);
+    const rolls=crypto.getRandomValues(new Uint32Array(2)),start=startingLife(rolls[0]/4294967296,rolls[1]/4294967296,selected),id=crypto.randomUUID(),now=Date.now();
+    if(selected){try{[start.lng,start.lat]=await walkingArrival([selected.lng,selected.lat])}catch{return reply({error:'This entrance is unavailable. Choose another place.'},503)}}
+    // Account and character commit together: failed registration never creates a guest.
+    await db.batch([
+     db.prepare('INSERT INTO players (id,name,avatar,session_token,session_expires_at,place_id,pos_lng,pos_lat,money,life_json,last_seen_at,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)').bind(id,name,avatar,token,expires,selected?.id||propertyId(id,start.life.home),start.lng,start.lat,start.money,JSON.stringify(start.life),now,now),
+     db.prepare('INSERT INTO accounts (id,player_id,username,password_hash,recovery_hash,created_at) VALUES (?,?,?,?,?,?)').bind(crypto.randomUUID(),id,username,passwordHash,recoveryHash,now),
+    ]);
+    return reply({ok:true,username,recoveryCode},201,{'Set-Cookie':sessionCookie(request,token)});
+   }
    await endSession(player);
    const result=await db.batch([
     db.prepare('INSERT INTO accounts (id,player_id,username,password_hash,recovery_hash,created_at) SELECT ?,id,?,?,?,? FROM players WHERE id=? AND session_token=?').bind(crypto.randomUUID(),username,passwordHash,recoveryHash,Date.now(),player.id,player.session_token),
-    db.prepare('UPDATE players SET session_token=?,session_expires_at=? WHERE id=? AND session_token=? AND EXISTS (SELECT 1 FROM accounts WHERE player_id=? AND username=?)').bind(token,expires,player.id,player.session_token,player.id,username),
+    db.prepare('UPDATE players SET session_token=?,session_expires_at=?,last_seen_at=? WHERE id=? AND session_token=? AND EXISTS (SELECT 1 FROM accounts WHERE player_id=? AND username=?)').bind(token,expires,Date.now(),player.id,player.session_token,player.id,username),
    ]);
    if(!result[0].meta.changes||!result[1].meta.changes)return reply({error:'Your session changed. Reload and try again.'},409);
    return reply({ok:true,username,recoveryCode},201,{'Set-Cookie':sessionCookie(request,token)});
@@ -69,7 +86,7 @@ export async function POST(request:Request){
   const proof=action==='recover'?account.recovery_hash:account.password_hash;
   const proofColumn=action==='recover'?'recovery_hash':'password_hash';
   const result=await db.batch([
-   db.prepare(`UPDATE players SET session_token=?,session_expires_at=? WHERE id=? AND EXISTS (SELECT 1 FROM accounts WHERE id=? AND ${proofColumn}=?)`).bind(token,expires,target.id,account.id,proof),
+   db.prepare(`UPDATE players SET session_token=?,session_expires_at=?,last_seen_at=? WHERE id=? AND EXISTS (SELECT 1 FROM accounts WHERE id=? AND ${proofColumn}=?)`).bind(token,expires,Date.now(),target.id,account.id,proof),
    db.prepare(`UPDATE accounts SET password_hash=?,recovery_hash=? WHERE id=? AND ${proofColumn}=?`).bind(passwordHash,recoveryCode?await digest(recoveryCode):account.recovery_hash,account.id,proof),
   ]);
   if(!result[0].meta.changes||!result[1].meta.changes)return reply({error:'Your account changed. Try signing in again.'},409);

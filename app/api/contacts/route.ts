@@ -5,13 +5,14 @@ type Friend={id:string;player_a:string;player_b:string;requested_by:string;statu
 type Call={id:string;caller:string;callee:string;status:string;expires_at:number};
 export async function GET(request:Request){try{
  const db=env.DB;if(!db)return reply({error:'Contacts storage unavailable'},503);const p=await loadPlayer<{id:string}>(db,request);if(!p)return reply({error:'Enter the game to use contacts'},401);
- const now=Date.now();
- const contacts=await db.prepare(`SELECT f.id,f.status,f.requested_by AS requestedBy,p.id AS playerId,p.name,p.avatar,(p.last_seen_at>?) AS online FROM friendships f JOIN players p ON p.id=CASE WHEN f.player_a=? THEN f.player_b ELSE f.player_a END WHERE f.player_a=? OR f.player_b=? ORDER BY f.created_at DESC LIMIT 200`).bind(now-120000,p.id,p.id,p.id).all();
+ const now=Date.now(),offset=Math.max(0,Math.min(1000000,Number(new URL(request.url).searchParams.get('offset'))||0));
+ const contacts=await db.prepare(`SELECT f.id,f.status,f.requested_by AS requestedBy,p.id AS playerId,p.name,p.avatar,a.username AS handle,(p.last_seen_at>? AND p.session_token IS NOT NULL AND (p.session_expires_at=0 OR p.session_expires_at>?)) AS online FROM friendships f JOIN players p ON p.id=CASE WHEN f.player_a=? THEN f.player_b ELSE f.player_a END JOIN accounts a ON a.player_id=p.id WHERE f.player_a=? OR f.player_b=? ORDER BY f.created_at DESC,f.id DESC LIMIT 200 OFFSET ?`).bind(now-120000,now,p.id,p.id,p.id,Math.floor(offset)).all();
  const call=await db.prepare(`SELECT c.id,c.caller,c.callee,c.status,c.expires_at AS expiresAt,p.name,p.avatar FROM friend_calls c JOIN players p ON p.id=CASE WHEN c.caller=? THEN c.callee ELSE c.caller END WHERE (c.caller=? OR c.callee=?) AND c.status IN ('ringing','active') AND c.expires_at>? ORDER BY c.created_at DESC LIMIT 1`).bind(p.id,p.id,p.id,now).first();
- return reply({contactCode:p.id,contacts:contacts.results,call});
+ const totals=await db.prepare("SELECT COUNT(*) AS total,COALESCE(SUM(status='accepted'),0) AS friendCount,COALESCE(SUM(status='pending' AND requested_by<>?),0) AS requestCount FROM friendships WHERE player_a=? OR player_b=?").bind(p.id,p.id,p.id).first<{total:number;friendCount:number;requestCount:number}>();
+ return reply({contactCode:p.id,contacts:contacts.results,friendCount:totals?.friendCount||0,requestCount:totals?.requestCount||0,nextOffset:offset+contacts.results.length<(totals?.total||0)?offset+contacts.results.length:null,call});
  }catch(e){console.error('Contacts GET',e);return reply({error:'Contacts are temporarily unavailable'},503)}}
 export async function POST(request:Request){try{
- if(request.headers.get('origin')&&request.headers.get('origin')!==new URL(request.url).origin)return reply({error:'Origin not allowed'},403);
+ if(request.headers.get('origin')!==new URL(request.url).origin)return reply({error:'Origin not allowed'},403);
  if(!request.headers.get('content-type')?.includes('application/json'))return reply({error:'JSON required'},415);
  const db=env.DB;if(!db)return reply({error:'Contacts storage unavailable'},503);const p=await loadPlayer<{id:string}>(db,request);if(!p)return reply({error:'Enter the game to use contacts'},401);
  const raw=await request.text();if(raw.length>1024)return reply({error:'Request too large'},413);let input;try{input=JSON.parse(raw)}catch{return reply({error:'Invalid request'},400)}if(!input||typeof input!=='object'||Array.isArray(input))return reply({error:'Invalid request'},400);
@@ -34,7 +35,7 @@ export async function POST(request:Request){try{
   if(!await rate('call',5))return reply({error:'Wait a few seconds before calling again'},429);
   const f=await db.prepare("SELECT * FROM friendships WHERE id=? AND status='accepted' AND (player_a=? OR player_b=?)").bind(id,p.id,p.id).first<Friend>();if(!f)return reply({error:'Add and accept this friend before calling'},403);
   const other=f.player_a===p.id?f.player_b:f.player_a;
-  const online=await db.prepare('SELECT id FROM players WHERE id=? AND last_seen_at>?').bind(other,now-120000).first();if(!online)return reply({error:'Your friend is offline'},409);
+  const online=await db.prepare('SELECT id FROM players WHERE id=? AND last_seen_at>? AND session_token IS NOT NULL AND (session_expires_at=0 OR session_expires_at>?)').bind(other,now-120000,now).first();if(!online)return reply({error:'Your friend is offline'},409);
   const callId=crypto.randomUUID();const r=await db.prepare(`INSERT INTO friend_calls (id,caller,callee,status,created_at,expires_at) SELECT ?,?,?,'ringing',?,? WHERE EXISTS (SELECT 1 FROM friendships WHERE id=? AND status='accepted') AND NOT EXISTS (SELECT 1 FROM friend_calls WHERE status IN ('ringing','active') AND expires_at>? AND (caller IN (?,?) OR callee IN (?,?)))`).bind(callId,p.id,other,now,now+45000,f.id,now,p.id,other,p.id,other).run();
   return r.meta.changes?reply({ok:true,callId}):reply({error:'You or your friend already has a call'},409);
  }

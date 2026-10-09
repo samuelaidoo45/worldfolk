@@ -1,5 +1,5 @@
 import * as THREE from './three.module.js';
-export const playerLabel=player=>player?.handle?`@${player.handle}`:`${player?.name||'Player'} · guest`;
+export const playerLabel=player=>player?.handle?`@${player.handle}`:`${player?.name||'Player'}`;
 // Project head positions using the same matrix as the 3D renderer. Names are
 // compact profile buttons that move with the players.
 export function createPlayerLabels(map){

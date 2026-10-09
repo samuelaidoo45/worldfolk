@@ -3,8 +3,8 @@ import {loadRegisteredPlayer} from '../../../server/player-session';
 const reply=(data:unknown,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'no-store'}});
 const channel=(a:string,b:string)=>'dm:'+ [a,b].sort().join(':');
 type PublicPlayer={id:string;handle:string;name:string;avatar:string;level:number;job:string;online:number};
-const select='SELECT p.id,a.username AS handle,p.name,p.avatar,CAST(p.xp/100 AS INTEGER)+1 AS level,p.job,(p.last_seen_at>?) AS online FROM players p JOIN accounts a ON a.player_id=p.id';
-async function target(db:D1Database,id:string){return db.prepare(select+' WHERE p.id=? OR a.username=? LIMIT 1').bind(Date.now()-120000,id,id.replace(/^@/,'').toLowerCase()).first<PublicPlayer>()}
+const select='SELECT p.id,a.username AS handle,p.name,p.avatar,CAST(p.xp/100 AS INTEGER)+1 AS level,p.job,(p.last_seen_at>? AND p.session_token IS NOT NULL AND (p.session_expires_at=0 OR p.session_expires_at>?)) AS online FROM players p JOIN accounts a ON a.player_id=p.id';
+async function target(db:D1Database,id:string){return db.prepare(select+' WHERE p.id=? OR a.username=? LIMIT 1').bind(Date.now()-120000,Date.now(),id,id.replace(/^@/,'').toLowerCase()).first<PublicPlayer>()}
 export async function GET(request:Request){try{
  const db=env.DB;if(!db)return reply({error:'Profiles unavailable'},503);
  const self=await loadRegisteredPlayer<{id:string}>(db,request);if(!self)return reply({error:'Sign in to see profiles and chat'},401);
@@ -22,7 +22,8 @@ export async function GET(request:Request){try{
  const id=url.searchParams.get('id')||'';if(!id||id.length>50)return reply({error:'Choose a player'},400);
  const profile=await target(db,id);if(!profile)return reply({error:'Player profile not found'},404);
  const messages=await db.prepare('SELECT id,player_id AS senderId,body,created_at AS at FROM messages WHERE channel=? ORDER BY created_at DESC LIMIT 60').bind(channel(self.id,profile.id)).all();
- return reply({profile,messages:messages.results.reverse()});
+ const friendship=await db.prepare('SELECT id,status,requested_by AS requestedBy FROM friendships WHERE (player_a=? AND player_b=?) OR (player_a=? AND player_b=?)').bind(self.id,profile.id,profile.id,self.id).first();
+ return reply({profile,friendship,messages:messages.results.reverse()});
  }catch{return reply({error:'Profiles are temporarily unavailable'},503)}}
 export async function POST(request:Request){try{
  const db=env.DB;if(!db)return reply({error:'Chat unavailable'},503);

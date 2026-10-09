@@ -1,13 +1,15 @@
-import {HOMES,propertyId} from '../public/game/life-catalog.js';
+import {HOMES,propertyId,startingLife} from '../public/game/life-catalog.js';
 import test from 'node:test';import assert from 'node:assert/strict';import {spawnSync} from 'node:child_process';import WebSocket from 'ws';
 const base=process.env.GAME_TEST_URL||'http://127.0.0.1:3001',tag=Date.now().toString(36),username=`auth_${tag}`,password='A private test passphrase 902!';
 async function call(path,cookie,body,origin=base){const r=await fetch(base+path,{method:body?'POST':'GET',headers:{...(cookie?{Cookie:cookie}:{}),...(body?{'Content-Type':'application/json',Origin:origin}:{})},body:body?JSON.stringify(body):undefined});return {status:r.status,body:await r.json(),cookie:r.headers.get('set-cookie')?.split(';')[0],setCookie:r.headers.get('set-cookie')}}
 function sql(statement,params=[]){const script=`import sqlite3,json,sys\nfrom pathlib import Path\np=next(x for x in Path('.wrangler/state/v3/d1/miniflare-D1DatabaseObject').glob('*.sqlite') if x.name!='metadata.sqlite')\nc=sqlite3.connect(p)\nr=c.execute(sys.argv[1],json.loads(sys.argv[2])).fetchall()\nc.commit()\nprint(json.dumps(r))`;const r=spawnSync('python3',['-c',script,statement,JSON.stringify(params)],{encoding:'utf8'});assert.equal(r.status,0,r.stderr);return JSON.parse(r.stdout)}
-async function guest(name){const r=await call('/api/game',null,{type:'join',name,avatar:'🧑🏾'});assert.equal(r.status,201);return {cookie:r.cookie,self:r.body.self}}
+// Legacy fixtures only: the public API no longer creates guests.
+async function guest(name){const id=crypto.randomUUID(),token=crypto.randomUUID(),start=startingLife(.5,.5),now=Date.now();sql('INSERT INTO players (id,name,avatar,session_token,place_id,pos_lng,pos_lat,money,life_json,last_seen_at,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)',[id,name,'🧑🏾',token,propertyId(id,start.life.home),start.lng,start.lat,start.money,JSON.stringify(start.life),now,now]);const cookie=`accralife_session=${token}`;return {cookie,self:(await call('/api/game',cookie)).body.self}}
+
 function socket(cookie){const ws=new WebSocket(base.replace('http','ws')+'/api/realtime',{headers:{Cookie:cookie,Origin:base}});return {ws,welcome:new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('No welcome')),5000);ws.once('message',m=>{clearTimeout(timer);resolve(JSON.parse(m))});ws.on('error',reject)})}}
 test('guest upgrades, resumes on another session, and can recover without losing their life', {timeout:60000},async()=>{
  sql('DELETE FROM auth_rate_limits');const g=await guest('Auth Guest');const home=HOMES.find(h=>h.id===g.self.life.home);assert.ok(home);assert.equal(g.self.placeId,propertyId(g.self.id,home.id));assert.deepEqual([g.self.lng,g.self.lat],[home.lng,home.lat]);assert.ok(g.self.life.properties.includes(home.id));assert.equal((await call('/api/game',g.cookie,{type:'enter',placeId:g.self.life.homeId})).status,403);sql('UPDATE players SET money=4321,xp=99 WHERE id=?',[g.self.id]);
- assert.equal((await call('/api/auth',g.cookie)).body.mode,'guest');assert.equal((await call('/api/auth',null)).body.mode,'none');
+ assert.equal((await call('/api/auth',g.cookie)).body.mode,'unregistered');assert.equal((await call('/api/auth',null)).body.mode,'none');
  assert.equal((await call('/api/auth',g.cookie,{action:'register',username,password:'short'})).status,400);
  assert.equal((await call('/api/auth',g.cookie,{action:'register',username,password},'https://attacker.example')).status,403);
  const reg=await call('/api/auth',g.cookie,{action:'register',username,password});assert.equal(reg.status,201,JSON.stringify(reg.body));assert.match(reg.setCookie,/HttpOnly/);assert.match(reg.setCookie,/SameSite=Lax/);assert.notEqual(reg.cookie,g.cookie);assert.match(reg.body.recoveryCode,/^[a-f0-9]{48}$/);
@@ -62,4 +64,50 @@ test('registered handles, mandatory entry and private profile chat', {timeout:60
  assert.equal((await call('/api/players',two.cookie,{to:one.self.id,body:'Hello back',senderId:three.self.id})).status,200);
  const reply=await call('/api/players?id='+two.self.id,one.cookie);assert.equal(reply.body.messages.at(-1).senderId,two.self.id,'sender identity comes from session');
  const publicChat=await call('/api/game?channel=dm:'+one.self.id+':'+two.self.id,three.cookie);assert.ok(!publicChat.body.messages.some(m=>m.body==='Hello back'),'DM cannot be read through public chat');
+});
+
+test('direct registration, persistent friends and city-wide presence', {timeout:60000},async()=>{
+ sql('DELETE FROM auth_rate_limits');
+ assert.equal((await call('/api/game',null,{type:'join',name:'No Guest',avatar:'🧑🏾'})).status,403);
+ assert.equal((await call('/api/game',null,{type:'heartbeat'})).status,401);
+ const baseline=(await call('/api/game',null)).body.onlineCount;
+ const users=[];
+ for(let i=0;i<3;i++){
+  const handle=`friends_${i}_${tag}`,r=await call('/api/auth',null,{action:'register',username:handle,password,name:`Friend ${i}`});
+  assert.equal(r.status,201,JSON.stringify(r.body));
+  const self=(await call('/api/game',r.cookie)).body.self;assert.equal(self.handle,handle);assert.equal(self.money,100000);
+  users.push({cookie:r.cookie,self,handle});
+ }
+ const [a,b,c]=users;
+ const roomResponse=await fetch(base+'/api/game',{headers:{Cookie:a.cookie,'X-World-Room':'a-different-room'}});const room=await roomResponse.json();
+ assert.deepEqual(room.players,[]);assert.equal(room.onlineCount,baseline+3,'global total independent of room list');
+ const before=sql('SELECT COUNT(*) FROM players')[0][0];
+ const duplicates=await Promise.all([0,1].map(i=>call('/api/auth',null,{action:'register',username:`race_${tag}`,password,name:`Race ${i}`})));
+ assert.deepEqual(duplicates.map(r=>r.status).sort(),[201,409]);assert.equal(sql('SELECT COUNT(*) FROM players')[0][0],before+1,'failed registration creates no orphan character');
+ assert.equal((await call('/api/contacts',a.cookie,{type:'request',contact:b.handle})).status,200);
+ let contacts=(await call('/api/contacts',b.cookie)).body;assert.equal(contacts.friendCount,0);assert.equal(contacts.requestCount,1);assert.equal(contacts.contacts[0].handle,a.handle);
+ const id=contacts.contacts[0].id;
+ assert.equal((await call('/api/contacts',c.cookie,{type:'accept',id})).status,404);
+ assert.equal((await call('/api/contacts',a.cookie,{type:'accept',id})).status,403);
+ assert.equal((await call('/api/contacts',b.cookie,{type:'accept',id})).status,200);
+ assert.equal((await call('/api/contacts',a.cookie)).body.friendCount,1);
+ assert.equal((await call('/api/players?id='+b.self.id,a.cookie)).body.friendship.status,'accepted');
+ assert.equal((await call('/api/contacts',c.cookie,{type:'request',contact:a.handle})).status,200);
+ contacts=(await call('/api/contacts',a.cookie)).body;const incoming=contacts.contacts.find(f=>f.requestedBy===c.self.id);
+ assert.equal((await call('/api/contacts',a.cookie,{type:'accept',id:incoming.id})).status,200);
+ assert.equal((await call('/api/contacts',a.cookie)).body.friendCount,2);
+ sql('DELETE FROM auth_rate_limits WHERE bucket=?',[`contacts:request:${a.self.id}`]);
+ await call('/api/contacts',a.cookie,{type:'request',contact:b.handle});assert.equal((await call('/api/contacts',a.cookie)).body.friendCount,2,'duplicate friend does not inflate count');
+ const count=(await call('/api/game',a.cookie)).body.onlineCount;
+ await call('/api/auth',b.cookie,{action:'logout'});
+ assert.equal((await call('/api/game',a.cookie)).body.onlineCount,count-1,'logout removes online player immediately');
+ contacts=(await call('/api/contacts',a.cookie)).body;assert.equal(contacts.friendCount,2);assert.equal(contacts.contacts.find(f=>f.playerId===b.self.id).online,0);
+ assert.equal((await call('/api/players',a.cookie,{to:b.handle,body:'See you when you return'})).status,200,'offline friends can receive messages');
+ const login=await call('/api/auth',null,{action:'login',username:b.handle,password});assert.equal(login.status,200);
+ assert.equal((await call('/api/players?id='+a.self.id,login.cookie)).body.messages.at(-1).body,'See you when you return');
+ assert.equal((await call('/api/game',a.cookie)).body.onlineCount,count);
+ sql('UPDATE players SET last_seen_at=? WHERE id=?',[Date.now()-121000,c.self.id]);
+ assert.equal((await call('/api/game',a.cookie)).body.onlineCount,count-1,'stale presence expires');
+ await call('/api/contacts',a.cookie,{type:'remove',id:incoming.id});assert.equal((await call('/api/contacts',a.cookie)).body.friendCount,1);
+ for(const u of users)sql('UPDATE players SET session_token=NULL WHERE id=?',[u.self.id]);
 });

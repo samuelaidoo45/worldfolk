@@ -4,7 +4,6 @@ import {resolveStartingPlace} from '../../../server/maps/starting-places';
 import {TRAFFIC_MODELS} from '../../../public/game/vehicle-catalog.js';
 import {shiftCanMove,canUseVehicle} from '../../../public/game/work-catalog.js';
 import {loadPlayer} from '../../../server/player-session';
-import {startingLife} from '../../../public/game/life-catalog.js';
 import {sessionName} from '../../../server/world-routing';
 import transit from '../../../public/game/transit-routes.json';
 import {routePoint} from '../../../public/game/transit.js';
@@ -62,7 +61,7 @@ const ACTIONS: Record<string, Action> = {
   explore: {place:[],minutes:60,energy:-7,fun:18,xp:8,label:"Explore this place"},
 };
 
-const AVATARS = new Set(["🧑🏾","👩🏾","👨🏾","👩🏿","👨🏿","🧑🏽","👩🏽","👨🏽"]);
+
 const clamp = (n: number) => Math.max(0, Math.min(100, Math.round(n)));
 const json = (data: unknown, status = 200, extra: HeadersInit = {}) => Response.json(data, {status, headers:{"Cache-Control":"no-store",...extra}});
 const cookieId = (request: Request) => request.headers.get("cookie")?.match(/(?:^|;\s*)accralife_session=([a-f0-9-]{36})(?:;|$)/)?.[1] ?? null;
@@ -102,12 +101,13 @@ export async function GET(request: Request) {
     const now=Date.now();const self=await ownPlayer(db,request);let sessionHeaders:HeadersInit={};
     if(self&&!self.session_token){const token=crypto.randomUUID();const result=await db.prepare('UPDATE players SET session_token=? WHERE id=? AND session_token IS NULL').bind(token,self.id).run();if(result.meta.changes)sessionHeaders={"Set-Cookie":`accralife_session=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=2592000${new URL(request.url).protocol==='https:'?'; Secure':''}`}}
     const messagesOnly=new URL(request.url).searchParams.get('messagesOnly')==='1';
-    const online=messagesOnly||request.headers.get('X-World-Room')?{results:[]}:await db.prepare("SELECT id,name,avatar,place_id,pos_lng,pos_lat,heading,driving,life_json,(SELECT username FROM accounts WHERE player_id=players.id) AS handle FROM players WHERE EXISTS (SELECT 1 FROM accounts WHERE player_id=players.id) AND last_seen_at > ? ORDER BY last_seen_at DESC LIMIT 100").bind(now-120000).all<Pick<Player,"id"|"name"|"handle"|"avatar"|"place_id"|"pos_lng"|"pos_lat"|"heading"|"driving"|"life_json">>();
+    const online=messagesOnly||request.headers.get('X-World-Room')?{results:[]}:await db.prepare("SELECT id,name,avatar,place_id,pos_lng,pos_lat,heading,driving,life_json,(SELECT username FROM accounts WHERE player_id=players.id) AS handle FROM players WHERE EXISTS (SELECT 1 FROM accounts WHERE player_id=players.id) AND session_token IS NOT NULL AND (session_expires_at=0 OR session_expires_at>?) AND last_seen_at > ? ORDER BY last_seen_at DESC LIMIT 100").bind(now,now-120000).all<Pick<Player,"id"|"name"|"handle"|"avatar"|"place_id"|"pos_lng"|"pos_lat"|"heading"|"driving"|"life_json">>();
+    const presence=messagesOnly?null:await db.prepare('SELECT COUNT(*) AS total FROM players p JOIN accounts a ON a.player_id=p.id WHERE p.last_seen_at>? AND p.session_token IS NOT NULL AND (p.session_expires_at=0 OR p.session_expires_at>?)').bind(now-120000,now).first<{total:number}>();
     const channel=new URL(request.url).searchParams.get("channel")||"city";
     const safeChannel=channel==="city"?"city":self?.place_id||"city";
     const messages=self?.handle?await db.prepare("SELECT m.id,m.channel,m.body,m.created_at,p.id AS player_id,p.name,p.avatar,(SELECT username FROM accounts WHERE player_id=p.id) AS handle FROM messages m JOIN players p ON p.id=m.player_id WHERE m.channel=? ORDER BY m.created_at DESC LIMIT 40").bind(safeChannel).all():{results:[]};
     if(messagesOnly)return json({messages:messages.results.reverse(),channel:safeChannel},200,sessionHeaders);
-    return json({self:self?view(self):null,players:online.results.map((p)=>{const life=readLife(p as Player),trip=life.transit,route=transit.routes.find(r=>r.id===trip?.routeId),ride=trip&&(trip.coordinates||route)?routePoint(trip.coordinates||route!.coordinates,trip.progress??(now-trip.startedAt)/(trip.endsAt-trip.startedAt)):null,[lng,lat]=ride?.position||playerPosition(p as Player);return {id:p.id,name:p.name,handle:p.handle,avatar:p.avatar,placeId:p.place_id,lng,lat,heading:ride?.heading??p.heading,driving:!!p.driving||!!ride,vehicle:ride?(trip?.kind==='taxi'?'car':'bus'):life.vehicle,health:life.health}}),messages:messages.results.reverse(),channel:safeChannel,residences:await residences(db,self?.id),accessAllowed:!self?.place_id.startsWith("p_")||await canEnter(db,self!,self!.place_id)},200,sessionHeaders);
+    return json({self:self?view(self):null,onlineCount:presence?.total||0,players:online.results.map((p)=>{const life=readLife(p as Player),trip=life.transit,route=transit.routes.find(r=>r.id===trip?.routeId),ride=trip&&(trip.coordinates||route)?routePoint(trip.coordinates||route!.coordinates,trip.progress??(now-trip.startedAt)/(trip.endsAt-trip.startedAt)):null,[lng,lat]=ride?.position||playerPosition(p as Player);return {id:p.id,name:p.name,handle:p.handle,avatar:p.avatar,placeId:p.place_id,lng,lat,heading:ride?.heading??p.heading,driving:!!p.driving||!!ride,vehicle:ride?(trip?.kind==='taxi'?'car':'bus'):life.vehicle,health:life.health}}),messages:messages.results.reverse(),channel:safeChannel,residences:await residences(db,self?.id),accessAllowed:!self?.place_id.startsWith("p_")||await canEnter(db,self!,self!.place_id)},200,sessionHeaders);
   } catch(error){console.error("world GET",error);return json({error:"Could not load the city"},500)}
 }
 
@@ -122,20 +122,7 @@ export async function POST(request: Request) {
     try{input=JSON.parse(raw) as Record<string,unknown>}catch{return json({error:"Invalid JSON"},400)}
     if(!input||typeof input!=="object"||Array.isArray(input))return json({error:"Invalid request"},400);
     const type=String(input.type||"");const now=Date.now();
-    if(type==="join"){
-      const existing=await ownPlayer(db,request);if(existing)return json({self:view(existing)});
-      const name=String(input.name||"").trim().replace(/\s+/g," ");
-      if(name.length<2||name.length>24||!/^[\p{L}\p{N} _'-]+$/u.test(name))return json({error:"Choose a name of 2–24 letters or numbers"},400);
-      const avatar=String(input.avatar||"");if(!AVATARS.has(avatar))return json({error:"Choose an avatar"},400);
-      const id=crypto.randomUUID(),token=crypto.randomUUID();
-      const selected=input.startPlaceId?await resolveStartingPlace(String(input.startPlaceId),typeof input.startPlaceName==='string'?input.startPlaceName:undefined):null;if(input.startPlaceId&&!selected)return json({error:'Choose a public place on the city map'},400);
-      const rolls=crypto.getRandomValues(new Uint32Array(2)),start=startingLife(rolls[0]/4294967296,rolls[1]/4294967296,selected);
-      if(selected){try{[start.lng,start.lat]=await walkingArrival([selected.lng,selected.lat])}catch{return json({error:'This entrance is unavailable. Choose another place.'},503)}}
-      await db.prepare("INSERT INTO players (id,name,avatar,session_token,place_id,pos_lng,pos_lat,money,life_json,last_seen_at,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)").bind(id,name,avatar,token,selected?.id||propertyId(id,start.life.home),start.lng,start.lat,start.money,JSON.stringify(start.life),now,now).run();
-      const p=await db.prepare("SELECT *, (SELECT username FROM accounts WHERE player_id=players.id) AS handle FROM players WHERE id=?").bind(id).first<Player>();
-      const secure=new URL(request.url).protocol==="https:"?"; Secure":"";
-      return json({self:view(p!)},201,{"Set-Cookie":`accralife_session=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=2592000${secure}`});
-    }
+    if(type==="join")return json({error:'Register or sign in before entering the world',registrationRequired:true},403);
     let p=await ownPlayer(db,request);if(!p)return json({error:"Create your Sim to play"},401);
     if(!p.handle)return json({error:'Register or sign in before entering the world',registrationRequired:true},403);
     if(p.driving&&!readLife(p).drivingSince){const migrated={...readLife(p),drivingSince:now-30000};await db.prepare("UPDATE players SET life_json=?,revision=revision+1 WHERE id=? AND revision=?").bind(JSON.stringify(migrated),p.id,p.revision).run();const updated=await db.prepare("SELECT *, (SELECT username FROM accounts WHERE player_id=players.id) AS handle FROM players WHERE id=?").bind(p.id).first<Player>();if(updated)p=updated;}

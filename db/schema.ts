@@ -32,7 +32,7 @@ export const players = sqliteTable("players", {
   lastChatAt: integer("last_chat_at").notNull().default(0),
   lastSeenAt: integer("last_seen_at").notNull().default(0),
   createdAt: integer("created_at").notNull().default(0),
-}, table => [uniqueIndex("players_session_token_unique").on(table.sessionToken)]);
+}, table => [uniqueIndex("players_session_token_unique").on(table.sessionToken),index("players_presence").on(table.lastSeenAt,table.sessionExpiresAt)]);
 
 export const messages = sqliteTable("messages", {
   id: text("id").primaryKey(),

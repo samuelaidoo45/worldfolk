@@ -64,6 +64,13 @@
       "when": 1791481714830,
       "tag": "0008_voice_room_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1791539304704,
+      "tag": "0009_goofy_monster_badoon",
+      "breakpoints": true
     }
   ]
 }
