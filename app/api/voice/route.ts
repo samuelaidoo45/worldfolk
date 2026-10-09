@@ -1,4 +1,4 @@
-import {loadPlayer} from '../../../server/player-session';
+import {loadRegisteredPlayer as loadPlayer} from '../../../server/player-session';
 import {env} from 'cloudflare:workers';
 const reply=(data:unknown,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'no-store'}});
 async function player(request:Request){return env.DB?loadPlayer<{id:string;name:string}>(env.DB,request):null}

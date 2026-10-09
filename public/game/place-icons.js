@@ -19,7 +19,7 @@ const categories=[
  ['transport','🚌',['bus_station','bus_stop','station','taxi','ferry_terminal'],'#e0edf6'],
  ['fuel','⛽',['fuel'],'#f9e5db'],['parking','🅿️',['parking'],'#e1eaf5'],
  ['police','👮',['police'],'#e1eaf5'],['cinema','🎬',['cinema','theatre'],'#ede4f5'],
- ['library','📚',['library','books'],'#f3e8d8'],['place','📍',[],'#edf2eb']
+ ['library','📚',['library','books'],'#f3e8d8'],['district','🏘️',['suburb','neighbourhood','neighborhood','quarter','city','town','village','hamlet','locality'],'#e6efe3'],['place','📍',[],'#edf2eb']
 ];
 const byType=new Map(categories.flatMap(([id,,types])=>types.map(type=>[type,id])));
 export function placeCategory(props={}){

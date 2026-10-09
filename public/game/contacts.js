@@ -18,7 +18,7 @@ export function createContacts({panel,getPlayer,prepare,join,leave,setMuted,isMu
   else if(!active)buttons.append(button('Cancel call',hangup));
   else buttons.append(button(isMuted()?'Unmute':'Mute',async()=>{muted=!isMuted();setMuted(muted)}),button('Hang up',hangup));
  }
- async function poll(){if(loading||!getPlayer())return;if(document.hidden&&!call)return;loading=true;try{
+ async function poll(){if(loading||!getPlayer()?.handle)return;if(document.hidden&&!call)return;loading=true;try{
   const data=await api();$('.contact-code').value=data.contactCode;
   const previous=call;call=data.call;
   if(!call&&(previous||joined)){await leave();joined=null;muted=true;toast(previous?.status==='ringing'?'Call declined, cancelled or unanswered':'Call ended')}

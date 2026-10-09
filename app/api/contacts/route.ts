@@ -1,5 +1,5 @@
 import {env} from 'cloudflare:workers';
-import {loadPlayer} from '../../../server/player-session';
+import {loadRegisteredPlayer as loadPlayer} from '../../../server/player-session';
 const reply=(data:unknown,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'no-store'}});
 type Friend={id:string;player_a:string;player_b:string;requested_by:string;status:string};
 type Call={id:string;caller:string;callee:string;status:string;expires_at:number};
@@ -20,7 +20,7 @@ export async function POST(request:Request){try{
  if(type==='request'){
   if(!await rate('request',5))return reply({error:'Wait a few seconds before sending another request'},429);
   const query=String(input.contact||'').trim().replace(/^@/,'').toLowerCase();if(!query||query.length>50)return reply({error:'Enter a username or contact code'},400);
-  const target=await db.prepare('SELECT p.id FROM players p LEFT JOIN accounts a ON a.player_id=p.id WHERE p.id=? OR a.username=? LIMIT 1').bind(query,query).first<{id:string}>();
+  const target=await db.prepare('SELECT p.id FROM players p JOIN accounts a ON a.player_id=p.id WHERE p.id=? OR a.username=? LIMIT 1').bind(query,query).first<{id:string}>();
   if(!target||target.id===p.id)return reply({error:'No other player matches that contact'},404);
   const [a,b]=[p.id,target.id].sort();const r=await db.prepare('INSERT OR IGNORE INTO friendships (id,player_a,player_b,requested_by,status,created_at) VALUES (?,?,?,?,?,?)').bind(crypto.randomUUID(),a,b,p.id,'pending',now).run();return reply({ok:true,event:r.meta.changes?'Friend request sent':'This contact or request already exists'});
  }

@@ -16,7 +16,7 @@ function publicPlayer(p:WorldPlayer){const l=life(p);return {id:p.id,revision:p.
 export function validMove(m:Member,input:Record<string,unknown>,now:number){
   const {lng,lat,heading}=input;
   if(typeof lng!=='number'||typeof lat!=='number'||typeof heading!=='number'||![lng,lat,heading].every(Number.isFinite)||!inAccra(lng,lat))return false;
-  const p=m.player,l=life(p);if(l.rest||l.health<=0||l.arrested||(l.shift&&l.shift.version!==2&&l.shift.jobId!=='driver')||l.flight||l.transit)return false;
+  const p=m.player,l=life(p);if(!p.handle||l.rest||l.health<=0||l.arrested||(l.shift&&l.shift.version!==2&&l.shift.jobId!=='driver')||l.flight||l.transit)return false;
   const metres=Math.hypot((lng-p.pos_lng)*111320*Math.cos(lat*Math.PI/180),(lat-p.pos_lat)*111320);
   const seconds=Math.min(8,Math.max(0,(now-m.at)/1000));
   const correction=input.spawnCorrection===true&&metres<=35&&(p.last_move_at===p.last_action_at||now-m.at>=8000);
@@ -42,7 +42,7 @@ export class WorldRoom extends DurableObject<Cloudflare.Env> {
   }
   async reload(ws:WebSocket,m:Member,correct=false){
     const p=await this.env.DB!.prepare('SELECT *, (SELECT username FROM accounts WHERE player_id=players.id) AS handle FROM players WHERE id=? AND session_token=?').bind(m.player.id,m.player.session_token).first<WorldPlayer>();
-    if(!p){ws.close(4003,'Session ended');return}
+    if(!p?.handle){ws.close(4003,'Sign in to enter the world');return}
     // A life/needs update can finish while newer movement is already in flight.
     // Preserve that movement unless the action actually moved/locked the player.
     const l=life(p),keep=m.dirty&&p.last_move_at===m.savedAt&&p.driving===m.player.driving&&p.place_id===m.player.place_id&&!l.rest&&!l.transit&&!l.flight&&!l.arrested&&(l.health??100)>0&&(!l.shift||l.shift.version===2||l.shift.jobId==='driver');
@@ -63,6 +63,7 @@ export class WorldRoom extends DurableObject<Cloudflare.Env> {
     }
     if(request.headers.get('Upgrade')!=='websocket')return new Response('WebSocket required',{status:426});
     let player=compact(JSON.parse(request.headers.get('X-World-Player')!) as WorldPlayer);
+    if(!player.handle)return new Response('Register before entering the world',{status:401});
     for(const {ws,m} of this.members())if(m.player.id===player.id){await this.save(ws,m);player=compact((await this.env.DB!.prepare('SELECT *, (SELECT username FROM accounts WHERE player_id=players.id) AS handle FROM players WHERE id=?').bind(player.id).first<WorldPlayer>())!);ws.close(4000,'Opened in another tab')}
     // Bounded fan-out per simulation instance; allocator opens more as needed.
     if(this.members().filter(({ws})=>ws.readyState===1).length>=128)return new Response('Instance full',{status:409});
@@ -79,6 +80,7 @@ export class WorldRoom extends DurableObject<Cloudflare.Env> {
     let input:Record<string,unknown>;try{input=JSON.parse(message)}catch{ws.close(1003,'Invalid JSON');return}
     if(!input||typeof input!=='object'||Array.isArray(input))return;
     const m=ws.deserializeAttachment() as Member,now=Date.now();
+    if(!m.player.handle){ws.close(4003,'Register before entering the world');return}
     if(m.player.session_expires_at&&m.player.session_expires_at<=now){ws.close(4003,'Session expired');return}
     if(input.type==='sync'){if(now-(m.lastSync||0)<300){ws.close(1008,'Sync rate exceeded');return}m.lastSync=now;await this.ctx.blockConcurrencyWhile(()=>this.reload(ws,m));this.send(ws,{type:'synced',seq:input.seq});if(roomFor(m.player.pos_lng,m.player.pos_lat)!==m.room.split(':instance:')[0])ws.close(4001,'Entering next district');return}
     if(now-m.lastPacket<150){this.send(ws,{type:'retry',seq:input.seq});return} m.lastPacket=now;ws.serializeAttachment(m);

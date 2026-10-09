@@ -1,4 +1,4 @@
-import {loadPlayer} from './player-session';
+import {loadRegisteredPlayer as loadPlayer} from './player-session';
 import {playerHeader,type WorldPlayer} from './world-room';
 import {sessionName} from './world-routing';
 export async function realtime(request:Request,env:Cloudflare.Env){

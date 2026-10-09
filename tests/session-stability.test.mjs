@@ -9,7 +9,7 @@ const compiled=ts.transpileModule(fs.readFileSync('server/world-room.ts','utf8')
 globalThis.WebSocketRequestResponsePair=class {};
 const {WorldRoom,validMove}=await import('data:text/javascript;base64,'+Buffer.from(compiled).toString('base64'));
 function fixture(){
- const row={id:'p',session_token:'token',name:'Test',life_json:'{"health":100}',revision:2,pos_lng:-.18,pos_lat:5.56,heading:0,driving:0,last_move_at:1000,place_id:'home'};
+ const row={id:'p',session_token:'token',name:'Test',handle:'test_player',life_json:'{"health":100}',revision:2,pos_lng:-.18,pos_lat:5.56,heading:0,driving:0,last_move_at:1000,place_id:'home'};
  const live={...row,revision:1,pos_lng:-.17995,last_move_at:2000},m={player:live,at:2000,savedAt:1000,dirty:true};
  let attachment=structuredClone(m);
  const sent=[],ws={deserializeAttachment:()=>structuredClone(attachment),serializeAttachment:v=>attachment=structuredClone(v),send:v=>sent.push(JSON.parse(v)),close(){}};
