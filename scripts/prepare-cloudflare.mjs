@@ -10,6 +10,12 @@ const output = new URL("../dist/server/wrangler.cloudflare.json", import.meta.ur
 const config = JSON.parse(await readFile(input, "utf8"));
 config.name = "worldfolk";
 config.workers_dev = true;
+// The proxied apex A record uses Cloudflare's originless placeholder (192.0.2.0).
+// Both hostnames route all requests, including assets and WebSockets, to this Worker.
+config.routes = [
+  { pattern: "worldfolk.world/*", zone_name: "worldfolk.world" },
+  { pattern: "www.worldfolk.world/*", zone_name: "worldfolk.world" },
+];
 config.d1_databases = [{
   binding: "DB",
   database_name: "worldfolk-prod",
