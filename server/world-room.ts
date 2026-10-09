@@ -11,12 +11,12 @@ export const playerHeader=(player:WorldPlayer)=>JSON.stringify(player).replace(/
 type Member = { player:WorldPlayer; at:number; savedAt:number; dirty:boolean; lastPacket:number; lastSync?:number; room:string };
 export function roomFor(lng:number,lat:number){return `accra:${Math.floor((lng+.36)/.02)}:${Math.floor((lat-5.43)/.02)}`}
 function life(p:WorldPlayer){try{return JSON.parse(p.life_json||'{}')}catch{return {}}}
-function compact(p:WorldPlayer):WorldPlayer{const l=life(p);return {id:p.id,session_token:p.session_token,session_expires_at:p.session_expires_at,name:p.name,handle:p.handle,avatar:p.avatar,place_id:p.place_id,pos_lng:p.pos_lng,pos_lat:p.pos_lat,heading:p.heading,driving:p.driving,revision:p.revision,last_move_at:p.last_move_at,last_action_at:p.last_action_at,life_json:JSON.stringify({arrested:!!l.arrested,health:l.health??100,vehicle:l.vehicle,drivingSince:l.drivingSince,autoDriveRate:l.autoDriveRate,shift:l.shift?{jobId:l.shift.jobId,version:l.shift.version}:null,flight:!!l.flight,transit:!!l.transit})}}
+function compact(p:WorldPlayer):WorldPlayer{const l=life(p);return {id:p.id,session_token:p.session_token,session_expires_at:p.session_expires_at,name:p.name,handle:p.handle,avatar:p.avatar,place_id:p.place_id,pos_lng:p.pos_lng,pos_lat:p.pos_lat,heading:p.heading,driving:p.driving,revision:p.revision,last_move_at:p.last_move_at,last_action_at:p.last_action_at,life_json:JSON.stringify({rest:l.rest||null,arrested:!!l.arrested,health:l.health??100,vehicle:l.vehicle,drivingSince:l.drivingSince,autoDriveRate:l.autoDriveRate,shift:l.shift?{jobId:l.shift.jobId,version:l.shift.version}:null,flight:!!l.flight,transit:!!l.transit})}}
 function publicPlayer(p:WorldPlayer){const l=life(p);return {id:p.id,revision:p.revision,name:p.name,handle:p.handle,avatar:p.avatar,placeId:p.place_id,lng:p.pos_lng,lat:p.pos_lat,heading:p.heading,driving:!!p.driving,vehicle:l.vehicle,health:l.health??100}}
 export function validMove(m:Member,input:Record<string,unknown>,now:number){
   const {lng,lat,heading}=input;
   if(typeof lng!=='number'||typeof lat!=='number'||typeof heading!=='number'||![lng,lat,heading].every(Number.isFinite)||!inAccra(lng,lat))return false;
-  const p=m.player,l=life(p);if(l.health<=0||l.arrested||(l.shift&&l.shift.version!==2&&l.shift.jobId!=='driver')||l.flight||l.transit)return false;
+  const p=m.player,l=life(p);if(l.rest||l.health<=0||l.arrested||(l.shift&&l.shift.version!==2&&l.shift.jobId!=='driver')||l.flight||l.transit)return false;
   const metres=Math.hypot((lng-p.pos_lng)*111320*Math.cos(lat*Math.PI/180),(lat-p.pos_lat)*111320);
   const seconds=Math.min(8,Math.max(0,(now-m.at)/1000));
   const correction=input.spawnCorrection===true&&metres<=35&&(p.last_move_at===p.last_action_at||now-m.at>=8000);
@@ -45,7 +45,7 @@ export class WorldRoom extends DurableObject<Cloudflare.Env> {
     if(!p){ws.close(4003,'Session ended');return}
     // A life/needs update can finish while newer movement is already in flight.
     // Preserve that movement unless the action actually moved/locked the player.
-    const l=life(p),keep=m.dirty&&p.last_move_at===m.savedAt&&p.driving===m.player.driving&&p.place_id===m.player.place_id&&!l.transit&&!l.flight&&!l.arrested&&(l.health??100)>0&&(!l.shift||l.shift.version===2||l.shift.jobId==='driver');
+    const l=life(p),keep=m.dirty&&p.last_move_at===m.savedAt&&p.driving===m.player.driving&&p.place_id===m.player.place_id&&!l.rest&&!l.transit&&!l.flight&&!l.arrested&&(l.health??100)>0&&(!l.shift||l.shift.version===2||l.shift.jobId==='driver');
     const live=m.player,at=m.at;m.player=compact(p);m.savedAt=p.last_move_at;m.dirty=keep;
     if(keep){m.player.pos_lng=live.pos_lng;m.player.pos_lat=live.pos_lat;m.player.heading=live.heading;m.player.last_move_at=at;m.at=at}else m.at=p.last_move_at||Date.now();
     ws.serializeAttachment(m);

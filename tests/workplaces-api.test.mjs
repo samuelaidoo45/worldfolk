@@ -1,7 +1,7 @@
 // Integration tests against the local server only. Fixtures alter local SQLite.
 import test from 'node:test';
 import {CITY_DESTINATIONS} from '../public/game/city-destinations.js';
-import {JOBS,GOODS} from '../public/game/life-catalog.js';
+import {JOBS,GOODS,HOMES} from '../public/game/life-catalog.js';
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 const base=process.env.GAME_TEST_URL||'http://127.0.0.1:3000';
@@ -141,4 +141,29 @@ test('city exploration jumps to validated places without resetting wealth, home 
  const edge=await call(joined.cookie,{type:'explore-place',placeId:id,placeName:outer.name});assert.equal(edge.status,200,JSON.stringify(edge.body));assert.ok(edge.body.self.lat>5.77);assert.equal(edge.body.self.money,76543);
  assert.equal((await call(joined.cookie,{type:'explore-place',placeId:id,placeName:'Invented name'})).status,400);
  const streets=JSON.parse(fs.readFileSync('public/maps/accra-v1/streets.json')),street=streets.find(p=>p.name==='Giffard Road');const streetResult=await call(joined.cookie,{type:'explore-place',placeId:`g_${Math.round(street.lng*10000)}_${Math.round(street.lat*10000)}`,placeName:street.name});assert.equal(streetResult.status,200,JSON.stringify(streetResult.body));
+});
+
+test('home sleep and sitting persist until manual wake with one-time benefits and no movement',async()=>{
+ const guest=await player('Rest Tester'),home=HOMES.find(h=>h.id==='starter');
+ fixture(guest.id,{pos_lng:home.lng,pos_lat:home.lat});
+ for(const kind of ['sleep','relax']){
+  fixture(guest.id,{last_action_at:0,energy:10,hunger:80,fun:10});
+  const started=await call(guest.cookie,{type:'act',actionId:kind});
+  assert.equal(started.status,200,JSON.stringify(started.body));
+  const saved=started.body.self;assert.equal(saved.life.rest.kind,kind);assert.equal(saved.life.rest.placeId,saved.placeId);
+  assert.deepEqual((await call(guest.cookie)).body.self.life.rest,saved.life.rest,'a fresh load preserves the rest');
+  assert.equal((await call(guest.cookie,{type:'act',actionId:kind})).status,400,'rest benefits cannot replay while already resting');
+  assert.equal((await call(guest.cookie,{type:'move',lng:-.1949,lat:5.5682,heading:0})).status,400);
+  assert.equal((await call(guest.cookie,{type:'vehicle',enter:true,lng:-.1949,lat:5.5682})).status,400);
+  assert.equal((await call(guest.cookie,{type:'explore-place',placeId:'mall'})).status,400);
+  fixture(guest.id,{life_json:JSON.stringify({...saved.life,lastVitalAt:Date.now()-30000,rest:{...saved.life.rest,startedAt:Date.now()-86400000}})});
+  const tick=await call(guest.cookie,{type:'vitals'});assert.equal(tick.status,200);assert.equal(tick.body.self.life.rest.kind,kind);
+  assert.equal(tick.body.self.energy,saved.energy);assert.equal(tick.body.self.hunger,saved.hunger);assert.equal(tick.body.self.xp,saved.xp);
+  const ended=await call(guest.cookie,{type:'rest-end'});assert.equal(ended.status,200);assert.equal(ended.body.self.life.rest,null);
+  assert.equal(ended.body.self.energy,saved.energy,'waking does not grant another reward');
+  assert.equal((await call(guest.cookie,{type:'rest-end'})).status,400,'already awake');
+  fixture(guest.id,{last_action_at:0});assert.equal((await call(guest.cookie,{type:'act',actionId:'shower'})).status,200);
+ }
+ fixture(guest.id,{life_json:JSON.stringify({...guest.self.life,health:0,rest:{kind:'sleep',placeId:guest.self.placeId,startedAt:1}})});
+ const restart=await call(guest.cookie,{type:'respawn'});assert.equal(restart.status,200);assert.equal(restart.body.self.life.rest,null);
 });

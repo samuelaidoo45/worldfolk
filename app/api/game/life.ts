@@ -14,8 +14,8 @@ import {GOODS,HOMES,JOBS,TERMINALS,propertyId} from '../../../public/game/life-c
 export type LifePlayer={id:string;name:string;life_json:string;revision:number;money:number;energy:number;hunger:number;fun:number;social:number;hygiene:number;xp:number;jobs_done:number;job:string;place_id:string;pos_lng:number|null;pos_lat:number|null;driving:number;last_action_at:number};
 type Flight={from:string;to:string;startedAt:number;endsAt:number};
 type WorkShift={jobId:string;endsAt:number;drove?:boolean;version?:number;id?:string;step?:number;nextTaskAt?:number;vehicle?:string;previousVehicle?:string};
-type Life={explorationPending?:boolean;startPlaceId?:string|null;autoDriveRate:number;lastDriveSkipAt:number;career:Record<string,{shifts:number;earned:number}>;lastServiceAt:number;wanted:number;arrested:boolean;arrests:number;lastTheftAt:number;momo:number;health:number;deaths:number;lastTrafficHitAt:number;lastVitalAt:number;lastCrashAt:number;drivingSince:number;transit:Ride|null;home:string;inventory:Record<string,number>;vehicles:string[];vehicle:string;properties:string[];job:string|null;shift:WorkShift|null;flight:Flight|null;outfit:string|null;furnished:string[]};
-export function readLife(p:LifePlayer):Life {let saved;try{saved=JSON.parse(p.life_json||'{}')}catch{saved={}}return {autoDriveRate:1,lastDriveSkipAt:0,career:{},lastServiceAt:0,wanted:0,arrested:false,arrests:0,lastTheftAt:0,momo:0,health:100,deaths:0,lastTrafficHitAt:0,lastVitalAt:0,lastCrashAt:0,drivingSince:0,transit:null,home:'starter',inventory:{},vehicles:['car'],vehicle:'car',properties:['starter'],job:null,shift:null,flight:null,outfit:null,furnished:[],...saved}}
+type Life={rest:{kind:'sleep'|'relax';placeId:string;startedAt:number}|null;explorationPending?:boolean;startPlaceId?:string|null;autoDriveRate:number;lastDriveSkipAt:number;career:Record<string,{shifts:number;earned:number}>;lastServiceAt:number;wanted:number;arrested:boolean;arrests:number;lastTheftAt:number;momo:number;health:number;deaths:number;lastTrafficHitAt:number;lastVitalAt:number;lastCrashAt:number;drivingSince:number;transit:Ride|null;home:string;inventory:Record<string,number>;vehicles:string[];vehicle:string;properties:string[];job:string|null;shift:WorkShift|null;flight:Flight|null;outfit:string|null;furnished:string[]};
+export function readLife(p:LifePlayer):Life {let saved;try{saved=JSON.parse(p.life_json||'{}')}catch{saved={}}return {rest:null,autoDriveRate:1,lastDriveSkipAt:0,career:{},lastServiceAt:0,wanted:0,arrested:false,arrests:0,lastTheftAt:0,momo:0,health:100,deaths:0,lastTrafficHitAt:0,lastVitalAt:0,lastCrashAt:0,drivingSince:0,transit:null,home:'starter',inventory:{},vehicles:['car'],vehicle:'car',properties:['starter'],job:null,shift:null,flight:null,outfit:null,furnished:[],...saved}}
 export function lifeView(p:LifePlayer){const life=readLife(p);return {...life,homeId:propertyId(p.id,life.home),homeName:HOMES.find(h=>h.id===life.home)?.name,apartment:p.id.slice(0,6).toUpperCase()}}
 export const metres=(a:number[],b:number[])=>Math.hypot((a[0]-b[0])*111320*Math.cos(a[1]*Math.PI/180),(a[1]-b[1])*111320);
 const publicCoords:Record<string,number[]>={arts:[-.2033,5.5464],theatre:[-.2047,5.5516],dubois:[-.1698,5.5815],home:[-.1949,5.5682],makola:[-.2141,5.5485],kaneshie:[-.2346,5.5724],osu:[-.1819,5.5598],mall:[-.1738,5.6224],airport:[-.1787,5.6093],labadi:[-.140846,5.561955],legon:[-.1874,5.651]};
@@ -28,7 +28,7 @@ export async function residences(db:D1Database,ownerId?:string){const rows=await
 async function hash(code:string){return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(code)))).map(x=>x.toString(16).padStart(2,'0')).join('')}
 export async function handleLife(db:D1Database,p:LifePlayer,input:Record<string,unknown>,view:(p:any)=>unknown):Promise<Response|null>{
  const type=String(input.type),life=readLife(p),now=Date.now();
- const kinds=['drive-speed','drive-skip','momo','buy','consume','equip','furnish','vehicle-select','job-apply','shift-start','work-task','experience-buy','shift-complete','shift-cancel','property-buy','home-set','pass-create','pass-redeem','pass-revoke','flight-book','flight-arrive','cook-inventory','vitals','crash','respawn','recover','ride-book','ride-progress','ride-skip','ride-exit','ride-social','bus-board','bus-arrive','traffic-hit'];
+ const kinds=['rest-end','drive-speed','drive-skip','momo','buy','consume','equip','furnish','vehicle-select','job-apply','shift-start','work-task','experience-buy','shift-complete','shift-cancel','property-buy','home-set','pass-create','pass-redeem','pass-revoke','flight-book','flight-arrive','cook-inventory','vitals','crash','respawn','recover','ride-book','ride-progress','ride-skip','ride-exit','ride-social','bus-board','bus-arrive','traffic-hit'];
  if(!kinds.includes(type))return null;
  if((life.health<=0||life.arrested)&&!['respawn','vitals'].includes(type))return fail('Restart at home to continue');
  if(life.transit&&!['respawn','bus-arrive','ride-progress','ride-skip','ride-exit','ride-social','vitals'].includes(type))return fail('Your bus is travelling');
@@ -37,6 +37,10 @@ export async function handleLife(db:D1Database,p:LifePlayer,input:Record<string,
  async function homeAccess(){const property=await propertyInfo(db,p.place_id);return !!property&&!p.driving&&metres([p.pos_lng??0,p.pos_lat??0],property.coords)<=85&&await canEnter(db,p,p.place_id)}
  async function save(touchAction=true){const result=await db.prepare('UPDATE players SET money=?,life_json=?,place_id=?,energy=?,hunger=?,fun=?,social=?,hygiene=?,xp=?,job=?,jobs_done=?,revision=revision+1,last_action_at=?,last_seen_at=? WHERE id=? AND revision=?').bind(next.money,JSON.stringify(life),next.place_id,next.energy,next.hunger,next.fun,next.social,next.hygiene,next.xp,next.job,next.jobs_done,touchAction?now:p.last_action_at,now,p.id,p.revision).run();if(!result.meta.changes)return fail('Your state changed. Please try again.',409);const updated=await db.prepare('SELECT *, (SELECT username FROM accounts WHERE player_id=players.id) AS handle FROM players WHERE id=?').bind(p.id).first();return Response.json({self:view(updated),event,...extra},{headers:{'Cache-Control':'no-store'}})}
 
+ if(type==='rest-end'){
+  if(!life.rest)return fail('You are already standing');
+  event=life.rest.kind==='sleep'?'You woke up':'You stood up';life.rest=null;life.lastVitalAt=now;return save(false);
+ }
  if(type==='drive-speed'||type==='drive-skip'){
   if(!p.driving||!canUseVehicle(life)||!shiftCanMove(life.shift))return fail('Enter a vehicle before using auto-drive');
   if(type==='drive-speed'){
@@ -63,14 +67,15 @@ export async function handleLife(db:D1Database,p:LifePlayer,input:Record<string,
   const gap=life.lastVitalAt?Math.max(0,(now-life.lastVitalAt)/1000):0,elapsed=gap>90?0:gap;
   if(gap<15&&life.lastVitalAt)return Response.json({self:view(p)});
   life.lastVitalAt=now;
-  // Only active sessions consume needs. Returning after days away cannot kill a player.
-  if(life.health>0){next.hunger=Math.max(0,p.hunger-elapsed/45);next.energy=Math.max(0,p.energy-elapsed/90);if(next.hunger===0)life.health=Math.max(0,life.health-elapsed/10);if(!life.health){life.deaths++;restoreWorkVehicle(life);life.shift=null}}
+  // Rest remains safe until manually ended; it grants no repeated rewards.
+  // Only active, awake sessions consume needs; offline time never drains them.
+  if(life.health>0&&!life.rest){next.hunger=Math.max(0,p.hunger-elapsed/45);next.energy=Math.max(0,p.energy-elapsed/90);if(next.hunger===0)life.health=Math.max(0,life.health-elapsed/10);if(!life.health){life.deaths++;restoreWorkVehicle(life);life.shift=null}}
   return save();
  }
  if(type==='traffic-hit'||type==='crash'){event='Contact · no health lost';return save(false)}
  if(type==='recover'){if(!p.place_id.startsWith(`p_${p.id}_`)||!await homeAccess())return fail('Rest inside your own home to recover');if(life.health>=100)return fail('You are already healthy');life.health=100;event='Rested and recovered at home';return save()}
  if(type==='respawn'){
-  if(life.health>0&&!life.arrested)return fail('You are still alive');life.wanted=0;life.arrested=false;const home=HOMES.find(h=>h.id===life.home)!;life.health=100;restoreWorkVehicle(life);life.shift=null;life.flight=null;life.transit=null;life.drivingSince=0;life.autoDriveRate=1;life.lastVitalAt=now;
+  if(life.health>0&&!life.arrested)return fail('You are still alive');life.wanted=0;life.arrested=false;life.rest=null;const home=HOMES.find(h=>h.id===life.home)!;life.health=100;restoreWorkVehicle(life);life.shift=null;life.flight=null;life.transit=null;life.drivingSince=0;life.autoDriveRate=1;life.lastVitalAt=now;
   const result=await db.prepare('UPDATE players SET life_json=?,pos_lng=?,pos_lat=?,place_id=?,driving=0,energy=80,hunger=80,last_move_at=?,last_action_at=?,last_seen_at=?,revision=revision+1 WHERE id=? AND revision=?').bind(JSON.stringify(life),home.lng,home.lat,propertyId(p.id,home.id),now,now,now,p.id,p.revision).run();if(!result.meta.changes)return fail('Please try again',409);const updated=await db.prepare('SELECT *, (SELECT username FROM accounts WHERE player_id=players.id) AS handle FROM players WHERE id=?').bind(p.id).first();return Response.json({self:view(updated),event:'A new day at home. Your belongings are safe.'});
  }
  if(type==='ride-social'){

@@ -41,7 +41,7 @@ type Action = { place: string[]; minutes: number; money?: number; energy?: numbe
   hunger?: number; fun?: number; social?: number; hygiene?: number; xp?: number;
   job?: string; jobShift?: boolean; label: string; minEnergy?: number; upgrade?: boolean };
 const ACTIONS: Record<string, Action> = {
-  sleep: {place:["home"],minutes:420,energy:70,hunger:-12,fun:4,label:"Sleep until morning"},
+  sleep: {place:["home"],minutes:420,energy:70,hunger:-12,fun:4,label:"Rest in bed"},
   cook: {place:["home"],minutes:45,money:-8,hunger:48,fun:5,label:"Cook at home"},
   shower: {place:["home"],minutes:25,hygiene:60,label:"Take a shower"},
   relax: {place:["home"],minutes:60,fun:22,energy:9,label:"Relax at home"},
@@ -138,6 +138,8 @@ export async function POST(request: Request) {
     }
     let p=await ownPlayer(db,request);if(!p)return json({error:"Create your Sim to play"},401);
     if(p.driving&&!readLife(p).drivingSince){const migrated={...readLife(p),drivingSince:now-30000};await db.prepare("UPDATE players SET life_json=?,revision=revision+1 WHERE id=? AND revision=?").bind(JSON.stringify(migrated),p.id,p.revision).run();const updated=await db.prepare("SELECT *, (SELECT username FROM accounts WHERE player_id=players.id) AS handle FROM players WHERE id=?").bind(p.id).first<Player>();if(updated)p=updated;}
+    const resting=readLife(p).rest;
+    if(resting&&!['rest-end','respawn','vitals','heartbeat','chat'].includes(type))return json({error:resting.kind==='sleep'?'Wake up before doing this':'Stand up before doing this'},400);
     if(type==='explore-place'){
       const life=readLife(p);
       if(life.health<=0||life.arrested)return json({error:'Restart at home to continue'},400);
@@ -235,16 +237,17 @@ export async function POST(request: Request) {
       const clock=elapsed(p,action.minutes);
       const hungerLoss=key==="sleep"?0:Math.floor(action.minutes/60)*3;
       const energyLoss=key==="sleep"?0:Math.floor(action.minutes/90)*2;
+      if(key==='sleep'||key==='relax')life.rest={kind:key,placeId:p.place_id,startedAt:now};
       const values={money:p.money+(action.money??0)-cost,energy:clamp(p.energy+(action.energy??0)-energyLoss),
         hunger:clamp(p.hunger+(action.hunger??0)-hungerLoss),fun:clamp(p.fun+(action.fun??0)),
         social:clamp(p.social+(action.social??0)),hygiene:clamp(p.hygiene+(action.hygiene??0)-Math.floor(action.minutes/150)*2),
         xp:p.xp+(action.xp??3),day:clock.day,minute:clock.minute,homeTier:p.home_tier+(action.upgrade?1:0),
         job:action.job??p.job,jobsDone:p.jobs_done+(action.jobShift?1:0)};
-      const result=await db.prepare("UPDATE players SET money=?,energy=?,hunger=?,fun=?,social=?,hygiene=?,xp=?,day=?,minute=?,home_tier=?,job=?,jobs_done=?,last_action_at=?,last_seen_at=?,revision=revision+1 WHERE id=? AND revision=?")
-        .bind(values.money,values.energy,values.hunger,values.fun,values.social,values.hygiene,values.xp,values.day,values.minute,values.homeTier,values.job,values.jobsDone,now,now,p.id,p.revision).run();
+      const result=await db.prepare("UPDATE players SET money=?,energy=?,hunger=?,fun=?,social=?,hygiene=?,xp=?,day=?,minute=?,home_tier=?,job=?,jobs_done=?,life_json=?,last_action_at=?,last_seen_at=?,revision=revision+1 WHERE id=? AND revision=?")
+        .bind(values.money,values.energy,values.hunger,values.fun,values.social,values.hygiene,values.xp,values.day,values.minute,values.homeTier,values.job,values.jobsDone,JSON.stringify(life),now,now,p.id,p.revision).run();
       if(!result.meta.changes)return json({error:"Your state changed. Please try again."},409);
       const updated=await db.prepare("SELECT *, (SELECT username FROM accounts WHERE player_id=players.id) AS handle FROM players WHERE id=?").bind(p.id).first<Player>();
-      return json({self:view(updated!),event:action.upgrade?"Your home has a new upgrade!":`${action.label} complete.`});
+      return json({self:view(updated!),event:life.rest?(key==='sleep'?'Sleeping. Choose Wake up when you are ready.':'Sitting. Choose Stand up when you are ready.'):action.upgrade?"Your home has a new upgrade!":`${action.label} complete.`});
     }
     if(type==="chat"){
       if(now-p.last_chat_at<3000)return json({error:"Wait a moment before sending another message"},429);

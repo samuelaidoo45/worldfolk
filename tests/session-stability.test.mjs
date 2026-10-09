@@ -58,3 +58,12 @@ test('validated auto-drive speeds allow fast-forward without allowing walking te
  f.m.player.driving=1;assert.equal(validMove(f.m,{lng:-.1,lat:5.56,heading:90},now),false);
  f.row.driving=1;f.row.life_json=JSON.stringify({health:100,autoDriveRate:8});await f.room.reload(f.ws,f.m);assert.equal(JSON.parse(f.ws.deserializeAttachment().player.life_json).autoDriveRate,8);
 });
+
+test('saved resting state stops WebSocket movement and discards pending steps',async()=>{
+ for(const kind of ['sleep','relax']){
+  const f=fixture();f.row.life_json=JSON.stringify({health:100,rest:{kind,placeId:'home',startedAt:1}});
+  await f.room.reload(f.ws,f.m,true);const m=f.ws.deserializeAttachment();
+  assert.equal(m.dirty,false);assert.equal(JSON.parse(m.player.life_json).rest.kind,kind);
+  assert.equal(validMove(m,{lng:-.179999,lat:5.56,heading:0},3000),false);
+ }
+});
