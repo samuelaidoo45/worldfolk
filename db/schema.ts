@@ -106,9 +106,20 @@ export const adCampaigns=sqliteTable('ad_campaigns',{
  id:text('id').primaryKey(),playerId:text('player_id').notNull().references(()=>players.id),
  brand:text('brand').notNull(),headline:text('headline').notNull(),detail:text('detail').notNull(),url:text('url').notNull().default(''),
  color:text('color').notNull(),audience:text('audience').notNull(),status:text('status').notNull().default('active'),
+ amountMinor:integer('amount_minor').notNull().default(0),durationHours:integer('duration_hours').notNull().default(24),
+ contact:text('contact').notNull().default(''),paymentReference:text('payment_reference').notNull().default(''),reviewNote:text('review_note').notNull().default(''),
+ approvedAt:integer('approved_at').notNull().default(0),approvedBy:text('approved_by'),paymentConfirmedAt:integer('payment_confirmed_at').notNull().default(0),paymentConfirmedBy:text('payment_confirmed_by'),publishedAt:integer('published_at').notNull().default(0),
  createdAt:integer('created_at').notNull(),expiresAt:integer('expires_at').notNull(),
 },t=>[index('ads_live').on(t.status,t.expiresAt),index('ads_owner').on(t.playerId,t.createdAt)]);
 export const adReports=sqliteTable('ad_reports',{
  campaignId:text('campaign_id').notNull().references(()=>adCampaigns.id),playerId:text('player_id').notNull().references(()=>players.id),
  reason:text('reason').notNull(),createdAt:integer('created_at').notNull(),
 },t=>[uniqueIndex('ad_report_unique').on(t.campaignId,t.playerId)]);
+
+export const platformAdmins=sqliteTable('platform_admins',{
+ playerId:text('player_id').primaryKey().references(()=>players.id),createdAt:integer('created_at').notNull(),
+});
+export const adEvents=sqliteTable('ad_events',{
+ id:text('id').primaryKey(),campaignId:text('campaign_id').notNull().references(()=>adCampaigns.id),
+ actorId:text('actor_id').notNull().references(()=>players.id),action:text('action').notNull(),createdAt:integer('created_at').notNull(),
+},t=>[index('ad_events_campaign').on(t.campaignId,t.createdAt)]);
