@@ -52,7 +52,7 @@ test('registered handles, mandatory entry and private profile chat', {timeout:60
  }
  const [one,two,three]=users;
  const profile=await call('/api/players?id='+two.self.id,one.cookie);assert.equal(profile.status,200);assert.equal(profile.body.profile.handle,two.handle);
- assert.deepEqual(Object.keys(profile.body.profile).sort(),['avatar','handle','id','job','level','name','online'].sort(),'only public fields');
+ assert.deepEqual(Object.keys(profile.body.profile).sort(),['avatar','handle','id','job','level','name','online','bio','socials','photoUrl'].sort(),'only public fields');
  assert.equal((await call('/api/game',one.cookie,{type:'enter',placeId:one.self.life.homeId})).status,200);
  const sends=await Promise.all([call('/api/players',one.cookie,{to:two.handle,body:'Hello from the city'}),call('/api/players',one.cookie,{to:two.handle,body:'Duplicate burst'})]);
  assert.deepEqual(sends.map(r=>r.status).sort(),[200,429]);

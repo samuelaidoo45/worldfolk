@@ -96,3 +96,19 @@ export const friendCalls = sqliteTable('friend_calls', {
  createdAt: integer('created_at').notNull(),
  expiresAt: integer('expires_at').notNull(),
 }, t => [index('friend_calls_caller').on(t.caller,t.expiresAt),index('friend_calls_callee').on(t.callee,t.expiresAt)]);
+
+export const playerProfiles = sqliteTable('player_profiles', {
+ playerId:text('player_id').primaryKey().references(()=>players.id),
+ bio:text('bio').notNull().default(''), socialJson:text('social_json').notNull().default('{}'),
+ photoKey:text('photo_key'),updatedAt:integer('updated_at').notNull().default(0),
+});
+export const adCampaigns=sqliteTable('ad_campaigns',{
+ id:text('id').primaryKey(),playerId:text('player_id').notNull().references(()=>players.id),
+ brand:text('brand').notNull(),headline:text('headline').notNull(),detail:text('detail').notNull(),url:text('url').notNull().default(''),
+ color:text('color').notNull(),audience:text('audience').notNull(),status:text('status').notNull().default('active'),
+ createdAt:integer('created_at').notNull(),expiresAt:integer('expires_at').notNull(),
+},t=>[index('ads_live').on(t.status,t.expiresAt),index('ads_owner').on(t.playerId,t.createdAt)]);
+export const adReports=sqliteTable('ad_reports',{
+ campaignId:text('campaign_id').notNull().references(()=>adCampaigns.id),playerId:text('player_id').notNull().references(()=>players.id),
+ reason:text('reason').notNull(),createdAt:integer('created_at').notNull(),
+},t=>[uniqueIndex('ad_report_unique').on(t.campaignId,t.playerId)]);

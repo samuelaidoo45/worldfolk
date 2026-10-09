@@ -23,7 +23,8 @@ export async function GET(request:Request){try{
  const profile=await target(db,id);if(!profile)return reply({error:'Player profile not found'},404);
  const messages=await db.prepare('SELECT id,player_id AS senderId,body,created_at AS at FROM messages WHERE channel=? ORDER BY created_at DESC LIMIT 60').bind(channel(self.id,profile.id)).all();
  const friendship=await db.prepare('SELECT id,status,requested_by AS requestedBy FROM friendships WHERE (player_a=? AND player_b=?) OR (player_a=? AND player_b=?)').bind(self.id,profile.id,profile.id,self.id).first();
- return reply({profile,friendship,messages:messages.results.reverse()});
+ const extra=await db.prepare('SELECT bio,social_json,photo_key FROM player_profiles WHERE player_id=?').bind(profile.id).first<{bio:string;social_json:string;photo_key:string|null}>();
+ return reply({profile:{...profile,bio:extra?.bio||'',socials:JSON.parse(extra?.social_json||'{}'),photoUrl:extra?.photo_key?'/api/profile/photo?key='+extra.photo_key:null},friendship,messages:messages.results.reverse()});
  }catch{return reply({error:'Profiles are temporarily unavailable'},503)}}
 export async function POST(request:Request){try{
  const db=env.DB;if(!db)return reply({error:'Chat unavailable'},503);

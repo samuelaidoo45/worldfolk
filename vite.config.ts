@@ -29,10 +29,10 @@ const localBindingConfig = {
         },
       ]
     : [],
-  r2_buckets: r2
+  r2_buckets: (r2 || "BUCKET")
     ? [
         {
-          binding: r2,
+          binding: r2 || "BUCKET",
           bucket_name: "site-creator-r2",
         },
       ]

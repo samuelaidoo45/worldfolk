@@ -71,6 +71,13 @@
       "when": 1791539304704,
       "tag": "0009_goofy_monster_badoon",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1791541589460,
+      "tag": "0010_sturdy_sphinx",
+      "breakpoints": true
     }
   ]
 }
