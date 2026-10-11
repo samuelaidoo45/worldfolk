@@ -1,6 +1,6 @@
 // Original synthesized effects: no downloads, autoplay, microphone or network needed.
 export function createGameAudio({host=window,doc=document,storage=localStorage}={}){
- let context,master,engine,engineGain,rainGain,enabled=true,lastStep=0,lastEffect=0,destroyed=false,lastProgramme='',lastBeat=-1,speaking=false;
+ let context,master,engine,engineGain,rainGain,enabled=true,lastStep=0,lastEffect=0,destroyed=false,lastProgramme='',lastBeat=-1,speaking=false;const ambienceGains={};
  try{enabled=storage.getItem('worldfolk_sound')!=='off'}catch{}
  const param=(p,value)=>p.setTargetAtTime(value,context.currentTime,.08);
  async function unlock(){
@@ -9,12 +9,13 @@ export function createGameAudio({host=window,doc=document,storage=localStorage}=
    engine=context.createOscillator();engine.type='sawtooth';engine.frequency.value=45;engineGain=context.createGain();engineGain.gain.value=0;const filter=context.createBiquadFilter();filter.type='lowpass';filter.frequency.value=350;engine.connect(filter).connect(engineGain).connect(master);engine.start();
    const buffer=context.createBuffer(1,context.sampleRate*2,context.sampleRate),data=buffer.getChannelData(0);for(let i=0;i<data.length;i++)data[i]=Math.random()*2-1;
    const noise=context.createBufferSource();noise.buffer=buffer;noise.loop=true;const rainFilter=context.createBiquadFilter();rainFilter.type='lowpass';rainFilter.frequency.value=1700;rainGain=context.createGain();rainGain.gain.value=0;noise.connect(rainFilter).connect(rainGain).connect(master);noise.start();
+   for(const [kind,type,hz] of [['wind','lowpass',480],['surf','lowpass',950],['traffic','lowpass',180],['crowd','bandpass',620]]){const f=context.createBiquadFilter(),g=context.createGain();f.type=type;f.frequency.value=hz;g.gain.value=0;noise.connect(f).connect(g).connect(master);ambienceGains[kind]=g;}
   }await context.resume();return true}catch{return false}
  }
  function tone(frequency,duration=.12,volume=.15,type='sine',delay=0){if(!enabled||doc.hidden||context?.state!=='running')return;const now=context.currentTime+delay,o=context.createOscillator(),g=context.createGain();o.type=type;o.frequency.setValueAtTime(frequency,now);g.gain.setValueAtTime(volume,now);g.gain.exponentialRampToValueAtTime(.001,now+duration);o.connect(g).connect(master);o.onended=()=>{o.disconnect();g.disconnect()};o.start(now);o.stop(now+duration)}
  function effect(kind){const now=context?.currentTime||0;if(now-lastEffect<.15)return;lastEffect=now;if(kind==='horn'){tone(350,.3,.22,'triangle');tone(440,.3,.12,'triangle')}else if(kind==='impact')tone(65,.18,.28,'triangle');else if(kind==='reward'){tone(523,.12,.12);tone(784,.2,.12,'sine',.12)}else if(kind==='arrive'){tone(660,.14,.12);tone(880,.22,.12,'sine',.14)}}
  function stopSpeech(){if(speaking)host.speechSynthesis?.cancel();speaking=false;lastProgramme=''}
- function update({active,mode,speed=0,moving=false,running=false,rain=false,venue=null}){
+ function update({active,mode,speed=0,moving=false,running=false,rain=false,venue=null,ambience=null}){
   if(!active||!venue||!enabled||doc.hidden||lastProgramme&&!lastProgramme.startsWith(venue.kind+':'))stopSpeech();if(context?.state!=='running')return;const audible=enabled&&active&&!doc.hidden;
   if(audible&&venue){
    if(venue.sound==='speech'&&lastProgramme!==venue.id){
@@ -23,6 +24,7 @@ export function createGameAudio({host=window,doc=document,storage=localStorage}=
    }
    if(venue.sound==='music'){const beat=Math.floor(context.currentTime/.14);if(beat!==lastBeat){lastBeat=beat;const notes=[130.81,0,164.81,196,0,164.81,146.83,0];if(beat%4===0)tone(60,.16,.3,'sine');if(beat%4===2)tone(180,.06,.14,'triangle');tone(4500,.025,.015,'square');if(notes[beat%8])tone(notes[beat%8],.12,.12,'triangle')}}
   }else lastBeat=-1;
+  for(const [kind,g] of Object.entries(ambienceGains)){const swell=kind==='surf'?.7+Math.sin(context.currentTime*.38)*.3:kind==='crowd'?.65+Math.sin(context.currentTime*2.7)*.2+Math.sin(context.currentTime*4.3)*.15:1;param(g.gain,audible&&mode==='walk'?(ambience?.[kind]||0)*swell:0);}
   param(engineGain.gain,audible&&['drive','transit'].includes(mode)?.055+Math.min(Math.abs(speed),25)*.002:0);
   param(engine.frequency,40+Math.min(Math.abs(speed),30)*3);param(rainGain.gain,audible&&venue?.sound==='surf'?.065+Math.sin(context.currentTime*.5)*.025:audible&&rain&&mode!=='indoor'?.1:0);
   if(audible&&moving&&['walk','indoor'].includes(mode)&&context.currentTime-lastStep>(running?.26:.44)){lastStep=context.currentTime;tone(100+Math.random()*25,.055,.15,'triangle')}

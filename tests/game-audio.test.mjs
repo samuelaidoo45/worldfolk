@@ -10,6 +10,7 @@ test('audio waits for a gesture, changes with movement, mutes persistently and s
  const audio=createGameAudio({host:{AudioContext:Context,SpeechSynthesisUtterance:class{constructor(text){this.text=text}},speechSynthesis:{speak:u=>spoken.push(u.text),cancel:()=>cancelled++}},doc,storage});assert.equal(created,0);
  await events.get('pointerdown')();assert.equal(created,1);assert.equal(ctx.state,'running');
  audio.update({active:true,mode:'drive',speed:20,rain:true});assert.ok(nodes[2].gain.value>0);assert.ok(nodes[6].gain.value>0);
+ audio.update({active:true,mode:'walk',ambience:{wind:.025,surf:.03,traffic:.01,crowd:.02}});const beds=[nodes[8],nodes[10],nodes[12],nodes[14]];assert.ok(beds.every(n=>n.gain.value>0),'precinct sound beds become audible');audio.update({active:true,mode:'walk'});assert.ok(beds.every(n=>n.gain.value===0),'leaving precinct silences sound beds');audio.update({active:false,mode:'walk',ambience:{wind:.02,crowd:.02}});assert.ok(beds.every(n=>n.gain.value===0),'paused gameplay is quiet');
  const count=nodes.length;audio.effect('horn');assert.equal(nodes.length,count+4);
  await audio.toggle();assert.equal(saved.get('worldfolk_sound'),'off');assert.equal(ctx.state,'suspended');audio.effect('horn');assert.equal(nodes.length,count+4);
  await events.get('pointerdown')();assert.equal(ctx.state,'suspended');await audio.toggle();assert.equal(ctx.state,'running');

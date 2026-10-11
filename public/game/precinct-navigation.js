@@ -45,7 +45,7 @@ export function precinctNavigation(data){
    const front=d/2-.9-row*run,top=.42+row*.36;
    for(let bay=0;bay<5;bay++)floor(-w/2+(bay+.5)*w/5,front-run/2,w/5-1.25,run,top,'terrace',0);
    for(let aisle=1;aisle<5;aisle++){const x=-w/2+aisle*w/5;floor(x,front-run/4,1.25,run/2,top-.18,'step',0);floor(x,front-run*.75,1.25,run/2,top,'step',0);}
-   for(let bay=0;bay<5;bay++)solid(-w/2+(bay+.5)*w/5,front-run*.77,w/5-1.25,.3,top,top+.25);
+   for(let bay=0;bay<5;bay++)solid(-w/2+(bay+.5)*w/5,front-run*.77,w/5-1.25,.3,top,top+.42);
   }
   floor(0,-d/2+1.15,w,1.9,4.38,'platform',0);
   for(const x of [-w/2,w/2])solid(x,0,.12,d,0,5.6);

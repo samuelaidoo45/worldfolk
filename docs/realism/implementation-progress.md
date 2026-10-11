@@ -118,3 +118,14 @@ This exterior pass has since been extended with walkable platforms/stairs, the U
 Verification: centre openings tested against both rendered mesh rays and collision polygons; fountain/stair/terrace boundaries and all eight inward-facing stands checked. Arrival framing raises the view by eight degrees to retain the arch crown. An obsolete pre-foundation camera-distance assertion was corrected; camera wall clearance remains tested. The initial final rebuild ran out of local disk space; removing the obsolete generated `.next` cache and temporary character archive allowed it to complete.
 
 **Deployment:** Cloudflare version `ef55edad-5dad-47f1-955d-c4e77067a366` serves the precinct pass on `worldfolk.world`. The live precinct module matches the source byte-for-byte and `/game/` returns HTTP 200. Full-game review confirms the arch crown remains visible on arrival. No database migrations or account changes were made.
+
+## 11 October 2026 — Independence Square visitor activities
+
+- Added a bounded local visitor crowd: plaza walkers, seated grandstand spectators, monument photo poses and a small daytime gathering. These NPCs do not change the online-player count or add server polling.
+- Added eight usable grandstand seats, two monument photo spots and a gathering viewpoint. Nearby rings use the existing E/touch interaction; sit, pose or watch until explicitly stopped. Activities clear on departure, transport, relocation or incapacitation.
+- Corrected seat height and aligned seated models with the actual bench surfaces. Walkers remain on paths inside the parade ground, away from surrounding traffic and monument structures.
+- Added low-volume synthesized coastal wind, surf, distant traffic and crowd ambience, plus an original short spoken welcome when watching the gathering. Existing sound settings, gesture unlock, pause and background muting apply. These are synthesized effects, not field recordings.
+- Verification: 24 focused geometry, activity, character and audio checks pass; full-game checks cover city-map arrival, sitting, attempted movement while seated, standing and walking away, walking to the arch photo spot, starting/stopping a photo pose and returning to the map. Daytime visitor spacing and bench alignment reviewed in `tests/fixtures/precinct-life-review.html`.
+- Scope: ambient NPCs and outdoor poses are client-local; outdoor activities are per-visit and are not yet broadcast as multiplayer poses. No staged parade, live event feed or captured-photo gallery is claimed. Larger event scheduling and mobile crowd performance benchmarks remain future work.
+
+Next landmark: Kwame Nkrumah Memorial Park — mausoleum, statue, fountains, gardens and museum, with location-specific references and interactions.

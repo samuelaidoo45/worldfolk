@@ -90,6 +90,7 @@ export function createRiggedActor(template,icon='🧑🏾',identity=''){
  const shadow=new THREE.Mesh(new THREE.PlaneGeometry(.8,.65),new THREE.MeshBasicMaterial({map:contactShadow(),color:0x172723,transparent:true,opacity:.48,depthWrite:false}));shadow.rotation.x=-Math.PI/2;shadow.position.y=.012;shadow.userData.dynamic=true;group.add(shadow);
  const boneDistance=(a,b)=>bones.get(a).getWorldPosition(new THREE.Vector3()).distanceTo(bones.get(b).getWorldPosition(new THREE.Vector3()));
  const upper=boneDistance('thigh_l','calf_l'),lower=boneDistance('calf_l','foot_l');
+ const phone=new THREE.Mesh(new THREE.BoxGeometry(.075,.15,.012),new THREE.MeshStandardMaterial({color:0x17212c,roughness:.35}));phone.position.set(0,1.5,-.43);phone.userData.dynamic=true;phone.visible=false;group.add(phone);
  let last=null,phase=0,blend=0,smoothSpeed=0;
  function animate(t,moving,options={}){
   const dt=last===null?1/60:Math.max(0,Math.min(.05,t-last));last=t;
@@ -108,6 +109,7 @@ export function createRiggedActor(template,icon='🧑🏾',identity=''){
   head.rotation.y=Math.sin(t*.53+seed%9)*.035*(1-blend);
   group.position.y=gait.bodyOffset*blend;
   visual.position.y=.025+Math.sin(t*1.8)*.002*(1-blend);
+  phone.visible=options.action==='photo';
   if(options.action)pose(options.action,t,options.blend??1);
  }
  function pose(action,t,weight=1){
@@ -115,6 +117,8 @@ export function createRiggedActor(template,icon='🧑🏾',identity=''){
   if(['sit','relax','drive'].includes(action)){
    leftLeg.rotation.x=rightLeg.rotation.x=-1.5*w;knees.forEach(k=>k.rotation.x=1.5*w);elbows.forEach(e=>e.rotation.x=-.65*w);
    leftArm.rotation.x=rightArm.rotation.x=-(action==='drive'?.65:.12)*w;spine.rotation.x=.035*w;
+  }else if(action==='photo'){
+   leftArm.rotation.x=rightArm.rotation.x=-1.1*w;elbows.forEach(e=>e.rotation.x=-1.05*w);head.rotation.x=.03*w;
   }else if(action==='sleep'){
    elbows.forEach(e=>e.rotation.x=-.18*w);leftArm.rotation.z=-.06*w;rightArm.rotation.z=.06*w;head.rotation.y=.14*w;
   }else if(action==='dance'){
