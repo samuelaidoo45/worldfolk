@@ -9,3 +9,17 @@ export function hipRoofVertices(points,rise){
  const a=p[0].map((v,i)=>(v+p[1][i])/2),b=p[2].map((v,i)=>(v+p[3][i])/2),mix=t=>[a[0]+(b[0]-a[0])*t,rise,a[1]+(b[1]-a[1])*t],r1=mix(.24),r2=mix(.76),v=p.map(q=>[q[0],0,q[1]]);
  return [[v[0],v[1],r1],[v[1],v[2],r2],[v[1],r2,r1],[v[2],v[3],r2],[v[3],v[0],r1],[v[3],r1,r2]].flat(2);
 }
+
+// Vector-tile outlines often include extra collinear points. Remove those only;
+// never turn an L-shaped building or courtyard into a rectangular roof.
+export function roofOutline(ring,tolerance=.16){
+ let points=ring.map(p=>[...p]);
+ if(points.length>1&&Math.hypot(points[0][0]-points.at(-1)[0],points[0][1]-points.at(-1)[1])<.01)points.pop();
+ let changed=true;
+ while(changed&&points.length>4){changed=false;for(let i=0;i<points.length;i++){
+  const a=points[(i+points.length-1)%points.length],b=points[i],c=points[(i+1)%points.length],dx=c[0]-a[0],dy=c[1]-a[1],length=Math.hypot(dx,dy);
+  const t=length?((b[0]-a[0])*dx+(b[1]-a[1])*dy)/(length*length):-1;
+  if(t>=0&&t<=1&&Math.abs(dx*(a[1]-b[1])-(a[0]-b[0])*dy)/length<tolerance){points.splice(i,1);changed=true;break}
+ }}
+ return points;
+}

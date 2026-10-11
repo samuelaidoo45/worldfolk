@@ -56,7 +56,7 @@ class Extract(osmium.SimpleHandler):
   if self.count%100000==0:print(f'Processed {self.count} areas; retained {len(layers["building"])} Accra buildings',flush=True)
   t=dict(a.tags)
   building=t.get('building') not in [None,'no']; water=t.get('natural')=='water' or t.get('water') or t.get('landuse')=='reservoir'
-  land=t.get('landuse') or t.get('leisure') or t.get('natural')
+  land=t.get('landuse') or t.get('leisure') or t.get('natural') or ('parking' if t.get('amenity')=='parking' else None)
   if t.get('boundary') or not (building or water or land in ['residential','commercial','industrial','retail','park','garden','pitch','grass','meadow','forest','wood','sand','beach','scrub','farmland','cemetery','parking','recreation_ground'] or any(t.get(k) for k in ['amenity','shop','tourism','leisure'])):return
   if building:
    try:
@@ -70,11 +70,11 @@ class Extract(osmium.SimpleHandler):
   if g.is_empty:return
   p=g.representative_point();poi(a.id,t,(p.x,p.y))
   if building:
-   feature('building',a.id,g,{'height':max(3,number(t.get('height'),number(t.get('building:levels'),1.5)*3)),'min_height':number(t.get('min_height'),0),'class':t['building'],'name':t.get('name',''),'amenity':t.get('amenity',''),'shop':t.get('shop',''),'religion':t.get('religion',''),'building:colour':t.get('building:colour',''),'roof:colour':t.get('roof:colour',''),'roof:shape':t.get('roof:shape',''),'building:levels':t.get('building:levels','')})
+   feature('building',a.id,g,{'height':max(3,number(t.get('height'),number(t.get('building:levels'),1.5)*3)),'min_height':number(t.get('min_height'),0),'class':t['building'],'name':t.get('name',''),'amenity':t.get('amenity',''),'shop':t.get('shop',''),'religion':t.get('religion',''),'building:material':t.get('building:material',''),'building:colour':t.get('building:colour',''),'roof:colour':t.get('roof:colour',''),'roof:shape':t.get('roof:shape',''),'building:levels':t.get('building:levels','')})
   elif water:feature('water',a.id,g,{'class':'water','name':t.get('name','')})
   elif land:
    kind={'forest':'wood','meadow':'grass','farmland':'agriculture','beach':'sand','recreation_ground':'park'}.get(land,land)
-   feature('landuse',a.id,g,{'class':kind,'name':t.get('name','')})
+   feature('landuse',a.id,g,{'class':kind,'name':t.get('name',''),'surface':t.get('surface','')})
  def relation(self,r):
   t=dict(r.tags)
   if t.get('type')!='restriction' or not t.get('restriction'):return

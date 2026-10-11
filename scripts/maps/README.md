@@ -51,3 +51,23 @@ static tiles avoid introducing a tile API, server VM or R2 billing setup for the
 current Accra region. Before million-player launch, separately load-test the
 multiplayer database, live presence and ride computations; migration removes
 Mapbox map usage charges, not all hosting costs.
+
+## Accra rendering references (11 October 2026)
+
+Visual review used Google Maps satellite imagery around Osu (5.556, -0.182)
+and Oxford Street photographs as references only; no imagery was copied into
+our tiles or textures. Mapped footprints/heights and explicit material/surface
+tags take precedence. Unclassified land remains neutral instead of being
+misrepresented as paved yards or grass. The next extraction retains land
+`surface` and `building:material` tags; existing tiles retain their original
+data and coverage. No claim of a photographic or surveyed building replica.
+
+- Reference: https://www.google.com/maps/@5.556,-0.182,17z/data=!3m1!1e3
+- Street photos: https://commons.wikimedia.org/wiki/Category:Oxford_Street_(Osu)
+- Camera reference: https://www.rockstargames.com/newswire/article/25o2411812oa29/rockstar-game-tips-playing-with-perspective-in-gtav
+
+Roadside food stalls, district-generated palm rows, umbrellas and benches are
+not generated. Market interiors remain themed playable spaces. Sparse road
+lighting, traffic signals, MoMo game services and ad billboards are gameplay
+objects, not surveyed real-world objects. Camera defaults to third person with
+speed pullback, smoothed motion and building obstruction checks; K cycles views.

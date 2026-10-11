@@ -1,14 +1,16 @@
 import {offsetMetres,damp} from './motion.js';
-// Resolve the physical camera position before asking MapLibre for its projection.
-// Fixed zoom/pitch values can put the camera inside a roof beside a doorway.
+// Metre-scale follow framing: a low horizon, room ahead and speed-dependent
+// pullback. Obstructions pull the camera in immediately; release is damped.
 export function chaseCamera({position,heading,physics,driving=false,scenic=false,street=false,cabin=false,speed=0,previousDistance,viewScale=1,dt=1/60}){
  const angle=heading*Math.PI/180,back=[-Math.sin(angle),-Math.cos(angle)];
- const wanted=(cabin?0:scenic?34:street?(driving?11:8):driving?16+Math.min(5,Math.abs(speed)*.1):13)*Math.max(1,Math.min(2,viewScale));
+ const velocity=Math.min(35,Math.abs(speed)),scale=Math.max(1,Math.min(1.35,viewScale));
+ const wanted=(cabin?0:scenic?30:street?(driving?9:5.5):driving?13+velocity*.12:9)*scale;
  let clearance=wanted;
- for(let d=.4;d<=wanted+.1;d+=.4){if(physics?.collision(offsetMetres(position,back[0]*d,back[1]*d),.28)){clearance=Math.max(.35,d-.45);break}}
- const distance=previousDistance===undefined||clearance<previousDistance?clearance:damp(previousDistance,clearance,4,dt);
- const from=offsetMetres(position,back[0]*distance,back[1]*distance),ahead=cabin?7:scenic?3:driving?3:1.4,to=offsetMetres(position,-back[0]*ahead,-back[1]*ahead);
- const closeView=!driving&&!scenic&&!cabin&&distance<3;
- const altitude=cabin?1.6:closeView?2.15:scenic?4+distance*.38:street?2.3+distance*.08:driving?3+distance*.22:2.6+distance*.24;
- return {from,to,altitude,targetAltitude:cabin?1.55:closeView?1.55:1.05,distance};
+ for(let d=.3;d<=wanted+.3;d+=.3){if(physics?.collision(offsetMetres(position,back[0]*Math.min(d,wanted),back[1]*Math.min(d,wanted)),.3)){clearance=Math.max(.3,d-.45);break}}
+ const distance=previousDistance===undefined||clearance<previousDistance?clearance:damp(previousDistance,clearance,3.5,dt);
+ const ahead=cabin?9:scenic?4:driving?3.5+velocity*.07:1.25;
+ const from=offsetMetres(position,back[0]*distance,back[1]*distance),to=offsetMetres(position,-back[0]*ahead,-back[1]*ahead);
+ const close=distance<2.5&&!scenic;
+ const altitude=cabin?1.65:close?2:scenic?5+distance*.48:street?2.1+distance*.08:driving?3.2+distance*.16:2.7+distance*.15;
+ return {from,to,altitude,targetAltitude:cabin?1.6:scenic?1:driving?1.2:1.35,distance};
 }

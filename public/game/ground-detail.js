@@ -1,3 +1,4 @@
+import {surfaceClass,unpavedRoad} from './surface-style.js';
 // Locally generated aggregate, grass and paving retain mapped surface classes.
 export function installGroundDetail(map){
  const size=128;
@@ -9,9 +10,9 @@ export function installGroundDetail(map){
    pixels[i+3]=joint?75:kind==='paving'?seed%20:kind==='asphalt'?seed%55:seed%32;
    if(kind==='grass'){pixels[i]=seed%2?132:49;pixels[i+1]=seed%2?155:77;pixels[i+2]=seed%2?100:36;}
   }
-  map.addImage('worldfolk-'+kind,{width:size,height:size,data:pixels});
+  if(!map.hasImage('worldfolk-'+kind))map.addImage('worldfolk-'+kind,{width:size,height:size,data:pixels});
  }
- map.addLayer({id:'worldfolk-ground-texture',type:'fill',source:'accralife-streets','source-layer':'landuse',minzoom:17,paint:{'fill-pattern':['match',['get','class'],['parking','commercial'],'worldfolk-paving',['grass','park','garden','wood','pitch'],'worldfolk-grass','worldfolk-earth'],'fill-opacity':.65}},'worldfolk-water');
+ map.addLayer({id:'worldfolk-ground-texture',type:'fill',source:'accralife-streets','source-layer':'landuse',minzoom:17,paint:{'fill-pattern':['match',surfaceClass,'paving','worldfolk-paving','grass','worldfolk-grass','worldfolk-earth'],'fill-opacity':['case',['==',surfaceClass,'unknown'],0,.45]}},'worldfolk-water');
  const road=map.getStyle().layers.find(layer=>layer.id==='worldfolk-roads');
- if(road)map.addLayer({id:'worldfolk-asphalt-texture',type:'line',source:road.source,'source-layer':road['source-layer'],minzoom:17,layout:road.layout,filter:['all',road.filter,['!=',['get','surface'],'unpaved']],paint:{'line-pattern':'worldfolk-asphalt','line-width':road.paint['line-width'],'line-opacity':.4}},'worldfolk-road-labels');
+ if(road)map.addLayer({id:'worldfolk-asphalt-texture',type:'line',source:road.source,'source-layer':road['source-layer'],minzoom:17,layout:road.layout,filter:['all',road.filter,['!',unpavedRoad]],paint:{'line-pattern':'worldfolk-asphalt','line-width':road.paint['line-width'],'line-opacity':.4}},'worldfolk-road-labels');
 }
