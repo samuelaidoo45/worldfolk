@@ -1,0 +1,16 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Worldfolk voice transport check</title><style>body{font:18px system-ui;max-width:720px;margin:60px auto;padding:24px;background:#eef5ef;color:#143d30}button{padding:16px;background:#187b57;color:white;border:0;border-radius:12px;font:inherit}output{display:block;margin:24px 0;white-space:pre-wrap}</style><h1>Two-peer audio transport check</h1><p>Uses synthetic audio on this device. Does not access the microphone or call another player.</p><button id="start">Test audio transport</button><output id="result" role="status">Ready</output><script type="module">
+import {createVoicePeer} from '/game/voice-peer.js';
+const result=document.querySelector('#result');
+document.querySelector('#start').onclick=async()=>{
+ const contexts=[],links=[],streams=[];let failures=[];
+ try{
+  for(let i=0;i<2;i++){const context=new AudioContext();await context.resume();contexts.push(context);const oscillator=context.createOscillator(),dest=context.createMediaStreamDestination();oscillator.frequency.value=220+i*110;oscillator.connect(dest);oscillator.start();streams.push(dest.stream)}
+  const messages=[[],[]];
+  for(let i=0;i<2;i++)links.push(createVoicePeer({stream:streams[i],iceServers:[],offerer:i===0,send:message=>{messages[1-i].push(message)},onTrack(){},onState:state=>{result.textContent=`Peer ${i+1}: ${state}`}}));
+  await Promise.all(links.map(p=>p.start()));
+  for(let step=0;step<60;step++){for(let i=0;i<2;i++)while(messages[i].length)await links[i].receive(messages[i].shift());await new Promise(r=>setTimeout(r,150));}
+  const received=[];for(const link of links){let bytes=0;for(const s of (await link.pc.getStats()).values())if(s.type==='inbound-rtp'&&s.kind==='audio')bytes+=s.bytesReceived||0;received.push(bytes)}
+  result.textContent=received.every(n=>n>0)?`PASS — real WebRTC audio received in both directions.\nPeer 1: ${received[0]} bytes\nPeer 2: ${received[1]} bytes`:`FAIL — received ${received.join(', ')} bytes`;
+ }catch(e){result.textContent='FAIL — '+e.message}finally{links.forEach(p=>p.close());streams.forEach(s=>s.getTracks().forEach(t=>t.stop()));await Promise.all(contexts.map(c=>c.close()));}
+};
+</script></html>

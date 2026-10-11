@@ -111,3 +111,24 @@ test('direct registration, persistent friends and city-wide presence', {timeout:
  await call('/api/contacts',a.cookie,{type:'remove',id:incoming.id});assert.equal((await call('/api/contacts',a.cookie)).body.friendCount,1);
  for(const u of users)sql('UPDATE players SET session_token=NULL WHERE id=?',[u.self.id]);
 });
+
+
+test('memorable passwords, opt-in remembered sessions, and authenticated password changes', {timeout:60000},async()=>{
+ sql('DELETE FROM auth_rate_limits');
+ const username=`memory_${tag}`,password='mango trees beside the sea',next='quiet mornings by the beach';
+ const reg=await call('/api/auth',null,{action:'register',username,password,name:'Memory Tester',rememberMe:false});
+ assert.equal(reg.status,201,JSON.stringify(reg.body));assert.doesNotMatch(reg.setCookie,/Max-Age|Expires=/i);
+ const player=(await call('/api/game',reg.cookie)).body.self;
+ const expiry=sql('SELECT session_expires_at FROM players WHERE id=?',[player.id])[0][0];assert.ok(expiry>Date.now()+23*3600000&&expiry<=Date.now()+86400000);
+ assert.equal((await call('/api/auth',null,{action:'change-password',password:next,currentPassword:password})).status,401);
+ assert.equal((await call('/api/auth',reg.cookie,{action:'change-password',password:next,currentPassword:'wrong'})).status,401);
+ const changed=await call('/api/auth',reg.cookie,{action:'change-password',username:'not_this_user',password:next,currentPassword:password,rememberMe:true});
+ assert.equal(changed.status,200,JSON.stringify(changed.body));assert.equal(changed.body.username,username);assert.match(changed.setCookie,/Max-Age=2592000/);assert.match(changed.setCookie,/HttpOnly/);
+ assert.equal((await call('/api/auth',reg.cookie)).body.mode,'none');
+ const after=(await call('/api/game',changed.cookie)).body.self;assert.equal(after.id,player.id);assert.equal(after.money,player.money);
+ assert.equal((await call('/api/auth',null,{action:'login',username,password})).status,401);
+ const login=await call('/api/auth',null,{action:'login',username,password:next,rememberMe:true});assert.equal(login.status,200);assert.match(login.setCookie,/Max-Age=2592000/);
+ const month=sql('SELECT session_expires_at FROM players WHERE id=?',[player.id])[0][0];assert.ok(month>Date.now()+29*86400000);
+ const logout=await call('/api/auth',login.cookie,{action:'logout'});assert.match(logout.setCookie,/Max-Age=0/);assert.equal((await call('/api/auth',login.cookie)).body.mode,'none');
+ sql('DELETE FROM accounts WHERE player_id=?',[player.id]);sql('DELETE FROM players WHERE id=?',[player.id]);
+});

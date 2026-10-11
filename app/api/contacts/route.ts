@@ -43,7 +43,7 @@ export async function POST(request:Request){try{
   const call=await db.prepare('SELECT * FROM friend_calls WHERE id=? AND (caller=? OR callee=?)').bind(id,p.id,p.id).first<Call>();if(!call)return reply({error:'Call not found'},404);
   if(type==='answer'){
    if(call.callee!==p.id)return reply({error:'Only the recipient can answer'},403);
-   const r=await db.prepare("UPDATE friend_calls SET status='active',expires_at=? WHERE id=? AND status='ringing' AND expires_at>?").bind(now+45000,id,now).run();if(!r.meta.changes)return reply({error:'This call has ended'},409);
+   const r=await db.prepare("UPDATE friend_calls SET status='active',expires_at=? WHERE id=? AND status='ringing' AND expires_at>?").bind(now+120000,id,now).run();if(!r.meta.changes)return reply({error:'This call has ended'},409);
   }else{await db.batch([db.prepare("UPDATE friend_calls SET status='ended',expires_at=? WHERE id=?").bind(now,id),db.prepare('DELETE FROM voice_sessions WHERE room_id=?').bind(id)])}
   return reply({ok:true});
  }
