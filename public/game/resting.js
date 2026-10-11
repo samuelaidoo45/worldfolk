@@ -1,11 +1,11 @@
 // Rest has no timer. Only an explicit end (or a life reset) releases the pose.
 export function restPrompt(kind){
- return kind==='sleep'?{kind:'local',actionId:'wake',label:'Wake up'}:kind==='relax'?{kind:'local',actionId:'stand',label:'Stand up'}:null;
+ return kind==='sleep'?{kind:'local',actionId:'wake',label:'Wake up'}:['relax','sit'].includes(kind)?{kind:'local',actionId:'stand',label:'Stand up'}:kind==='dance'?{kind:'local',actionId:'stop-activity',label:'Stop dancing'}:kind==='shower'?{kind:'local',actionId:'stop-activity',label:'Finish shower'}:null;
 }
 export function createRoomAction(roomKind,now=()=>performance.now()/1000){
  let kind='',startedAt=0,until=0;
  return {
-  start(next,{persistent=['home','hotel'].includes(roomKind)&&!!restPrompt(next)}={}){
+  start(next,{persistent=!!restPrompt(next)}={}){
    if(until===Infinity)return false;
    kind=next;startedAt=now();until=persistent?Infinity:startedAt+2.3;return true;
   },

@@ -22,10 +22,10 @@ export function junctionSignals(features,position){
   }
  }
  // Tile duplicates and split carriageways must not produce forests of poles.
- const junctions=[...nodes.values()].filter(n=>n.major&&n.arms.length>=3&&n.arms.length<=5).sort((a,b)=>distanceMetres(a.point,position)-distanceMetres(b.point,position)||a.key.localeCompare(b.key));
+ const junctions=[...nodes.values()].filter(n=>n.major&&n.arms.length>=3&&n.arms.length<=5).sort((a,b)=>Math.max(...b.arms.map(a=>a.width))-Math.max(...a.arms.map(a=>a.width))||a.key.localeCompare(b.key));
  const selected=[],signals=[];
  for(const node of junctions){
-  if(selected.some(n=>distanceMetres(n.point,node.point)<55))continue;
+  if(selected.some(n=>distanceMetres(n.point,node.point)<85))continue;
   selected.push(node);const offset=stableHash(node.key)%44;
   const setback=Math.max(9,...node.arms.map(a=>a.width/2+3));
   for(const arm of node.arms){

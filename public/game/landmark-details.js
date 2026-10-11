@@ -6,7 +6,9 @@ export function landmarkRoof(data){
  const w=Math.min(30,data.width*.7),d=Math.min(30,data.depth*.7),h=data.height;
  const add=(geometry,material,x,y,z)=>{const mesh=new THREE.Mesh(geometry,material);mesh.position.set(x,y,z);mesh.castShadow=true;group.add(mesh);return mesh};
  const box=(m,a,b,c,x,y,z)=>add(new THREE.BoxGeometry(a,b,c),m,x,y,z);
- if(profile.detail==='mall-canopy'){
+ if(profile.detail==='sculpted-shells'){
+  for(let i=0;i<3;i++){const angle=i*Math.PI*2/3,r=Math.min(w,d)*.2;const shell=add(new THREE.SphereGeometry(1,32,20,0,Math.PI*1.55,0,Math.PI*.62),roof,Math.sin(angle)*r,h,Math.cos(angle)*r);shell.scale.set(w*.27,Math.min(14,w*.5),d*.42);shell.rotation.y=angle;shell.material.side=THREE.DoubleSide;}
+ }else if(profile.detail==='mall-canopy'){
   const span=Math.min(18,w),depth=Math.min(10,d),vertices=[];
   for(let i=0;i<24;i++){const a=i*Math.PI/24,b=(i+1)*Math.PI/24,A=[Math.cos(a)*span/2,h+.2+Math.sin(a)*2.2],B=[Math.cos(b)*span/2,h+.2+Math.sin(b)*2.2];vertices.push(A[0],A[1],-depth/2,B[0],B[1],-depth/2,B[0],B[1],depth/2,A[0],A[1],-depth/2,B[0],B[1],depth/2,A[0],A[1],depth/2)}
   const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));geometry.computeVertexNormals();roof.side=THREE.DoubleSide;add(geometry,roof,0,0,0);

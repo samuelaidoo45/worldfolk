@@ -1,3 +1,4 @@
+import {CITY_LANDMARKS,createCityLandmark,isCityLandmark} from './city-landmarks.js';
 import {enhanceMaterials,tagSurface,cityEnvironment,contactShadow} from './graphics-materials.js';
 import {createPalm} from './scenery-models.js';
 import {createBillboard} from './billboards.js';
@@ -23,10 +24,10 @@ export function createActor(icon,identity=''){
  if(identity){shirt.color.setHex([0xbcb3a1,0x3b6477,0x9e7544,0x566648,0x95564e,0xd3c9b0,0x3c4249,0x886877][wardrobe%8]);pants.color.setHex([0x303942,0x4b453b,0x273c50,0x646157][(wardrobe>>>4)%4]);}
  tagSurface(skin,'skin');tagSurface(shirt,'fabric');tagSurface(pants,'fabric');tagSurface(hair,'rubber');tagSurface(shoes,'rubber');
  const part=(parent,geo,mat,x,y,z)=>{const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.castShadow=true;parent.add(m);return m};
- const torso=part(group,new THREE.CylinderGeometry(.215,.18,.53,12),shirt,0,1.12,0);torso.scale.z=.62;
+ const torso=part(group,new THREE.LatheGeometry([[.17,0],[.18,.08],[.185,.2],[.225,.39],[.215,.46],[.12,.53]].map(p=>new THREE.Vector2(...p)),24),shirt,0,.88,0);torso.scale.z=.67;
  part(group,new THREE.CylinderGeometry(.065,.08,.13,10),skin,0,1.45,0);
- const head=part(group,new THREE.SphereGeometry(.15,16,12),skin,0,1.64,-.01);head.scale.set(.87,1.22,.98);
- part(group,new THREE.SphereGeometry(.154,16,8,0,Math.PI*2,0,Math.PI*.42),hair,0,1.71,0);
+ const head=part(group,new THREE.SphereGeometry(.15,24,20),skin,0,1.64,-.01);head.scale.set(.87,1.22,.98);
+ part(group,new THREE.SphereGeometry(.15,24,12,0,Math.PI*2,0,Math.PI*.46),hair,0,1.645,-.005).scale.set(.88,1.26,1.01);
  const eyeWhite=new THREE.MeshStandardMaterial({color:0xd4c8b7,roughness:.45});tagSurface(eyeWhite,'smooth');
  for(const sign of [-1,1]){part(group,new THREE.SphereGeometry(.032,8,6),skin,sign*.13,1.64,0);const white=part(group,new THREE.SphereGeometry(.019,8,6),eyeWhite,sign*.051,1.66,-.139);white.scale.set(1,.65,.3);const eye=part(group,new THREE.SphereGeometry(.009,6,5),hair,sign*.051,1.66,-.147);eye.scale.z=.35}
  const backHair=part(group,new THREE.SphereGeometry(.092,12,8),hair,0,1.69,.095);backHair.scale.set(.9,icon.startsWith('👩')?1.4:.7,.75);
@@ -37,10 +38,10 @@ export function createActor(icon,identity=''){
  part(group,new THREE.BoxGeometry(.025,.32,.012),shirt,0,1.145,-.139);
  const leftArm=new THREE.Group(),rightArm=new THREE.Group(),leftLeg=new THREE.Group(),rightLeg=new THREE.Group(),elbows=[],knees=[];
  for(const [pivot,sign] of [[leftArm,-1],[rightArm,1]]){pivot.position.set(sign*.24,1.34,0);group.add(pivot);part(pivot,new THREE.CapsuleGeometry(.072,.17,4,8),shirt,0,-.13,0);const elbow=new THREE.Group();elbow.position.y=-.3;pivot.add(elbow);elbows.push(elbow);part(elbow,new THREE.CapsuleGeometry(.055,.16,4,8),skin,0,-.13,0);const hand=part(elbow,new THREE.SphereGeometry(.064,8,6),skin,0,-.29,0);hand.scale.set(.7,1,.6)}
- for(const [pivot,sign] of [[leftLeg,-1],[rightLeg,1]]){pivot.position.set(sign*.115,.88,0);group.add(pivot);part(pivot,new THREE.CylinderGeometry(.105,.077,.4,10),pants,0,-.19,0);const knee=new THREE.Group();knee.position.y=-.4;pivot.add(knee);knees.push(knee);part(knee,new THREE.CylinderGeometry(.075,.052,.36,10),pants,0,-.18,0);const foot=part(knee,new THREE.CapsuleGeometry(.07,.13,4,8),shoes,0,-.39,-.055);foot.rotation.x=Math.PI/2;foot.scale.y=1.05}
+ for(const [pivot,sign] of [[leftLeg,-1],[rightLeg,1]]){pivot.position.set(sign*.115,.88,0);group.add(pivot);part(pivot,new THREE.LatheGeometry([[.077,0],[.086,.09],[.105,.3],[.105,.4]].map(p=>new THREE.Vector2(...p)),16),pants,0,-.4,0);const knee=new THREE.Group();knee.position.y=-.4;pivot.add(knee);knees.push(knee);part(knee,new THREE.CylinderGeometry(.075,.052,.36,10),pants,0,-.18,0);const foot=part(knee,new THREE.CapsuleGeometry(.07,.13,4,8),shoes,0,-.39,-.055);foot.rotation.x=Math.PI/2;foot.scale.y=1.05}
  for(const limb of [leftArm,rightArm,leftLeg,rightLeg])limb.traverse(o=>o.userData.dynamic=true);
  const shadow=part(group,new THREE.PlaneGeometry(.95,.75),new THREE.MeshBasicMaterial({map:contactShadow(),color:0x10201c,transparent:true,opacity:.58,depthWrite:false}),0,.015,0);shadow.rotation.x=-Math.PI/2;
- batchStaticMeshes(group);return {group,leftArm,rightArm,leftLeg,rightLeg,knees,outfit(id){shirt.color.setHex(id==='shirt'?0xcc993d:identity?[0xbcb3a1,0x3b6477,0x9e7544,0x566648,0x95564e,0xd3c9b0,0x3c4249,0x886877][wardrobe%8]:colors.shirt);shoes.color.setHex(id==='trainers'?0xeeeecc:0x232525)},animate(t,moving){const phase=t*8,step=moving?Math.sin(phase)*.5:0;leftLeg.rotation.x=step;rightLeg.rotation.x=-step;leftArm.rotation.x=-step*.7;rightArm.rotation.x=step*.7;knees[0].rotation.x=moving?Math.max(0,-Math.sin(phase))*.7:0;knees[1].rotation.x=moving?Math.max(0,Math.sin(phase))*.7:0;elbows.forEach(e=>e.rotation.x=-.15-Math.abs(step)*.3);group.position.y=moving?Math.abs(Math.sin(phase))*.018:Math.sin(t*2)*.003}};
+ batchStaticMeshes(group);return {group,leftArm,rightArm,leftLeg,rightLeg,knees,outfit(id){shirt.color.setHex(id==='shirt'?0xcc993d:identity?[0xbcb3a1,0x3b6477,0x9e7544,0x566648,0x95564e,0xd3c9b0,0x3c4249,0x886877][wardrobe%8]:colors.shirt);shoes.color.setHex(id==='trainers'?0xeeeecc:0x232525)},animate(t,moving){leftArm.rotation.z=rightArm.rotation.z=leftLeg.rotation.z=rightLeg.rotation.z=0;const phase=t*8,step=moving?Math.sin(phase)*.5:0;leftLeg.rotation.x=step;rightLeg.rotation.x=-step;leftArm.rotation.x=-step*.7;rightArm.rotation.x=step*.7;knees[0].rotation.x=moving?Math.max(0,-Math.sin(phase))*.7:0;knees[1].rotation.x=moving?Math.max(0,Math.sin(phase))*.7:0;elbows.forEach(e=>e.rotation.x=-.15-Math.abs(step)*.3);group.position.y=moving?Math.abs(Math.sin(phase))*.018:Math.sin(t*2)*.003}};
 }
 export function createCar(color=0x236f91,kind='car'){
  const group=new THREE.Group(),paint=new THREE.MeshStandardMaterial({color,metalness:.65,roughness:.28}),glass=new THREE.MeshStandardMaterial({color:0x304b58,metalness:.65,roughness:.14}),rubber=new THREE.MeshStandardMaterial({color:0x14191b,roughness:.93}),chrome=new THREE.MeshStandardMaterial({color:0xadb9be,metalness:.8,roughness:.25}),wheels=[];
@@ -134,9 +135,10 @@ export function createWorld3D(map,mapEngine){
   const scene=new THREE.Scene(),camera=new THREE.Camera(),nameTags=createPlayerLabels(map);let selfIdentity=null;
   scene.environment=cityEnvironment();
   const ambient=new THREE.HemisphereLight(0xc5dff6,0x786853,1.45);scene.add(ambient);
-  const light=new THREE.DirectionalLight(0xffedcb,2.2);light.position.set(-8,18,10);scene.add(light);
+  const light=new THREE.DirectionalLight(0xffedcb,2.2);light.position.set(-60,100,50);light.castShadow=true;light.shadow.mapSize.set(1024,1024);Object.assign(light.shadow.camera,{left:-75,right:75,top:75,bottom:-75,near:1,far:240});light.shadow.normalBias=.05;light.shadow.bias=-.0002;scene.add(light);const shadowGround=new THREE.Mesh(new THREE.PlaneGeometry(160,160),new THREE.ShadowMaterial({opacity:.3,depthWrite:false}));shadowGround.rotation.x=-Math.PI/2;shadowGround.position.y=.055;shadowGround.receiveShadow=true;scene.add(shadowGround);let shadowAt=0;
   const own=createActor('🧑🏾');own.group.scale.setScalar(1);scene.add(own.group);
   let parkedCar=createCar(0xc34842);scene.add(parkedCar.group);const aircraft=createAircraft();scene.add(aircraft.group);aircraft.group.visible=false;let flying=false,altitude=0,vehicleKind='car';const architectureItems=new Map();let architectureKey="";const sceneryItems=new Map();let scenerySource=null;const others=new Map(),ambientActors=new Map(),beacons=[],doors=[];
+  const landmarkItems=CITY_LANDMARKS.map(data=>({data,model:null}));
   let beaconKey='',architectureSource=null,pendingArchitecture=[];
   let cameraDistance=7;
   let frameTime=performance.now(),roadBounce=0,roadRoll=0,roadHoles=[];
@@ -144,8 +146,8 @@ export function createWorld3D(map,mapEngine){
   let preview=false;
   let renderer=null,enabled=false,driving=false,cabinView=false,position=[-0.1949,5.5682],carPosition=null,carHeading=0,heading=0,moving=false,ownsVehicle=true,actionUntil=0;
   const syncShellVisibility=createBuildingVisibility(map);
-  function syncBuildingShells(){syncShellVisibility([...architectureItems.values()].map(i=>i.data),enabled,pendingArchitecture)}
-  const layer={id:'accralife-3d-people',type:'custom',renderingMode:'3d',onAdd(_map,gl){renderer=new THREE.WebGLRenderer({canvas:map.getCanvas(),context:gl,antialias:true});renderer.autoClear=false;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05},render(_gl,matrix){if(!renderer||!enabled)return;
+  function syncBuildingShells(){syncShellVisibility([...architectureItems.values(),...landmarkItems.filter(i=>i.model)].map(i=>i.data),enabled,pendingArchitecture)}
+  const layer={id:'accralife-3d-people',type:'custom',renderingMode:'3d',onAdd(_map,gl){renderer=new THREE.WebGLRenderer({canvas:map.getCanvas(),context:gl,antialias:true});renderer.autoClear=false;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.shadowMap.autoUpdate=false},render(_gl,matrix){if(!renderer||!enabled)return;
     const t=performance.now()/1000,ground=map.queryTerrainElevation?.(position)||0,mercator=mapEngine.MercatorCoordinate.fromLngLat(position,ground),scale=mercator.meterInMercatorCoordinateUnits();
     const transform=new THREE.Matrix4().makeTranslation(mercator.x,mercator.y,mercator.z).scale(new THREE.Vector3(scale,-scale,scale)).multiply(new THREE.Matrix4().makeRotationX(Math.PI/2));
     camera.projectionMatrix=new THREE.Matrix4().fromArray(matrix.defaultProjectionData?.mainMatrix||matrix.defaultProjectionData?.projectionMatrix||matrix).multiply(transform);
@@ -157,6 +159,7 @@ export function createWorld3D(map,mapEngine){
       const previous=[...item.position];item.position=item.position.map((v,i)=>damp(v,item.target[i],4,dt));item.heading=turnToward(item.heading,item.targetHeading,5,dt);
       const [lng,lat]=item.position;item.model.group.position.x=(lng-position[0])*METERS_PER_DEGREE*Math.cos(position[1]*DEG);item.model.group.position.z=(position[1]-lat)*METERS_PER_DEGREE;item.model.group.visible=Math.hypot(item.model.group.position.x,item.model.group.position.z)<220;item.model.group.rotation.y=-item.heading*DEG;item.actor?.animate(t,distanceMetres(previous,item.position)>.003);
     }
+    for(const item of landmarkItems){const visible=distanceMetres(item.data.position,position)<1800;if(visible&&!item.model){item.model=createCityLandmark(item.data);scene.add(item.model.group);syncBuildingShells()}if(item.model){item.model.group.visible=visible;item.model.group.position.set((item.data.position[0]-position[0])*METERS_PER_DEGREE*Math.cos(position[1]*DEG),0,(position[1]-item.data.position[1])*METERS_PER_DEGREE)}}
     for(const item of architectureItems.values()){item.model.group.position.x=(item.data.position[0]-position[0])*METERS_PER_DEGREE*Math.cos(position[1]*DEG);item.model.group.position.z=(position[1]-item.data.position[1])*METERS_PER_DEGREE;}
     for(const item of sceneryItems.values()){item.model.update?.(preset);item.model.group.rotation.y=-(item.data.heading||0)*DEG;item.model.group.position.x=(item.data.position[0]-position[0])*METERS_PER_DEGREE*Math.cos(position[1]*DEG);item.model.group.position.z=(position[1]-item.data.position[1])*METERS_PER_DEGREE;}
     for(const item of ambientActors.values()){
@@ -164,15 +167,15 @@ export function createWorld3D(map,mapEngine){
     }
     for(const item of beacons){item.beacon.group.position.x=(item.lng-position[0])*METERS_PER_DEGREE*Math.cos(position[1]*DEG);item.beacon.group.position.z=(position[1]-item.lat)*METERS_PER_DEGREE;const beaconDistance=Math.hypot(item.beacon.group.position.x,item.beacon.group.position.z);item.beacon.group.visible=beaconDistance<170&&beaconDistance>4;item.beacon.gem.position.y=2.7+Math.sin(t*2+item.phase)*.22;item.beacon.gem.rotation.y=t*.8;item.beacon.ring.rotation.z=t*.5}
     for(const item of doors){item.door.group.position.x=(item.lng-position[0])*METERS_PER_DEGREE*Math.cos(position[1]*DEG);item.door.group.position.z=(position[1]-item.lat)*METERS_PER_DEGREE;item.door.group.rotation.y=item.heading*DEG;item.door.glow.material.opacity=.42+Math.sin(t*3)*.16}
-    renderer.resetState();renderer.render(scene,camera);renderer.resetState();
+    if(now-shadowAt>120){renderer.shadowMap.needsUpdate=true;shadowAt=now}renderer.resetState();renderer.render(scene,camera);renderer.resetState();
     const tags=[...others.values()].map(item=>({player:item.identity,x:item.model.group.position.x,y:item.driving?(item.vehicle==='bus'?3.7:2.3):2.15,z:item.model.group.position.z,distance:Math.hypot(item.model.group.position.x,item.model.group.position.z),visible:item.model.group.visible}));
     if(selfIdentity)tags.push({player:selfIdentity,x:0,y:driving?(vehicleKind==='bus'?3.7:2.3):2.15,z:0,distance:0,self:true,visible:!flying&&!cabinView&&(driving||own.group.visible)});
     nameTags.update(tags,camera.projectionMatrix,now);map.triggerRepaint();
   }};
   map.addLayer(layer);
   return {
-    setArchitecture(items){if(items!==architectureSource){architectureSource=items;const ids=new Set(items.map(i=>i.id));for(const data of items){const old=architectureItems.get(data.id);if(old&&old.data.style!==data.style){scene.remove(old.model.group);disposeModel(old.model.group);architectureItems.delete(data.id)}}pendingArchitecture=items.filter(i=>!architectureItems.has(i.id));for(const [id,item] of architectureItems)if(!ids.has(id)){scene.remove(item.model.group);disposeModel(item.model.group);architectureItems.delete(id)}}const start=performance.now();while(pendingArchitecture.length&&performance.now()-start<2){const data=pendingArchitecture.shift(),model=createBuildingFacade(data);architectureItems.set(data.id,{data,model});scene.add(model.group)}syncBuildingShells()},
-    setScenery(items){if(items===scenerySource)return;scenerySource=items;items=items.filter(item=>!['vendor','stall'].includes(item.kind));const ids=new Set(items.map(i=>i.id));for(const data of items)if(!sceneryItems.has(data.id)){const model=['lamp','signal'].includes(data.kind)?createStreetLight(data):createStreetProp(data.kind,data);sceneryItems.set(data.id,{data,model});batchStaticMeshes(model.group);scene.add(model.group)}for(const [id,item] of sceneryItems)if(!ids.has(id)){scene.remove(item.model.group);disposeModel(item.model.group);sceneryItems.delete(id)}},
+    setArchitecture(items){if(items!==architectureSource){architectureSource=items;const ids=new Set(items.map(i=>i.id));for(const data of items){const old=architectureItems.get(data.id);if(old&&(old.data.style!==data.style||Math.floor(Math.min(2,old.data.distance/100))!==Math.floor(Math.min(2,data.distance/100)))){scene.remove(old.model.group);disposeModel(old.model.group);architectureItems.delete(data.id)}}pendingArchitecture=items.filter(i=>!isCityLandmark(i.sourceId)&&!architectureItems.has(i.id));for(const [id,item] of architectureItems)if(!ids.has(id)){scene.remove(item.model.group);disposeModel(item.model.group);architectureItems.delete(id)}}const start=performance.now();while(pendingArchitecture.length&&performance.now()-start<2){const data=pendingArchitecture.shift(),model=createBuildingFacade(data);architectureItems.set(data.id,{data,model});scene.add(model.group)}syncBuildingShells()},
+    setScenery(items){if(items===scenerySource)return;scenerySource=items;items=items.filter(item=>!['vendor','stall'].includes(item.kind));const ids=new Set(items.map(i=>i.id));for(const data of items)if(sceneryItems.has(data.id)){sceneryItems.get(data.id).data=data}else{const model=['lamp','signal'].includes(data.kind)?createStreetLight(data):createStreetProp(data.kind,data);sceneryItems.set(data.id,{data,model});batchStaticMeshes(model.group);scene.add(model.group)}for(const [id,item] of sceneryItems)if(!ids.has(id)){scene.remove(item.model.group);disposeModel(item.model.group);sceneryItems.delete(id)}},
     setCameraDistance(value){cameraDistance=value},
     setIdentity(player){selfIdentity=player},
     setPreview(value){preview=value},

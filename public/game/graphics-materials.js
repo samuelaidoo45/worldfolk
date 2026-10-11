@@ -9,6 +9,7 @@ export function surfaceTexture(kind){
  for(let y=0;y<size;y++)for(let x=0;x<size;x++){
   seed=(Math.imul(seed,1664525)+1013904223)>>>0;
   const grain=(seed>>>24)/255-.5;let v=210+grain*22;
+  if(kind==='paving')v=(x<1||y<1?150:218)+grain*15+Math.sin(x*.034+y*.027)*9;
   if(kind==='fabric')v=200+grain*12+((x%4<2)===(y%4<2)?15:-15);
   if(kind==='wood')v=204+Math.sin(x*.42+Math.sin(y*.06)*1.5)*16+Math.sin(x*1.2+y*.012)*6+grain*9;
   if(kind==='stone')v=218+Math.sin(x*.07+Math.sin(y*.06))*6+grain*14;

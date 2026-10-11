@@ -1,4 +1,5 @@
 import {ACCRA_BOUNDS} from '../../../public/game/map-region.js';
+import {landmarkArrival} from '../../../public/game/landmark-arrival.js';
 import {walkingArrival} from '../../../server/maps/router';
 import {resolveStartingPlace} from '../../../server/maps/starting-places';
 import {TRAFFIC_MODELS} from '../../../public/game/vehicle-catalog.js';
@@ -22,7 +23,7 @@ type Player = {
 };
 
 const PLACE_COORDS: Record<string, [number, number]> = {
-  home: [-0.1949, 5.5682], square: [-0.1935, 5.5448], nkrumah: [-0.2024, 5.5446],
+  home: [-0.1949, 5.5682], square: [-0.19256, 5.54742], nkrumah: [-0.2024, 5.5446],
   jamestown: [-0.2161, 5.5352], makola: [-0.2141, 5.5485], osu: [-0.1819, 5.5598],
   labadi: [-0.140846, 5.561955], arts: [-0.2033, 5.5464], theatre: [-0.2047, 5.5516],
   dubois: [-0.1698, 5.5815], mall: [-0.1738, 5.6224], airport: [-0.1787, 5.6093],
@@ -135,7 +136,7 @@ export async function POST(request: Request) {
       if(life.explorationPending)return json({error:'Choose your starting place first'},409);
       const place=await resolveStartingPlace(String(input.placeId),typeof input.placeName==='string'?input.placeName:undefined);
       if(!place)return json({error:'Choose a public place from the city map'},400);
-      let point:number[];try{point=await walkingArrival([place.lng,place.lat])}catch{return json({error:'This entrance is unavailable. Choose another place.'},503)}
+      let point:number[];try{point=landmarkArrival(place)?.position||await walkingArrival([place.lng,place.lat])}catch{return json({error:'This entrance is unavailable. Choose another place.'},503)}
       const changed={...life,transit:null,flight:null,drivingSince:0};
       const result=await db.prepare('UPDATE players SET pos_lng=?,pos_lat=?,heading=0,driving=0,place_id=?,life_json=?,last_move_at=?,last_seen_at=?,revision=revision+1 WHERE id=? AND revision=?').bind(point[0],point[1],place.id,JSON.stringify(changed),now,now,p.id,p.revision).run();
       if(!result.meta.changes)return json({error:'Your position changed. Please try again.'},409);
@@ -146,7 +147,7 @@ export async function POST(request: Request) {
       if(!life.explorationPending)return json({error:'Your journey has already started. Use destinations to travel.'},409);
       if(!place||p.driving||life.shift||life.transit||life.flight)return json({error:'Choose an available public place'},400);
       const home=[...HOMES].sort((a,b)=>Math.hypot(a.lng-place.lng,a.lat-place.lat)-Math.hypot(b.lng-place.lng,b.lat-place.lat))[0];
-      let point:number[];try{point=await walkingArrival([place.lng,place.lat])}catch{return json({error:'This entrance is unavailable. Choose another place.'},503)}
+      let point:number[];try{point=landmarkArrival(place)?.position||await walkingArrival([place.lng,place.lat])}catch{return json({error:'This entrance is unavailable. Choose another place.'},503)}
       const changed={...life,explorationPending:false,startPlaceId:place.id,home:home.id,properties:[home.id]};
       const result=await db.prepare('UPDATE players SET pos_lng=?,pos_lat=?,place_id=?,life_json=?,last_move_at=?,revision=revision+1 WHERE id=? AND revision=?').bind(point[0],point[1],place.id,JSON.stringify(changed),now,p.id,p.revision).run();
       if(!result.meta.changes)return json({error:'Your starting place changed. Please retry.'},409);

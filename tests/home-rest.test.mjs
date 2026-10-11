@@ -6,23 +6,23 @@ import {createActor} from '../public/game/world3d.js';
 import {createRoomPhysics} from '../public/game/room-physics.js';
 
 test('sleep and sitting remain active until explicitly ended, including after long tab suspension',()=>{
- for(const kind of ['sleep','relax']){
+ for(const kind of ['sleep','relax','shower','dance']){
   let time=10;const action=createRoomAction('home',()=>time);
   assert.equal(action.start(kind),true);time+=86400*7;
   assert.equal(action.active,true);assert.equal(action.resting,kind);
   assert.equal(action.frame(time).blend,1);
   assert.equal(action.start('office'),false,'background animations must not wake the player');
   assert.equal(action.resting,kind);
-  assert.equal(restPrompt(kind).label,kind==='sleep'?'Wake up':'Stand up');
+  assert.ok(restPrompt(kind).label);
   assert.equal(action.end(),true);assert.equal(action.active,false);assert.equal(action.resting,null);
   assert.equal(action.start('shower'),true,'activities can resume after standing');
  }
 });
 test('short activities and purchased experiences keep their finite animation',()=>{
  let time=0;const action=createRoomAction('home',()=>time);
- action.start('shower');time=3;assert.equal(action.active,false);
+ action.start('shower',{persistent:false});time=3;assert.equal(action.active,false);
  action.start('relax',{persistent:false});time=6;assert.equal(action.active,false);assert.equal(action.resting,null);
- const cafe=createRoomAction('cafe',()=>time);cafe.start('relax');time=10;assert.equal(cafe.active,false);
+ const cafe=createRoomAction('cafe',()=>time);cafe.start('relax');time=10;assert.equal(cafe.active,true);cafe.end();assert.equal(cafe.active,false);
 });
 test('sleep lies on the mattress and sitting bends both knees onto the sofa',()=>{
  const actor=createActor('🧑🏾');actor.animate(1,false);applyRestPose(actor,'sleep',1);

@@ -1,6 +1,7 @@
 // Reference-led silhouettes and colours; map footprints remain authoritative.
 // These profiles are artistic reconstructions, not scans or measured interiors.
 export const LANDMARKS=[
+ {id:'national-theatre',match:/^national theatre$/i,palette:{wall:'#ece7db',trim:'#f1eddf',accent:'#33474a',roof:'#eee9dd'},detail:'sculpted-shells',roof:'flat'},
  {id:'accra-mall',match:/^accra mall$/i,palette:{wall:'#c8b49a',trim:'#deded6',accent:'#475961',roof:'#9da7a6'},detail:'mall-canopy',roof:'flat'},
  {id:'balme-library',match:/balme library/i,palette:{wall:'#ece8dc',trim:'#f4efdf',accent:'#634b39',roof:'#a55137'},detail:'clock-tower',roof:'pitched'},
  {id:'legon',match:/university of ghana|legon hall|great hall.*legon/i,palette:{wall:'#e4e1d3',trim:'#f4eedd',accent:'#69543e',roof:'#a95035'},roof:'pitched'},
