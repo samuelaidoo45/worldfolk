@@ -1,3 +1,4 @@
+import {validatedElevation} from '../public/game/precinct-navigation.js';
 import {inAccra} from '../public/game/map-region.js';
 import { DurableObject } from 'cloudflare:workers';
 
@@ -11,8 +12,8 @@ export const playerHeader=(player:WorldPlayer)=>JSON.stringify(player).replace(/
 type Member = { player:WorldPlayer; at:number; savedAt:number; dirty:boolean; lastPacket:number; lastSync?:number; room:string };
 export function roomFor(lng:number,lat:number){return `accra:${Math.floor((lng+.36)/.02)}:${Math.floor((lat-5.43)/.02)}`}
 function life(p:WorldPlayer){try{return JSON.parse(p.life_json||'{}')}catch{return {}}}
-function compact(p:WorldPlayer):WorldPlayer{const l=life(p);return {id:p.id,session_token:p.session_token,session_expires_at:p.session_expires_at,name:p.name,handle:p.handle,avatar:p.avatar,place_id:p.place_id,pos_lng:p.pos_lng,pos_lat:p.pos_lat,heading:p.heading,driving:p.driving,revision:p.revision,last_move_at:p.last_move_at,last_action_at:p.last_action_at,life_json:JSON.stringify({outfit:l.outfit||null,rest:l.rest||null,arrested:!!l.arrested,health:l.health??100,vehicle:l.vehicle,drivingSince:l.drivingSince,autoDriveRate:l.autoDriveRate,shift:l.shift?{jobId:l.shift.jobId,version:l.shift.version}:null,flight:!!l.flight,transit:!!l.transit})}}
-function publicPlayer(p:WorldPlayer){const l=life(p);return {id:p.id,revision:p.revision,positionAt:p.last_move_at,name:p.name,handle:p.handle,avatar:p.avatar,placeId:p.place_id,lng:p.pos_lng,lat:p.pos_lat,heading:p.heading,driving:!!p.driving,vehicle:l.vehicle,outfit:l.outfit||null,health:l.health??100}}
+function compact(p:WorldPlayer):WorldPlayer{const l=life(p);return {id:p.id,session_token:p.session_token,session_expires_at:p.session_expires_at,name:p.name,handle:p.handle,avatar:p.avatar,place_id:p.place_id,pos_lng:p.pos_lng,pos_lat:p.pos_lat,heading:p.heading,driving:p.driving,revision:p.revision,last_move_at:p.last_move_at,last_action_at:p.last_action_at,life_json:JSON.stringify({elevation:l.elevation||0,outfit:l.outfit||null,rest:l.rest||null,arrested:!!l.arrested,health:l.health??100,vehicle:l.vehicle,drivingSince:l.drivingSince,autoDriveRate:l.autoDriveRate,shift:l.shift?{jobId:l.shift.jobId,version:l.shift.version}:null,flight:!!l.flight,transit:!!l.transit})}}
+function publicPlayer(p:WorldPlayer){const l=life(p);return {id:p.id,revision:p.revision,positionAt:p.last_move_at,name:p.name,handle:p.handle,avatar:p.avatar,placeId:p.place_id,lng:p.pos_lng,lat:p.pos_lat,heading:p.heading,driving:!!p.driving,vehicle:l.vehicle,outfit:l.outfit||null,elevation:l.elevation||0,health:l.health??100}}
 export function validMove(m:Member,input:Record<string,unknown>,now:number){
   const {lng,lat,heading}=input;
   if(typeof lng!=='number'||typeof lat!=='number'||typeof heading!=='number'||![lng,lat,heading].every(Number.isFinite)||!inAccra(lng,lat))return false;
@@ -20,6 +21,7 @@ export function validMove(m:Member,input:Record<string,unknown>,now:number){
   const metres=Math.hypot((lng-p.pos_lng)*111320*Math.cos(lat*Math.PI/180),(lat-p.pos_lat)*111320);
   const seconds=Math.min(8,Math.max(0,(now-m.at)/1000));
   const correction=input.spawnCorrection===true&&metres<=35&&(p.last_move_at===p.last_action_at||now-m.at>=8000);
+  if(validatedElevation([p.pos_lng,p.pos_lat],[lng,lat],l.elevation,input.elevation,!!p.driving)===null)return false;
   return correction||metres<=2.5+seconds*(p.driving?Math.max(12+Math.max(0,(now-(l.drivingSince||now))/1000)*6,l.autoDriveRate>1?22*Math.min(8,l.autoDriveRate)+4:0):7);
 }
 
@@ -34,9 +36,9 @@ export class WorldRoom extends DurableObject<Cloudflare.Env> {
     const m=ws.deserializeAttachment() as Member;
     if(!this.env.DB||!m.dirty)return;
     const p=m.player,now=Date.now();
-    const result=await this.env.DB.prepare('UPDATE players SET pos_lng=?,pos_lat=?,heading=?,last_move_at=?,last_seen_at=? WHERE id=? AND session_token=? AND revision=? AND last_move_at<=?')
-      .bind(p.pos_lng,p.pos_lat,p.heading,m.at,now,p.id,p.session_token,p.revision,m.savedAt).run();
-    if(!result.meta.changes){await this.reload(ws,m,true);if(m.dirty){const latest=m.player;const retried=await this.env.DB.prepare('UPDATE players SET pos_lng=?,pos_lat=?,heading=?,last_move_at=?,last_seen_at=? WHERE id=? AND session_token=? AND revision=? AND last_move_at<=?').bind(latest.pos_lng,latest.pos_lat,latest.heading,m.at,now,latest.id,latest.session_token,latest.revision,m.savedAt).run();if(retried.meta.changes){m.savedAt=m.at;m.dirty=false;ws.serializeAttachment(m)}}return}
+    const result=await this.env.DB.prepare("UPDATE players SET pos_lng=?,pos_lat=?,heading=?,last_move_at=?,last_seen_at=?,life_json=json_set(life_json,'$.elevation',?) WHERE id=? AND session_token=? AND revision=? AND last_move_at<=?")
+      .bind(p.pos_lng,p.pos_lat,p.heading,m.at,now,life(p).elevation||0,p.id,p.session_token,p.revision,m.savedAt).run();
+    if(!result.meta.changes){await this.reload(ws,m,true);if(m.dirty){const latest=m.player;const retried=await this.env.DB.prepare("UPDATE players SET pos_lng=?,pos_lat=?,heading=?,last_move_at=?,last_seen_at=?,life_json=json_set(life_json,'$.elevation',?) WHERE id=? AND session_token=? AND revision=? AND last_move_at<=?").bind(latest.pos_lng,latest.pos_lat,latest.heading,m.at,now,life(latest).elevation||0,latest.id,latest.session_token,latest.revision,m.savedAt).run();if(retried.meta.changes){m.savedAt=m.at;m.dirty=false;ws.serializeAttachment(m)}}return}
     m.savedAt=m.at;m.dirty=false;ws.serializeAttachment(m);
     });
   }
@@ -47,7 +49,7 @@ export class WorldRoom extends DurableObject<Cloudflare.Env> {
     // Preserve that movement unless the action actually moved/locked the player.
     const l=life(p),keep=m.dirty&&p.last_move_at===m.savedAt&&!l.rest&&!l.transit&&!l.flight&&!l.arrested&&(l.health??100)>0&&(!l.shift||l.shift.version===2||l.shift.jobId==='driver');
     const live=m.player,at=m.at;m.player=compact(p);m.savedAt=p.last_move_at;m.dirty=keep;
-    if(keep){m.player.pos_lng=live.pos_lng;m.player.pos_lat=live.pos_lat;m.player.heading=live.heading;m.player.last_move_at=at;m.at=at}else m.at=p.last_move_at||Date.now();
+    if(keep){m.player.pos_lng=live.pos_lng;m.player.pos_lat=live.pos_lat;m.player.heading=live.heading;m.player.last_move_at=at;m.player.life_json=JSON.stringify({...life(m.player),elevation:life(live).elevation||0});m.at=at}else m.at=p.last_move_at||Date.now();
     ws.serializeAttachment(m);
     if(correct&&!keep)this.send(ws,{type:'correct',player:publicPlayer(p)});this.broadcast({type:'player',player:publicPlayer(m.player)},ws);
   }
@@ -96,7 +98,7 @@ export class WorldRoom extends DurableObject<Cloudflare.Env> {
     if(now-m.lastPacket<150){this.send(ws,{type:'retry',seq:input.seq});return} m.lastPacket=now;ws.serializeAttachment(m);
     if(input.type!=='move')return;
     if(!validMove(m,input,now)){this.send(ws,{type:'correct',seq:input.seq,player:publicPlayer(m.player)});return}
-    m.player.pos_lng=Number(input.lng);m.player.pos_lat=Number(input.lat);m.player.heading=((Number(input.heading)%360)+360)%360;m.at=now;m.player.last_move_at=now;m.dirty=true;ws.serializeAttachment(m);
+    m.player.life_json=JSON.stringify({...life(m.player),elevation:Number(input.elevation)||0});m.player.pos_lng=Number(input.lng);m.player.pos_lat=Number(input.lat);m.player.heading=((Number(input.heading)%360)+360)%360;m.at=now;m.player.last_move_at=now;m.dirty=true;ws.serializeAttachment(m);
     this.send(ws,{type:'ack',seq:input.seq});
     this.broadcast({type:'player',player:publicPlayer(m.player)},ws);
     if(roomFor(m.player.pos_lng,m.player.pos_lat)!==m.room.split(':instance:')[0]){await this.save(ws,m);ws.close(4001,'Entering next district')}

@@ -55,7 +55,7 @@ test('precinct openings are open in both mesh geometry and ground collisions',()
  }
 });
 test('fountains, arch stairs and stand terraces are solid, with clear walking space in front',()=>{
- const cases=[['black-star-gate',22,0],['independence-arch',15,0],['square-stand-339732242',0,0]];
+ const cases=[['black-star-gate',22,0],['independence-arch',15,17],['square-stand-339732242',0,0]];
  for(const [id,x,z] of cases){const data=CITY_LANDMARKS.find(l=>l.id===id);assert.ok(data,id);const map={queryRenderedFeatures:()=>[],project:()=>({x:0,y:0}),getLayer:()=>true,isSourceLoaded:()=>true};const physics=createBuildingPhysics(map);physics.refresh(data.position,true);const a=data.rotation*Math.PI/180;
   const point=(x,z)=>offsetMetres(data.position,x*Math.cos(a)+z*Math.sin(a),x*Math.sin(a)-z*Math.cos(a));
   assert.ok(physics.collision(point(x,z),.3),id);assert.equal(physics.collision(point(0,data.depth/2+4),.3),null);

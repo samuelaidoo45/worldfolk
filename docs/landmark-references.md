@@ -66,3 +66,11 @@ portals are collision-free, while piers, fountains, stair bases and seating
 terraces have solid boundaries. Vertical stair climbing, platform access, event
 crowds, the Unknown Soldier Memorial and detailed connecting streets remain
 separate acceptance work. This pass does not mark the entire precinct complete.
+
+## Unknown Soldier Memorial and precinct circulation — 11 October 2026
+
+- Ghana Tourism Authority: https://visitghana.com/independence-square/ — memorial opposite the Independence Arch; 28th February Road and the separate Black Star Gate.
+- Boris Kester's photographed south-facing memorial view: https://www.traveladventures.org/continents/africa/accra-independence-square.html and https://www.traveladventures.org/countries/ghana/images/accra-independence-square05.jpg — stepped dark stone platform, tall narrow plinth, standing bronze sentry, ceremonial bowl and flag rows. Viewed as a reference; the photograph is not redistributed.
+- Bundled OSM POI 1055196850, labelled “Liberation Day Monument”, anchors the model at [-0.1927328, 5.54826075]. Search accepts this mapped name as well as Unknown Soldier Memorial.
+- `precinct-streets-data.js` contains 87 exact road/path lines from the bundled OSM extract (ODbL). Kerbs and edge markings follow those lines, with gaps at junction mouths. Widths, arrows, kerbs and paving details are game interpretations, not a surveyed road-works inventory.
+- Memorial dimensions and surface detail remain photo-based approximations. Arch access routes have been adapted for connected playable stairs and adequate head clearance; they are not an architectural survey or a claim that these platforms are publicly accessible in real life.

@@ -3,6 +3,7 @@ import {CITY_DESTINATIONS} from './city-destinations.js';
 import {VENUES} from './districts.js';
 export const CITY_PLACES = [
  ...CITY_DESTINATIONS,
+ {id:'unknown-soldier',name:'Unknown Soldier Memorial',area:'Independence Square',type:'Landmark',emoji:'🏛️',lng:-.1927328,lat:5.54826075,description:'The bronze sentry, ceremonial bowl and flag-lined memorial facing Independence Arch.',activities:['stroll']},
   {id:'home',name:'Your home',area:'North Ridge',type:'Home',emoji:'🏡',lng:-0.1949,lat:5.5682,description:'Your own corner of Accra. Rest, cook, recharge and grow your space.',activities:['sleep','cook','shower','relax','upgrade']},
   {id:'square',name:'Independence Square',area:'Osu',type:'Landmark',emoji:'🇬🇭',lng:-0.19256,lat:5.54742,description:'Walk the wide civic square and take in the sea breeze.',activities:['stroll']},
   {id:'nkrumah',name:'Nkrumah Memorial Park',area:'Accra Central',type:'Culture',emoji:'🏛️',lng:-0.2024,lat:5.5446,description:'A place for history, gardens and Ghanaian stories.',activities:['museum']},

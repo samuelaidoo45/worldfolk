@@ -66,7 +66,7 @@ export function createWorld3D(map,mapEngine){
   let parkedCar=createCar(0xc34842);scene.add(parkedCar.group);const aircraft=createAircraft();scene.add(aircraft.group);aircraft.group.visible=false;let flying=false,altitude=0,vehicleKind='car';const architectureItems=new Map();let architectureKey="";const sceneryItems=new Map();let scenerySource=null;const others=new Map(),ambientActors=new Map(),beacons=[],doors=[];
   const landmarkItems=CITY_LANDMARKS.map(data=>({data,model:null}));
   let beaconKey='',architectureSource=null,pendingArchitecture=[];
-  let cameraDistance=7;
+  let cameraDistance=7,elevation=0;
   let frameTime=performance.now(),roadBounce=0,roadRoll=0,roadHoles=[];
   let preset='day';
   let preview=false;
@@ -78,13 +78,13 @@ export function createWorld3D(map,mapEngine){
     const transform=new THREE.Matrix4().makeTranslation(mercator.x,mercator.y,mercator.z).scale(new THREE.Vector3(scale,-scale,scale)).multiply(new THREE.Matrix4().makeRotationX(Math.PI/2));
     const combined=new THREE.Matrix4().fromArray(matrix.defaultProjectionData?.mainMatrix||matrix.defaultProjectionData?.projectionMatrix||matrix).multiply(transform);syncMapCamera(camera,combined);
     const now=performance.now(),dt=Math.min(.1,(now-frameTime)/1000);frameTime=now;
-    own.group.visible=!preview&&!driving&&!flying&&cameraDistance>1.3;aircraft.group.visible=flying;aircraft.group.position.y=altitude;aircraft.group.rotation.y=-heading*DEG;own.animate(t,moving||now<actionUntil,{speed:movementSpeed});own.group.rotation.y=-heading*DEG;
+    own.group.visible=!preview&&!driving&&!flying&&cameraDistance>1.3;aircraft.group.visible=flying;aircraft.group.position.y=altitude;aircraft.group.rotation.y=-heading*DEG;own.animate(t,moving||now<actionUntil,{speed:movementSpeed});own.group.position.y+=elevation;own.group.rotation.y=-heading*DEG;
     parkedCar.group.position.y=driving?roadBounce:0;parkedCar.group.rotation.z=driving?roadRoll:0;if(parkedCar.rider)parkedCar.rider.visible=driving;
     if(carPosition){updateVehicleMotion(parkedCar,carPosition,carHeading,dt,preset);parkedCar.group.position.x=(carPosition[0]-position[0])*METERS_PER_DEGREE*Math.cos(position[1]*DEG);parkedCar.group.position.z=(position[1]-carPosition[1])*METERS_PER_DEGREE;parkedCar.group.rotation.y=-carHeading*DEG;parkedCar.group.visible=(ownsVehicle||driving)&&!cabinView&&!flying}else parkedCar.group.visible=false;
     for(const item of others.values()){
       const previous=[...item.position];item.position=item.position.map((v,i)=>damp(v,item.target[i],4,dt));item.heading=turnToward(item.heading,item.targetHeading,5,dt);
       if(item.driving)updateVehicleMotion(item.model,item.position,item.heading,dt,preset);
-      const [lng,lat]=item.position;item.model.group.position.x=(lng-position[0])*METERS_PER_DEGREE*Math.cos(position[1]*DEG);item.model.group.position.z=(position[1]-lat)*METERS_PER_DEGREE;item.model.group.visible=Math.hypot(item.model.group.position.x,item.model.group.position.z)<220;item.model.group.rotation.y=-item.heading*DEG;item.actor?.animate(t,distanceMetres(previous,item.position)>.003,{speed:distanceMetres(previous,item.position)/Math.max(.001,dt)});
+      const [lng,lat]=item.position;item.model.group.position.x=(lng-position[0])*METERS_PER_DEGREE*Math.cos(position[1]*DEG);item.model.group.position.z=(position[1]-lat)*METERS_PER_DEGREE;item.model.group.visible=Math.hypot(item.model.group.position.x,item.model.group.position.z)<220;item.model.group.rotation.y=-item.heading*DEG;item.actor?.animate(t,distanceMetres(previous,item.position)>.003,{speed:distanceMetres(previous,item.position)/Math.max(.001,dt)});if(item.actor){item.elevation=damp(item.elevation||0,item.identity.elevation||0,12,dt);item.model.group.position.y+=item.elevation;}
     }
     let builtLandmark=false;for(const item of landmarkItems){const visible=distanceMetres(item.data.position,position)<1800;if(visible&&!item.model&&!builtLandmark){builtLandmark=true;item.model=createCityLandmark(item.data);scene.add(item.model.group);syncBuildingShells()}if(item.model){item.model.group.visible=visible;item.model.group.position.set((item.data.position[0]-position[0])*METERS_PER_DEGREE*Math.cos(position[1]*DEG),0,(position[1]-item.data.position[1])*METERS_PER_DEGREE)}}
     for(const item of architectureItems.values()){item.model.group.position.x=(item.data.position[0]-position[0])*METERS_PER_DEGREE*Math.cos(position[1]*DEG);item.model.group.position.z=(position[1]-item.data.position[1])*METERS_PER_DEGREE;}
@@ -95,14 +95,15 @@ export function createWorld3D(map,mapEngine){
     for(const item of beacons){item.beacon.group.position.x=(item.lng-position[0])*METERS_PER_DEGREE*Math.cos(position[1]*DEG);item.beacon.group.position.z=(position[1]-item.lat)*METERS_PER_DEGREE;const beaconDistance=Math.hypot(item.beacon.group.position.x,item.beacon.group.position.z);item.beacon.group.visible=beaconDistance<170&&beaconDistance>4;item.beacon.gem.position.y=2.7+Math.sin(t*2+item.phase)*.22;item.beacon.gem.rotation.y=t*.8;item.beacon.ring.rotation.z=t*.5}
     for(const item of doors){item.door.group.position.x=(item.lng-position[0])*METERS_PER_DEGREE*Math.cos(position[1]*DEG);item.door.group.position.z=(position[1]-item.lat)*METERS_PER_DEGREE;item.door.group.rotation.y=item.heading*DEG;item.door.glow.material.opacity=.42+Math.sin(t*3)*.16}
     if(now-shadowAt>120){renderer.shadowMap.needsUpdate=true;shadowAt=now}renderer.resetState();renderer.render(scene,camera);renderer.resetState();
-    const tags=[...others.values()].map(item=>({player:item.identity,x:item.model.group.position.x,y:item.driving?(item.vehicle==='bus'?3.7:2.3):2.15,z:item.model.group.position.z,distance:Math.hypot(item.model.group.position.x,item.model.group.position.z),visible:item.model.group.visible}));
-    if(selfIdentity)tags.push({player:selfIdentity,x:0,y:driving?(vehicleKind==='bus'?3.7:2.3):2.15,z:0,distance:0,self:true,visible:!flying&&!cabinView&&(driving||own.group.visible)});
+    const tags=[...others.values()].map(item=>({player:item.identity,x:item.model.group.position.x,y:item.driving?(item.vehicle==='bus'?3.7:2.3):2.15+(item.elevation||0),z:item.model.group.position.z,distance:Math.hypot(item.model.group.position.x,item.model.group.position.z),visible:item.model.group.visible}));
+    if(selfIdentity)tags.push({player:selfIdentity,x:0,y:driving?(vehicleKind==='bus'?3.7:2.3):2.15+elevation,z:0,distance:0,self:true,visible:!flying&&!cabinView&&(driving||own.group.visible)});
     nameTags.update(tags,combined,now);map.triggerRepaint();
   }};
   map.addLayer(layer);
   return {
     setArchitecture(items){if(items!==architectureSource){architectureSource=items;const ids=new Set(items.map(i=>i.id));for(const data of items){const old=architectureItems.get(data.id);if(old&&(old.data.style!==data.style||Math.floor(Math.min(2,old.data.distance/100))!==Math.floor(Math.min(2,data.distance/100)))){scene.remove(old.model.group);disposeModel(old.model.group);architectureItems.delete(data.id)}}pendingArchitecture=items.filter(i=>!isCityLandmark(i.sourceId)&&!architectureItems.has(i.id));for(const [id,item] of architectureItems)if(!ids.has(id)){scene.remove(item.model.group);disposeModel(item.model.group);architectureItems.delete(id)}}const start=performance.now();while(pendingArchitecture.length&&performance.now()-start<2){const data=pendingArchitecture.shift(),model=createBuildingFacade(data);architectureItems.set(data.id,{data,model});scene.add(model.group)}syncBuildingShells()},
     setScenery(items){if(items===scenerySource)return;scenerySource=items;items=items.filter(item=>!['vendor','stall'].includes(item.kind));const ids=new Set(items.map(i=>i.id));for(const data of items)if(sceneryItems.has(data.id)){sceneryItems.get(data.id).data=data}else{const model=['lamp','signal'].includes(data.kind)?createStreetLight(data):createStreetProp(data.kind,data);sceneryItems.set(data.id,{data,model});batchStaticMeshes(model.group);scene.add(model.group)}for(const [id,item] of sceneryItems)if(!ids.has(id)){scene.remove(item.model.group);disposeModel(item.model.group);sceneryItems.delete(id)}},
+    setElevation(value){elevation=value},
     setCameraDistance(value){cameraDistance=value},
     setIdentity(player){selfIdentity=player},
     setPreview(value){preview=value},

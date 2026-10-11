@@ -1,3 +1,4 @@
+import {validatedElevation} from '../../../public/game/precinct-navigation.js';
 import {ACCRA_BOUNDS} from '../../../public/game/map-region.js';
 import {landmarkArrival} from '../../../public/game/landmark-arrival.js';
 import {walkingArrival} from '../../../server/maps/router';
@@ -108,7 +109,7 @@ export async function GET(request: Request) {
     const safeChannel=channel==="city"?"city":self?.place_id||"city";
     const messages=self?.handle?await db.prepare("SELECT m.id,m.channel,m.body,m.created_at,p.id AS player_id,p.name,p.avatar,(SELECT username FROM accounts WHERE player_id=p.id) AS handle FROM messages m JOIN players p ON p.id=m.player_id WHERE m.channel=? ORDER BY m.created_at DESC LIMIT 40").bind(safeChannel).all():{results:[]};
     if(messagesOnly)return json({messages:messages.results.reverse(),channel:safeChannel},200,sessionHeaders);
-    return json({self:self?view(self):null,onlineCount:presence?.total||0,players:online.results.map((p)=>{const life=readLife(p as Player),trip=life.transit,route=transit.routes.find(r=>r.id===trip?.routeId),ride=trip&&(trip.coordinates||route)?routePoint(trip.coordinates||route!.coordinates,trip.progress??(now-trip.startedAt)/(trip.endsAt-trip.startedAt)):null,[lng,lat]=ride?.position||playerPosition(p as Player);return {id:p.id,name:p.name,handle:p.handle,avatar:p.avatar,placeId:p.place_id,lng,lat,heading:ride?.heading??p.heading,driving:!!p.driving||!!ride,vehicle:ride?(trip?.kind==='taxi'?'car':'bus'):life.vehicle,health:life.health,outfit:life.outfit}}),messages:messages.results.reverse(),channel:safeChannel,residences:await residences(db,self?.id),accessAllowed:!self?.place_id.startsWith("p_")||await canEnter(db,self!,self!.place_id)},200,sessionHeaders);
+    return json({self:self?view(self):null,onlineCount:presence?.total||0,players:online.results.map((p)=>{const life=readLife(p as Player),trip=life.transit,route=transit.routes.find(r=>r.id===trip?.routeId),ride=trip&&(trip.coordinates||route)?routePoint(trip.coordinates||route!.coordinates,trip.progress??(now-trip.startedAt)/(trip.endsAt-trip.startedAt)):null,[lng,lat]=ride?.position||playerPosition(p as Player);return {id:p.id,name:p.name,handle:p.handle,avatar:p.avatar,placeId:p.place_id,lng,lat,heading:ride?.heading??p.heading,driving:!!p.driving||!!ride,vehicle:ride?(trip?.kind==='taxi'?'car':'bus'):life.vehicle,health:life.health,outfit:life.outfit,elevation:life.elevation||0}}),messages:messages.results.reverse(),channel:safeChannel,residences:await residences(db,self?.id),accessAllowed:!self?.place_id.startsWith("p_")||await canEnter(db,self!,self!.place_id)},200,sessionHeaders);
   } catch(error){console.error("world GET",error);return json({error:"Could not load the city"},500)}
 }
 
@@ -137,7 +138,7 @@ export async function POST(request: Request) {
       const place=await resolveStartingPlace(String(input.placeId),typeof input.placeName==='string'?input.placeName:undefined);
       if(!place)return json({error:'Choose a public place from the city map'},400);
       let point:number[];try{point=landmarkArrival(place)?.position||await walkingArrival([place.lng,place.lat])}catch{return json({error:'This entrance is unavailable. Choose another place.'},503)}
-      const changed={...life,transit:null,flight:null,drivingSince:0};
+      const changed={...life,elevation:0,transit:null,flight:null,drivingSince:0};
       const result=await db.prepare('UPDATE players SET pos_lng=?,pos_lat=?,heading=0,driving=0,place_id=?,life_json=?,last_move_at=?,last_seen_at=?,revision=revision+1 WHERE id=? AND revision=?').bind(point[0],point[1],place.id,JSON.stringify(changed),now,now,p.id,p.revision).run();
       if(!result.meta.changes)return json({error:'Your position changed. Please try again.'},409);
       const updated=await db.prepare('SELECT *, (SELECT username FROM accounts WHERE player_id=players.id) AS handle FROM players WHERE id=?').bind(p.id).first<Player>();return json({self:view(updated!),event:`Arrived near ${place.name}`});
@@ -148,7 +149,7 @@ export async function POST(request: Request) {
       if(!place||p.driving||life.shift||life.transit||life.flight)return json({error:'Choose an available public place'},400);
       const home=[...HOMES].sort((a,b)=>Math.hypot(a.lng-place.lng,a.lat-place.lat)-Math.hypot(b.lng-place.lng,b.lat-place.lat))[0];
       let point:number[];try{point=landmarkArrival(place)?.position||await walkingArrival([place.lng,place.lat])}catch{return json({error:'This entrance is unavailable. Choose another place.'},503)}
-      const changed={...life,explorationPending:false,startPlaceId:place.id,home:home.id,properties:[home.id]};
+      const changed={...life,elevation:0,explorationPending:false,startPlaceId:place.id,home:home.id,properties:[home.id]};
       const result=await db.prepare('UPDATE players SET pos_lng=?,pos_lat=?,place_id=?,life_json=?,last_move_at=?,revision=revision+1 WHERE id=? AND revision=?').bind(point[0],point[1],place.id,JSON.stringify(changed),now,p.id,p.revision).run();
       if(!result.meta.changes)return json({error:'Your starting place changed. Please retry.'},409);
       const updated=await db.prepare('SELECT *, (SELECT username FROM accounts WHERE player_id=players.id) AS handle FROM players WHERE id=?').bind(p.id).first<Player>();return json({self:view(updated!)});
@@ -173,7 +174,9 @@ export async function POST(request: Request) {
       const distance=distanceKm(playerPosition(p),[lng,lat])*1000;
       const spawnCorrection=input.spawnCorrection===true&&distance<=35&&(p.last_move_at===p.last_action_at||now-p.last_move_at>=8000);
       if(!spawnCorrection&&distance>2.5+seconds*(p.driving?Math.max(12+Math.max(0,(now-(life.drivingSince||now))/1000)*6,life.autoDriveRate>1?22*Math.min(8,life.autoDriveRate)+4:0):7))return json({error:"Move through the city to get there"},400);
-      const moved=await db.prepare("UPDATE players SET pos_lng=?,pos_lat=?,heading=?,last_move_at=?,last_seen_at=? WHERE id=? AND revision=? AND last_move_at=?").bind(lng,lat,((Math.round(heading)%360)+360)%360,now,now,p.id,p.revision,p.last_move_at).run();
+      const elevation=validatedElevation(playerPosition(p),[lng,lat],life.elevation,input.elevation,!!p.driving);
+      if(elevation===null)return json({error:"Use the stairs to reach this platform"},400);
+      const moved=await db.prepare("UPDATE players SET pos_lng=?,pos_lat=?,heading=?,last_move_at=?,last_seen_at=?,life_json=json_set(life_json,'$.elevation',?) WHERE id=? AND revision=? AND last_move_at=?").bind(lng,lat,((Math.round(heading)%360)+360)%360,now,now,elevation,p.id,p.revision,p.last_move_at).run();
       if(!moved.meta.changes)return json({error:"Slow down"},429);
       return json({ok:true,lng,lat});
     }

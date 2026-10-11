@@ -8,13 +8,23 @@
 |---|---|---|---|
 | 1 | Humans, animation, scale and camera | First pass deployed | Broader character variety, detailed clothing, authored animation, furniture alignment and device/crowd benchmarks |
 | 2 | Vehicles, materials, lighting and street surfaces | First vehicle pass deployed; milestone in progress | Reference-based local vehicles and tro-tros, doors, occupants, projected headlights, surface/lighting review and performance checks |
-| 3 | Independence precinct | Exterior reconstruction pass deployed; full visit acceptance open | Vertical stair/platform access, Unknown Soldier Memorial, event crowds, connecting streets and complete visit acceptance |
+| 3 | Independence precinct | Exterior and playable precinct pass deployed | Event crowds and complete visit acceptance |
 | 4–8 | Accra Mall, Osu, Makola, Legon and Labadi | Queued for reference-based implementation and acceptance | Complete each location and its activities before expanding to the next |
 | 9–12 | Religious spaces, heritage, daily-life loop and remaining areas | Queued | Follow the master checklist and location-level acceptance criteria |
 
-**Latest verification:** 41 focused landmark, camera, movement and traffic checks passed; the production build succeeded. Exterior review covered the gate, arch, stands and mapped layout. Full-game review confirmed the authored arch and stands appear at Independence Square. No errors were reported in the exterior fixture. These checks do not establish million-player capacity or a device-wide frame-rate guarantee.
+**Latest verification:** 35 focused landmark, movement and vertical-navigation checks plus one authenticated HTTP/WebSocket/checkpoint test passed. The production build and full-game stair/camera review passed. These checks do not establish million-player capacity or a device-wide frame-rate guarantee.
 
-**Next precinct work:** vertical stair/platform access, the Unknown Soldier Memorial and connecting-street detail. Shared human/vehicle refinements remain open; moving to the landmark package does not mark those milestones complete.
+**Next precinct work:** event crowds and complete visit acceptance. Shared human/vehicle refinements remain open; moving to the landmark package does not mark those milestones complete.
+
+## 11 October 2026 — Walkable precinct and Unknown Soldier Memorial
+
+- Shared stair and platform geometry now supports walking up/down both arch levels, grandstand aisles and the memorial steps. Deck guardrails stop falls, while vehicles remain on ground-level routes. The arch's central ground passage remains open.
+- Camera height follows the player smoothly. Player and handle height is transmitted in HTTP/WebSocket presence and saved with movement, including reconnect/checkpoint handling. Server rejects invented heights and vertical jumps.
+- Separate photo-referenced Unknown Soldier Memorial: stone plinth, bronze sentry and rifle, open ceremonial bowl, five platform steps and Ghana flag rows. Both its common name and the OSM name resolve to an outdoor approach.
+- 87 mapped street/path sections supply the nearby kerbs, paving edges and one-way arrows. No invented road grid or new traffic signals.
+- Removed generated doorway markers from these outdoor structures.
+
+**Verification:** 35 focused landmark/movement/vertical-navigation tests and an authenticated HTTP/WebSocket/checkpoint integration test. Production build and browser review of both stair levels and the memorial. Shapes are authored approximations; additional monument sculpture detail, crowds and broader mobile performance acceptance remain open.
 
 ## 11 October 2026 — Walking, running and home wardrobe
 
@@ -103,7 +113,7 @@ No database migrations or account changes were required for these releases. Loca
 - Shared ground-level collision definitions protect piers, fountains, stair bases and terraces while keeping the gate and arch centres passable.
 - Added a reproducible exterior review fixture at `tests/fixtures/precinct-review.html`.
 
-This is a reference-based exterior pass. Platform access and vertical stair movement, the Unknown Soldier Memorial, event crowds and detailed surrounding streets remain incomplete. Models are not surveyed or photogrammetric reconstructions.
+This exterior pass has since been extended with walkable platforms/stairs, the Unknown Soldier Memorial and mapped street details (see the update above). Event crowds and complete visit acceptance remain open. Models are not surveyed or photogrammetric reconstructions.
 
 Verification: centre openings tested against both rendered mesh rays and collision polygons; fountain/stair/terrace boundaries and all eight inward-facing stands checked. Arrival framing raises the view by eight degrees to retain the arch crown. An obsolete pre-foundation camera-distance assertion was corrected; camera wall clearance remains tested. The initial final rebuild ran out of local disk space; removing the obsolete generated `.next` cache and temporary character archive allowed it to complete.
 
