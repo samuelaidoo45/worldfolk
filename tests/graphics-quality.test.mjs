@@ -5,6 +5,7 @@ import {createActor,createBus,createCar} from '../public/game/world3d.js';
 import {createPalm} from '../public/game/scenery-models.js';
 import {enhanceMaterials,surfaceTexture,cityEnvironment,contactShadow,tagSurface} from '../public/game/graphics-materials.js';
 import {disposeScene,instanceAnimatedModels,batchStaticMeshes} from '../public/game/render-utils.js';
+import {unpavedRoad} from '../public/game/surface-style.js';
 import {installGroundDetail} from '../public/game/ground-detail.js';
 
 const measure=group=>{let calls=0,vertices=0;group.traverse(o=>{if(o.isMesh){calls++;vertices+=o.geometry.attributes.position.count}});return {calls,vertices,bounds:new THREE.Box3().setFromObject(group)}};
@@ -13,7 +14,7 @@ test('all vehicles retain physics dimensions and bus has a proper full-height ca
  const {group}=createBus(),stats=measure(group);assert.ok(stats.calls<=10);assert.ok(stats.bounds.max.x<=1.31);assert.ok(stats.bounds.max.z<=3.56);assert.ok(stats.bounds.min.z>=-3.56);assert.ok(stats.bounds.max.y>2.8&&stats.bounds.max.y<3.2);assert.deepEqual(group.scale.toArray(),[1,1,1]);disposeScene(group);
 });
 test('detailed human rigs retain shared crowd topology and life-size proportions',()=>{
- const actors=['🧑🏾','👩🏾','👨🏽'].map(createActor),crowd=instanceAnimatedModels(actors.map(a=>a.group));assert.ok(crowd.drawCalls<20);
+ const actors=['🧑🏾','👩🏾','👨🏽'].map(icon=>createActor(icon)),crowd=instanceAnimatedModels(actors.map(a=>a.group));assert.ok(crowd.drawCalls<20);
  for(const actor of actors){const stats=measure(actor.group);assert.ok(stats.bounds.max.y>1.75&&stats.bounds.max.y<2);actor.animate(.4,true);assert.notEqual(actor.leftArm.rotation.x,0);disposeScene(actor.group)}disposeScene(crowd.group);
 });
 test('palm leaflets are batched and scenery has a bounded geometry cost',()=>{
@@ -33,5 +34,5 @@ test('authored artwork and glass remain intact when the material pass runs',()=>
 });
 test('road detail follows paved roads and is inserted under labels',()=>{
  const images=[],layers=[],road={id:'worldfolk-roads',source:'accralife-streets','source-layer':'road',filter:['!', ['in',['get','class'],['literal',['path','steps','pedestrian']]]],paint:{'line-width':6},layout:{'line-join':'round'}};
- installGroundDetail({addImage:(id,data)=>images.push({id,data}),addLayer:(layer,before)=>layers.push({layer,before}),getStyle:()=>({layers:[road]})});assert.equal(images.length,4);assert.ok(images.every(i=>i.data.data.length===128*128*4));const asphalt=layers.find(l=>l.layer.id==='worldfolk-asphalt-texture');assert.deepEqual(asphalt.layer.filter,['all',road.filter,['!=',['get','surface'],'unpaved']]);assert.equal(asphalt.before,'worldfolk-road-labels');assert.equal(asphalt.layer.paint['line-width'],6);
+ installGroundDetail({hasImage:()=>false,addImage:(id,data)=>images.push({id,data}),addLayer:(layer,before)=>layers.push({layer,before}),getStyle:()=>({layers:[road]})});assert.equal(images.length,4);assert.ok(images.every(i=>i.data.data.length===128*128*4));const asphalt=layers.find(l=>l.layer.id==='worldfolk-asphalt-texture');assert.deepEqual(asphalt.layer.filter,['all',road.filter,['!',unpavedRoad]]);assert.equal(asphalt.before,'worldfolk-road-labels');assert.equal(asphalt.layer.paint['line-width'],6);
 });

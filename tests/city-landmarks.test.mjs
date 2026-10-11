@@ -34,3 +34,10 @@ test('landmark arrivals frame the full gate and use the actual parade ground',()
  const gate=landmarkArrival({name:'Black Star Gate'});assert.ok(distanceMetres(gate.position,gate.target)>70);assert.ok(gate.position[0]>gate.target[0]);
  const square=startingPlace('square');assert.ok(distanceMetres([square.lng,square.lat],[-.19256,5.54742])<1);assert.equal(landmarkArrival({name:'Unknown church'}),null);
 });
+
+test('popular landmarks retain mapped footprints and remain discoverable',()=>{
+ const names=['National Theatre','Ghana National Mosque','The Balme Library','Accra Mall','Kaneshie Market Complex','Jamestown Lighthouse','Jubilee House','Osu Castle','National Museum'];
+ for(const name of names){const l=CITY_LANDMARKS.find(l=>l.name===name);assert.ok(l?.sourceId);assert.ok(l.rings[0].length>=4);const colliders=landmarkColliders(l.position);assert.ok(colliders.some(c=>c.id===l.id));}
+ assert.ok(distanceMetres([startingPlace('theatre').lng,startingPlace('theatre').lat],[-.2005931,5.5536671])<1);
+ assert.ok(distanceMetres([startingPlace('kaneshie').lng,startingPlace('kaneshie').lat],[-.236208,5.56594])<1);
+});

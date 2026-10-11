@@ -24,10 +24,10 @@ type Player = {
 
 const PLACE_COORDS: Record<string, [number, number]> = {
   home: [-0.1949, 5.5682], square: [-0.19256, 5.54742], nkrumah: [-0.2024, 5.5446],
-  jamestown: [-0.2161, 5.5352], makola: [-0.2141, 5.5485], osu: [-0.1819, 5.5598],
-  labadi: [-0.140846, 5.561955], arts: [-0.2033, 5.5464], theatre: [-0.2047, 5.5516],
+  jamestown: [-0.21213, 5.53309], makola: [-0.2069324, 5.548074], osu: [-0.1819, 5.5598],
+  labadi: [-0.140846, 5.561955], arts: [-0.2033, 5.5464], theatre: [-0.2005931, 5.5536671],
   dubois: [-0.1698, 5.5815], mall: [-0.1738, 5.6224], airport: [-0.1787, 5.6093],
-  eastlegon: [-0.1572, 5.6357], legon: [-0.1874, 5.6510], kaneshie: [-0.2346, 5.5724],
+  eastlegon: [-0.1572, 5.6357], legon: [-0.1874, 5.6510], kaneshie: [-0.236208, 5.56594],
 };
 function placeCoords(id:string): [number,number]|null {
   if(Object.hasOwn(PLACE_COORDS,id))return PLACE_COORDS[id];
