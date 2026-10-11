@@ -34,3 +34,28 @@
 Vehicle/material/lighting pass, then a reference-based Independence precinct visit,
 followed by Accra Mall, Osu, Makola, Legon and Labadi. Each location must be accepted
 against real references and a complete playable visit.
+
+## 11 October 2026 — Vehicle animation and cabin pass
+
+**Status: first vehicle foundation pass.** This does not finish the vehicle or city realism milestone.
+
+### Implemented
+
+- Transparent tinted glazing, dashboards, steering wheels and seats in passenger cars; open bus cabin with seat rows and window pillars.
+- Cached wheel geometry, four moving wheels in two instanced draw calls per vehicle, front-wheel steering and distance-based wheel rotation.
+- Animation connected to local driving, public rides, ambient traffic and remote player vehicles; reverse movement and accelerated rides use actual travelled distance.
+- Brake lamps brighten under deceleration and release afterward; headlamp and tail-lamp emission follows day/night conditions.
+- Large location jumps reset animation sampling without spinning the wheels or falsely triggering braking.
+- Preserved the existing vehicle collision dimensions and routing. No database migration or account changes.
+
+### Verification and remaining work
+
+- Browser reviewed daylight, night, rolling wheels, steering and braking; no console errors in the review scene.
+- Regression coverage includes wheel transforms, light state, cached geometry lifetime, reverse movement, jump handling, bus glazing and collision bounds.
+- Passenger cars and buses remain procedural models. Exact local body references, detailed tro-tro variants, door animation, driver/passenger fitting, projected headlight illumination and device crowd benchmarks remain required.
+- Vehicle review fixture: `tests/fixtures/vehicle-review.html`.
+
+### Release record
+
+- Human/camera foundation: commit `50b16c4`, pushed to GitHub and deployed to `worldfolk.world`.
+- Cloudflare version for that release: `2ddd642e-016c-48c2-b2b9-c41d0d8e10d5`; live character module matched the committed source.

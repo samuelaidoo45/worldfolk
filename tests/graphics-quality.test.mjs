@@ -12,7 +12,7 @@ import {installGroundDetail} from '../public/game/ground-detail.js';
 const measure=group=>{let calls=0,vertices=0;group.traverse(o=>{if(o.isMesh){calls++;vertices+=o.geometry.attributes.position.count}});return {calls,vertices,bounds:new THREE.Box3().setFromObject(group)}};
 test('all vehicles retain physics dimensions and bus has a proper full-height cabin',()=>{
  for(const kind of ['car','suv','van','pickup','taxi','hatchback']){const {group}=createCar(0x235eab,kind),stats=measure(group);assert.ok(stats.calls<18);assert.ok(stats.bounds.max.x<=1.08);assert.ok(stats.bounds.min.x>=-1.08);assert.ok(stats.bounds.max.z<2);assert.ok(stats.bounds.min.z> -2);disposeScene(group)}
- const {group}=createBus(),stats=measure(group);assert.ok(stats.calls<=10);assert.ok(stats.bounds.max.x<=1.31);assert.ok(stats.bounds.max.z<=3.56);assert.ok(stats.bounds.min.z>=-3.56);assert.ok(stats.bounds.max.y>2.8&&stats.bounds.max.y<3.2);assert.deepEqual(group.scale.toArray(),[1,1,1]);disposeScene(group);
+ const {group}=createBus(),stats=measure(group);assert.ok(stats.calls<=14);assert.ok(stats.bounds.max.x<=1.31);assert.ok(stats.bounds.max.z<=3.56);assert.ok(stats.bounds.min.z>=-3.56);assert.ok(stats.bounds.max.y>2.8&&stats.bounds.max.y<3.2);assert.deepEqual(group.scale.toArray(),[1,1,1]);disposeScene(group);
 });
 test('loading fallback retains bounded crowd topology and life-size proportions',()=>{
  const actors=['🧑🏾','👩🏾','👨🏽'].map(icon=>createFallbackActor(icon)),crowd=instanceAnimatedModels(actors.map(a=>a.group));assert.ok(crowd.drawCalls<20);
