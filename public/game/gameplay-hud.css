@@ -206,3 +206,11 @@ body.touch-device.roam-mode.mobile-paused .life-shift.work-assignment{visibility
 .nav-drive-tools{display:flex;gap:6px;flex-wrap:wrap}
 .nav-drive-tools button{min-height:44px;flex:1;padding:7px;font:inherit}
 .nav-drive-tools.hidden{display:none}
+
+/* Venue captions remain at the edge of play, away from movement controls. */
+.venue-programme{position:fixed;top:max(12px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:35;width:min(480px,calc(100vw - 40px));padding:10px 16px;border-radius:12px;background:#102b30de;color:#f6f1df;pointer-events:none;box-shadow:0 3px 18px #0002;font-size:12px;line-height:1.5}
+.venue-programme strong{display:block;color:#f1d18f;margin-bottom:3px;font-size:12px}.venue-programme span{display:block}.venue-programme[hidden]{display:none}
+@media(max-width:650px){.venue-programme{width:min(340px,calc(100vw - 28px));font-size:11px;padding:8px 12px}}
+@media(max-height:500px){.venue-programme{top:6px;width:min(460px,calc(100vw - 240px));font-size:10px;padding:5px 10px}.venue-programme strong{font-size:10px}}
+
+@media(max-width:650px){body.indoor-mode .roam-status{display:none}}

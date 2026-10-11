@@ -1,6 +1,6 @@
 // Original synthesized effects: no downloads, autoplay, microphone or network needed.
 export function createGameAudio({host=window,doc=document,storage=localStorage}={}){
- let context,master,engine,engineGain,rainGain,enabled=true,lastStep=0,lastEffect=0,destroyed=false;
+ let context,master,engine,engineGain,rainGain,enabled=true,lastStep=0,lastEffect=0,destroyed=false,lastProgramme='',lastBeat=-1,speaking=false;
  try{enabled=storage.getItem('worldfolk_sound')!=='off'}catch{}
  const param=(p,value)=>p.setTargetAtTime(value,context.currentTime,.08);
  async function unlock(){
@@ -13,14 +13,22 @@ export function createGameAudio({host=window,doc=document,storage=localStorage}=
  }
  function tone(frequency,duration=.12,volume=.15,type='sine',delay=0){if(!enabled||doc.hidden||context?.state!=='running')return;const now=context.currentTime+delay,o=context.createOscillator(),g=context.createGain();o.type=type;o.frequency.setValueAtTime(frequency,now);g.gain.setValueAtTime(volume,now);g.gain.exponentialRampToValueAtTime(.001,now+duration);o.connect(g).connect(master);o.onended=()=>{o.disconnect();g.disconnect()};o.start(now);o.stop(now+duration)}
  function effect(kind){const now=context?.currentTime||0;if(now-lastEffect<.15)return;lastEffect=now;if(kind==='horn'){tone(350,.3,.22,'triangle');tone(440,.3,.12,'triangle')}else if(kind==='impact')tone(65,.18,.28,'triangle');else if(kind==='reward'){tone(523,.12,.12);tone(784,.2,.12,'sine',.12)}else if(kind==='arrive'){tone(660,.14,.12);tone(880,.22,.12,'sine',.14)}}
- function update({active,mode,speed=0,moving=false,running=false,rain=false}){
-  if(context?.state!=='running')return;const audible=enabled&&active&&!doc.hidden;
+ function stopSpeech(){if(speaking)host.speechSynthesis?.cancel();speaking=false;lastProgramme=''}
+ function update({active,mode,speed=0,moving=false,running=false,rain=false,venue=null}){
+  if(!active||!venue||!enabled||doc.hidden||lastProgramme&&!lastProgramme.startsWith(venue.kind+':'))stopSpeech();if(context?.state!=='running')return;const audible=enabled&&active&&!doc.hidden;
+  if(audible&&venue){
+   if(venue.sound==='speech'&&lastProgramme!==venue.id){
+    if(speaking)host.speechSynthesis?.cancel();lastProgramme=venue.id;
+    if(host.SpeechSynthesisUtterance&&host.speechSynthesis){try{const utterance=new host.SpeechSynthesisUtterance(venue.text);utterance.lang='en-GH';utterance.rate=.9;utterance.volume=.6;utterance.onend=utterance.onerror=()=>{speaking=false};speaking=true;host.speechSynthesis.speak(utterance)}catch{speaking=false}}
+   }
+   if(venue.sound==='music'){const beat=Math.floor(context.currentTime/.14);if(beat!==lastBeat){lastBeat=beat;const notes=[130.81,0,164.81,196,0,164.81,146.83,0];if(beat%4===0)tone(60,.16,.3,'sine');if(beat%4===2)tone(180,.06,.14,'triangle');tone(4500,.025,.015,'square');if(notes[beat%8])tone(notes[beat%8],.12,.12,'triangle')}}
+  }else lastBeat=-1;
   param(engineGain.gain,audible&&['drive','transit'].includes(mode)?.055+Math.min(Math.abs(speed),25)*.002:0);
-  param(engine.frequency,40+Math.min(Math.abs(speed),30)*3);param(rainGain.gain,audible&&rain&&mode!=='indoor'?.1:0);
+  param(engine.frequency,40+Math.min(Math.abs(speed),30)*3);param(rainGain.gain,audible&&venue?.sound==='surf'?.065+Math.sin(context.currentTime*.5)*.025:audible&&rain&&mode!=='indoor'?.1:0);
   if(audible&&moving&&['walk','indoor'].includes(mode)&&context.currentTime-lastStep>(running?.26:.44)){lastStep=context.currentTime;tone(100+Math.random()*25,.055,.15,'triangle')}
  }
- async function toggle(){enabled=!enabled;try{storage.setItem('worldfolk_sound',enabled?'on':'off')}catch{}if(enabled)await unlock();else if(context){master.gain.value=0;await context.suspend()}if(enabled&&master)master.gain.value=.24;return enabled}
- const gesture=()=>{if(context?.state!=='running')void unlock()},visibility=()=>{if(doc.hidden)void context?.suspend();else if(enabled&&context)void context.resume().catch(()=>{})};
+ async function toggle(){enabled=!enabled;if(!enabled)stopSpeech();try{storage.setItem('worldfolk_sound',enabled?'on':'off')}catch{}if(enabled)await unlock();else if(context){master.gain.value=0;await context.suspend()}if(enabled&&master)master.gain.value=.24;return enabled}
+ const gesture=()=>{if(context?.state!=='running')void unlock()},visibility=()=>{if(doc.hidden){stopSpeech();void context?.suspend();}else if(enabled&&context)void context.resume().catch(()=>{})};
  doc.addEventListener('pointerdown',gesture);doc.addEventListener('keydown',gesture);doc.addEventListener('visibilitychange',visibility);
- return {get enabled(){return enabled},unlock,toggle,update,effect,destroy(){destroyed=true;doc.removeEventListener('pointerdown',gesture);doc.removeEventListener('keydown',gesture);doc.removeEventListener('visibilitychange',visibility);void context?.close()}};
+ return {get enabled(){return enabled},unlock,toggle,update,effect,destroy(){destroyed=true;stopSpeech();doc.removeEventListener('pointerdown',gesture);doc.removeEventListener('keydown',gesture);doc.removeEventListener('visibilitychange',visibility);void context?.close()}};
 }

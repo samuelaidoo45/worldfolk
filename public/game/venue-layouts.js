@@ -6,6 +6,7 @@ export const LARGE_VENUES={
  theatre:{bounds:{left:-16,right:16,back:-22,front:24},spawn:[0,21],exit:[0,22.5],description:'Walk the aisles to watch the performance from the front row'}
 };
 export function interiorKind(place){const t=`${place?.name||''} ${place?.type||''}`.toLowerCase();
+ if(/school|university|college|polytechnic/.test(String(place?.type||''))||/\bschool\b/.test(String(place?.name||'').toLowerCase()))return /university|college|polytechnic/.test(t)?'campus':'classroom';
  if(/stadium|sports ground|football ground|arena/.test(t))return 'stadium';
  if(/mall|shopping cent[er]+|shopping complex/.test(t))return 'mall';
  if(/terminal|aerodrome|international airport/.test(t))return 'terminal';

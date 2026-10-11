@@ -71,3 +71,18 @@ not generated. Market interiors remain themed playable spaces. Sparse road
 lighting, traffic signals, MoMo game services and ad billboards are gameplay
 objects, not surveyed real-world objects. Camera defaults to third person with
 speed pullback, smoothed motion and building obstruction checks; K cycles views.
+
+### Landmark and venue pass (11 October 2026)
+
+The named profiles in `public/game/landmark-profiles.js` use photographed identifying features while retaining mapped footprints: Accra Mall's stone/metal curved roof treatment, Balme Library's cream walls, red roof and clock tower, Legon's white/terracotta palette, Holy Trinity's brick tower, and the National Mosque's tiered domes and four minarets. Independence Square's playable area adds its inscriptions and spectator stands; Labadi has a shore programme and surf sound. These are procedural artistic reconstructions, not photographic scans, surveyed interiors or a claim of exact replicas of every building. No third-party photographs are bundled as textures.
+
+Visual/reference sources consulted:
+- https://www.accramall.com/accra-mall-about (mall use and facilities)
+- https://commons.wikimedia.org/wiki/File:Balme_Library.JPG (clock tower, roof and facade reference)
+- https://www.ug.edu.gh/music/about/facilities (Legon architectural context)
+- https://visitghana.com/independence-square/ (distinguishes Black Star Gate from Independence Arch; spectator stands)
+- https://mosqpedia.org/masajid/ghana-national-mosque/ (mosque silhouette photograph)
+- https://www.lonelyplanet.com/points-of-interest/holy-trinity-cathedral/1350595 (cathedral exterior photograph)
+- https://visitghana.com/venue/labadi-beach/ (beach location)
+
+Church sermons, mosque community teaching and school/university lessons are original fictional English scripts, spoken with the browser's speech synthesis when available. They do not impersonate real clergy or institutions. Captions work without speech support. Nightclub music is synthesized original instrumental audio. Sound follows the player's sound setting and stops on exit, mute or backgrounding. NPC congregation, learners, teachers and dancers have purpose-specific poses; other venue visitors still walk normally.

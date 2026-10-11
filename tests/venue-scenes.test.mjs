@@ -40,9 +40,10 @@ test('car variants have distinct silhouettes and remain efficiently batched',()=
  assert.equal(signatures.size,6,'each model has its own geometry');
 });
 
-test('billboards render readable ads on both faces above traffic',async()=>{
- const old=globalThis.document,labels=[];
+test('billboards render readable ads on both faces above traffic',async t=>{
+ const old=globalThis.document,oldWindow=globalThis.window,labels=[];
+ t.mock.timers.enable({apis:['setInterval']});t.mock.method(globalThis,'fetch',async()=>({ok:true,json:async()=>({campaigns:[]})}));globalThis.window={addEventListener(){}};
  globalThis.document={createElement:()=>({getContext:()=>({fillRect(){},fillText(text){labels.push(text)}})})};
  try{const {createBillboard,BILLBOARD_ADS}=await import('../public/game/billboards.js');
- for(let i=0;i<BILLBOARD_ADS.length;i++){const {group}=createBillboard(i),faces=group.children.filter(m=>m.material.map);assert.equal(faces.length,2);assert.ok(faces.every(m=>m.position.y>5));assert.ok(labels.includes(BILLBOARD_ADS[i].headline));assert.ok(faces[0].material.map.image.width>=1024)}}finally{globalThis.document=old}
+ for(let i=0;i<BILLBOARD_ADS.length;i++){const {group}=createBillboard(i),faces=group.children.filter(m=>m.material.map);assert.equal(faces.length,2);assert.ok(faces.every(m=>m.position.y>5));assert.ok(labels.includes(BILLBOARD_ADS[i].headline));assert.ok(faces[0].material.map.image.width>=1024)}}finally{globalThis.document=old;globalThis.window=oldWindow}
 });

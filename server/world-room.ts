@@ -12,7 +12,7 @@ type Member = { player:WorldPlayer; at:number; savedAt:number; dirty:boolean; la
 export function roomFor(lng:number,lat:number){return `accra:${Math.floor((lng+.36)/.02)}:${Math.floor((lat-5.43)/.02)}`}
 function life(p:WorldPlayer){try{return JSON.parse(p.life_json||'{}')}catch{return {}}}
 function compact(p:WorldPlayer):WorldPlayer{const l=life(p);return {id:p.id,session_token:p.session_token,session_expires_at:p.session_expires_at,name:p.name,handle:p.handle,avatar:p.avatar,place_id:p.place_id,pos_lng:p.pos_lng,pos_lat:p.pos_lat,heading:p.heading,driving:p.driving,revision:p.revision,last_move_at:p.last_move_at,last_action_at:p.last_action_at,life_json:JSON.stringify({rest:l.rest||null,arrested:!!l.arrested,health:l.health??100,vehicle:l.vehicle,drivingSince:l.drivingSince,autoDriveRate:l.autoDriveRate,shift:l.shift?{jobId:l.shift.jobId,version:l.shift.version}:null,flight:!!l.flight,transit:!!l.transit})}}
-function publicPlayer(p:WorldPlayer){const l=life(p);return {id:p.id,revision:p.revision,name:p.name,handle:p.handle,avatar:p.avatar,placeId:p.place_id,lng:p.pos_lng,lat:p.pos_lat,heading:p.heading,driving:!!p.driving,vehicle:l.vehicle,health:l.health??100}}
+function publicPlayer(p:WorldPlayer){const l=life(p);return {id:p.id,revision:p.revision,positionAt:p.last_move_at,name:p.name,handle:p.handle,avatar:p.avatar,placeId:p.place_id,lng:p.pos_lng,lat:p.pos_lat,heading:p.heading,driving:!!p.driving,vehicle:l.vehicle,health:l.health??100}}
 export function validMove(m:Member,input:Record<string,unknown>,now:number){
   const {lng,lat,heading}=input;
   if(typeof lng!=='number'||typeof lat!=='number'||typeof heading!=='number'||![lng,lat,heading].every(Number.isFinite)||!inAccra(lng,lat))return false;
@@ -32,7 +32,7 @@ export class WorldRoom extends DurableObject<Cloudflare.Env> {
   async save(ws:WebSocket,_member:Member){
     return this.ctx.blockConcurrencyWhile(async()=>{
     const m=ws.deserializeAttachment() as Member;
-    if(!this.env.DB)return;
+    if(!this.env.DB||!m.dirty)return;
     const p=m.player,now=Date.now();
     const result=await this.env.DB.prepare('UPDATE players SET pos_lng=?,pos_lat=?,heading=?,last_move_at=?,last_seen_at=? WHERE id=? AND session_token=? AND revision=? AND last_move_at<=?')
       .bind(p.pos_lng,p.pos_lat,p.heading,m.at,now,p.id,p.session_token,p.revision,m.savedAt).run();
@@ -45,7 +45,7 @@ export class WorldRoom extends DurableObject<Cloudflare.Env> {
     if(!p?.handle){ws.close(4003,'Sign in to enter the world');return}
     // A life/needs update can finish while newer movement is already in flight.
     // Preserve that movement unless the action actually moved/locked the player.
-    const l=life(p),keep=m.dirty&&p.last_move_at===m.savedAt&&p.driving===m.player.driving&&p.place_id===m.player.place_id&&!l.rest&&!l.transit&&!l.flight&&!l.arrested&&(l.health??100)>0&&(!l.shift||l.shift.version===2||l.shift.jobId==='driver');
+    const l=life(p),keep=m.dirty&&p.last_move_at===m.savedAt&&!l.rest&&!l.transit&&!l.flight&&!l.arrested&&(l.health??100)>0&&(!l.shift||l.shift.version===2||l.shift.jobId==='driver');
     const live=m.player,at=m.at;m.player=compact(p);m.savedAt=p.last_move_at;m.dirty=keep;
     if(keep){m.player.pos_lng=live.pos_lng;m.player.pos_lat=live.pos_lat;m.player.heading=live.heading;m.player.last_move_at=at;m.at=at}else m.at=p.last_move_at||Date.now();
     ws.serializeAttachment(m);
@@ -82,7 +82,17 @@ export class WorldRoom extends DurableObject<Cloudflare.Env> {
     const m=ws.deserializeAttachment() as Member,now=Date.now();
     if(!m.player.handle){ws.close(4003,'Register before entering the world');return}
     if(m.player.session_expires_at&&m.player.session_expires_at<=now){ws.close(4003,'Session expired');return}
-    if(input.type==='sync'){if(now-(m.lastSync||0)<300){ws.close(1008,'Sync rate exceeded');return}m.lastSync=now;await this.ctx.blockConcurrencyWhile(()=>this.reload(ws,m));this.send(ws,{type:'synced',seq:input.seq});if(roomFor(m.player.pos_lng,m.player.pos_lat)!==m.room.split(':instance:')[0])ws.close(4001,'Entering next district');return}
+    if(input.type==='sync'){
+      // Read the attachment inside the gate: a checkpoint may have saved newer
+      // movement while this message was waiting for database access.
+      await this.ctx.blockConcurrencyWhile(async()=>{
+        const current=ws.deserializeAttachment() as Member;
+        if(now-(current.lastSync||0)<300){this.send(ws,{type:'retry',seq:input.seq});return}
+        current.lastSync=now;await this.reload(ws,current);
+        this.send(ws,{type:'synced',seq:input.seq});
+        if(roomFor(current.player.pos_lng,current.player.pos_lat)!==current.room.split(':instance:')[0])ws.close(4001,'Entering next district');
+      });return;
+    }
     if(now-m.lastPacket<150){this.send(ws,{type:'retry',seq:input.seq});return} m.lastPacket=now;ws.serializeAttachment(m);
     if(input.type!=='move')return;
     if(!validMove(m,input,now)){this.send(ws,{type:'correct',seq:input.seq,player:publicPlayer(m.player)});return}

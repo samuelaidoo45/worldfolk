@@ -68,7 +68,7 @@ const cookieId = (request: Request) => request.headers.get("cookie")?.match(/(?:
 
 function view(p: Player) {
   const [lng,lat]=playerPosition(p);
-  return {id:p.id,revision:p.revision,name:p.name,handle:p.handle,avatar:p.avatar,placeId:p.place_id,money:p.money,
+  return {id:p.id,revision:p.revision,positionAt:p.last_move_at,name:p.name,handle:p.handle,avatar:p.avatar,placeId:p.place_id,money:p.money,
     lng,lat,heading:p.heading,driving:!!p.driving,life:lifeView(p),
     energy:p.energy,hunger:p.hunger,fun:p.fun,social:p.social,hygiene:p.hygiene,
     xp:p.xp,level:Math.floor(p.xp/100)+1,day:p.day,minute:p.minute,
@@ -82,7 +82,7 @@ async function ownPlayer(db: D1Database, request: Request) {
     const response=await env.WORLD_SESSIONS.get(env.WORLD_SESSIONS.idFromName(room)).fetch('https://room/checkpoint',{method:'POST',body:JSON.stringify({player,persist:request.method==='POST'})});
     const live=await response.json() as {player:Player|null};
     if(request.method==='POST')player=await db.prepare('SELECT *, (SELECT username FROM accounts WHERE player_id=players.id) AS handle FROM players WHERE id=?').bind(player.id).first<Player>();
-    else if(live.player)player={...player,pos_lng:live.player.pos_lng,pos_lat:live.player.pos_lat,heading:live.player.heading};
+    else if(live.player)player={...player,pos_lng:live.player.pos_lng,pos_lat:live.player.pos_lat,heading:live.player.heading,last_move_at:live.player.last_move_at};
   }
   return player;
 }
@@ -172,7 +172,8 @@ export async function POST(request: Request) {
       const distance=distanceKm(playerPosition(p),[lng,lat])*1000;
       const spawnCorrection=input.spawnCorrection===true&&distance<=35&&(p.last_move_at===p.last_action_at||now-p.last_move_at>=8000);
       if(!spawnCorrection&&distance>2.5+seconds*(p.driving?Math.max(12+Math.max(0,(now-(life.drivingSince||now))/1000)*6,life.autoDriveRate>1?22*Math.min(8,life.autoDriveRate)+4:0):7))return json({error:"Move through the city to get there"},400);
-      await db.prepare("UPDATE players SET pos_lng=?,pos_lat=?,heading=?,last_move_at=?,last_seen_at=? WHERE id=?").bind(lng,lat,((Math.round(heading)%360)+360)%360,now,now,p.id).run();
+      const moved=await db.prepare("UPDATE players SET pos_lng=?,pos_lat=?,heading=?,last_move_at=?,last_seen_at=? WHERE id=? AND revision=? AND last_move_at=?").bind(lng,lat,((Math.round(heading)%360)+360)%360,now,now,p.id,p.revision,p.last_move_at).run();
+      if(!moved.meta.changes)return json({error:"Slow down"},429);
       return json({ok:true,lng,lat});
     }
     if(type==="vehicle-steal"){

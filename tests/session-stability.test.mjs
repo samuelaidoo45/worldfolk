@@ -34,7 +34,7 @@ test('WebSocket correction settles only its request and never triggers a second 
  const previous={document:globalThis.document,location:globalThis.location,WebSocket:globalThis.WebSocket};
  Object.assign(globalThis,{document:{hidden:false,addEventListener(){}},location:{href:'http://game.test',protocol:'http:'},WebSocket:Socket});
  const {createRealtime}=await import('../public/game/realtime.js');let corrections=0;const rt=createRealtime({onPlayers(){},onCorrection(){corrections++},onStatus(){}});
- try{rt.start();const s=sockets[0];s.onmessage({data:JSON.stringify({type:'welcome',room:'a',players:[]})});const move=rt.move({lng:-.18,lat:5.56,heading:0});const failed=assert.rejects(move,e=>e.code==='POSITION_CORRECTED');s.onmessage({data:JSON.stringify({type:'correct',seq:1,player:{id:'p',lng:-.18,lat:5.56}})});await failed;assert.equal(corrections,1);const next=rt.move({lng:-.18,lat:5.56,heading:0});s.onmessage({data:JSON.stringify({type:'ack',seq:2})});assert.equal((await next).type,'ack');
+ try{rt.start();const s=sockets[0];s.onmessage({data:JSON.stringify({type:'welcome',room:'a',players:[]})});const move=rt.move({lng:-.18,lat:5.56,heading:0});const failed=assert.rejects(move,e=>e.code==='POSITION_CORRECTED');s.onmessage({data:JSON.stringify({type:'correct',seq:1,player:{id:'p',lng:-.18,lat:5.56}})});await failed;assert.equal(corrections,1);const next=rt.move({lng:-.18,lat:5.56,heading:0});s.onmessage({data:JSON.stringify({type:'ack',seq:2})});assert.equal((await next).type,'ack');s.onmessage({data:JSON.stringify({type:'correct',seq:1,player:{id:'p',lng:-.2,lat:5.56}})});assert.equal(corrections,1,'a late correction for a settled request is ignored');
  const retry=rt.move({lng:-.18,lat:5.56,heading:0});const rejected=assert.rejects(retry,/Slow down/);s.onmessage({data:JSON.stringify({type:'retry',seq:3})});await rejected;
  }finally{rt.close();Object.assign(globalThis,previous)}
 });
@@ -66,4 +66,23 @@ test('saved resting state stops WebSocket movement and discards pending steps',a
   assert.equal(m.dirty,false);assert.equal(JSON.parse(m.player.life_json).rest.kind,kind);
   assert.equal(validMove(m,{lng:-.179999,lat:5.56,heading:0},3000),false);
  }
+});
+
+test('entering a nearby venue does not discard newer movement at the next checkpoint',async()=>{
+ const f=fixture();f.row.place_id='church';await f.room.save(f.ws,f.m);
+ assert.equal(f.row.pos_lng,-.17995);assert.equal(f.sent.filter(v=>v.type==='correct').length,0);
+});
+test('idle checkpoint does not issue a position correction for a routine life update',async()=>{
+ const f=fixture();const idle={...f.m,dirty:false};f.ws.serializeAttachment(idle);await f.room.save(f.ws,idle);
+ assert.equal(f.sent.length,0);
+});
+test('queued sync uses the latest attachment, not the pre-checkpoint snapshot',async()=>{
+ const f=fixture();const initial=f.ws.deserializeAttachment();initial.room='accra:9:6';f.ws.serializeAttachment(initial);
+ f.room.ctx.blockConcurrencyWhile=async fn=>{const latest=f.ws.deserializeAttachment();latest.player.pos_lng=-.17988;latest.at=4000;latest.savedAt=3000;latest.dirty=true;f.row.pos_lng=-.17990;f.row.last_move_at=3000;f.ws.serializeAttachment(latest);return fn()};
+ await f.room.webSocketMessage(f.ws,JSON.stringify({type:'sync',seq:7}));
+ assert.equal(f.ws.deserializeAttachment().player.pos_lng,-.17988);assert.equal(f.ws.deserializeAttachment().at,4000);
+});
+test('correction from before an accepted arrival cannot move the player back',()=>{
+ const s={self:{id:'p',revision:3,positionAt:8000},position:[-.2,5.6]};
+ assert.equal(correctedPosition(s,{id:'p',revision:3,positionAt:7000,lng:-.18,lat:5.56}),false);assert.deepEqual(s.position,[-.2,5.6]);
 });

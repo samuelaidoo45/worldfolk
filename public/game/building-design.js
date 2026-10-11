@@ -1,3 +1,4 @@
+import {landmarkProfile} from './landmark-profiles.js';
 import {buildingStyle,stableHash} from './districts.js';
 import {interiorKind} from './venue-layouts.js';
 import {distanceMetres,projectOnSegment} from './motion.js';
@@ -24,8 +25,9 @@ export function buildingDesign(feature,places=[]){const base=buildingStyle(featu
  const kind=mappedKind==='generic'?(fallback[base.style]||'generic'):mappedKind;
  const exterior={bank:'bank',campus:'school',gallery:'heritage',civic:'heritage',restaurant:'restaurant',nightclub:'nightclub',mall:'shop'};
  const style=exterior[kind]||(['church','mosque','market','office','shop'].includes(kind)?kind:base.style);
- return {...base,style,seed,kind,palette:mappedPalette(feature.properties,PAINTS[seed%PAINTS.length]),ceiling:['church','mosque'].includes(kind)?5.2:['office','shop','clinic'].includes(kind)?3.8:3.3,placeName:residence?.name||place?.name||feature.properties?.name||''};
+ const placeName=residence?.name||place?.name||feature.properties?.name||'',landmark=landmarkProfile(placeName);
+ return {...base,...(landmark?.roof&&!base.roofMapped?{roof:landmark.roof,roofMapped:true}:{}),landmark,style,seed,kind,palette:mappedPalette(feature.properties,landmark?.palette||PAINTS[seed%PAINTS.length]),ceiling:['church','mosque'].includes(kind)?5.2:['office','shop','clinic'].includes(kind)?3.8:3.3,placeName};
 }
-export function interiorDesign(place,buildings=[]){const point=[place.lng,place.lat],match=buildings.map(b=>({b,d:buildingDistance(point,b)})).filter(v=>v.d<40).sort((a,b)=>a.d-b.d)[0]?.b;const kind=interiorKind(place);const seed=stableHash(`${place.lng?.toFixed(6)},${place.lat?.toFixed(6)}`);const design=match?.design||{seed,kind,palette:PAINTS[seed%PAINTS.length],ceiling:3.6,style:'plaster'};return {...design,kind:kind==='generic'?design.kind:kind};}
+export function interiorDesign(place,buildings=[]){const point=[place.lng,place.lat],match=buildings.map(b=>({b,d:buildingDistance(point,b)})).filter(v=>v.d<40).sort((a,b)=>a.d-b.d)[0]?.b;const kind=interiorKind(place);const seed=stableHash(`${place.lng?.toFixed(6)},${place.lat?.toFixed(6)}`);const design=match?.design||{seed,kind,palette:PAINTS[seed%PAINTS.length],ceiling:3.6,style:'plaster'};const landmark=landmarkProfile(place.name);return {...design,...(landmark?{landmark,palette:landmark.palette}:{}),kind:kind==='generic'?design.kind:kind};}
 
 function mappedPalette(properties={},fallback){const color=value=>typeof value==='string'&&/^(#[0-9a-f]{3,8}|[a-z]{3,20})$/i.test(value)?value:null;return {...fallback,wall:color(properties['building:colour'])||fallback.wall,roof:color(properties['roof:colour'])||fallback.roof};}

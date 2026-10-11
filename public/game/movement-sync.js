@@ -7,7 +7,7 @@ export function movementFailure(error){
  return 'offline';
 }
 export function correctedPosition(state,player){
- if(!player||player.id!==state.self?.id||(player.revision??0)<(state.self.revision??0)||![player.lng,player.lat].every(Number.isFinite))return false;
+ if(!player||player.id!==state.self?.id||(player.revision??0)<(state.self.revision??0)||(player.positionAt??Infinity)<(state.self.positionAt??0)||![player.lng,player.lat].every(Number.isFinite))return false;
  state.position=[player.lng,player.lat];state.lastSentPosition=[...state.position];state.heading=player.heading??state.heading;state.spawnCorrectionPending=false;state.moveSyncPaused=false;
  state.carSpeed=0;state.walkVelocity=[0,0];state.carDrift=[0,0];
  if(state.mode==='drive'){state.carPosition=[...state.position];state.carHeading=state.heading;state.world3d?.setCarPosition(...state.position,state.heading)}
