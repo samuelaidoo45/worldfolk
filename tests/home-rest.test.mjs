@@ -27,7 +27,7 @@ test('short activities and purchased experiences keep their finite animation',()
 test('sleep lies on the mattress and sitting bends both knees onto the sofa',()=>{
  const actor=createActor('🧑🏾');actor.animate(1,false);applyRestPose(actor,'sleep',1);
  const up=new THREE.Vector3(0,1,0).applyEuler(actor.group.rotation);
- assert.ok(up.z<-.99);assert.deepEqual(actor.group.position.toArray(),[-3,1.1,-1.35]);
+ assert.ok(up.z<-.99);assert.ok(new THREE.Vector3(0,0,-1).applyEuler(actor.group.rotation).y>.99,'face points up while head stays on the pillow');assert.deepEqual(actor.group.position.toArray(),[-3,1.1,-1.35]);
  actor.group.rotation.set(0,0,0);actor.animate(2,false);applyRestPose(actor,'relax',1);
  assert.ok(Math.abs(actor.group.position.y+.12)<1e-8);
  assert.equal(actor.leftLeg.rotation.x,-Math.PI/2);assert.equal(actor.rightLeg.rotation.x,-Math.PI/2);

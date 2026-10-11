@@ -4,7 +4,7 @@ import {enhanceMaterials} from './graphics-materials.js';
 // Call before adding animated actors. This preserves each vertex's world transform.
 export function batchStaticMeshes(root){
  enhanceMaterials(root);root.updateMatrixWorld(true);const groups=new Map();
- root.traverse(o=>{if(!o.isMesh||o.isInstancedMesh||o.userData.dynamic||Array.isArray(o.material)||!o.visible)return;const key=`${o.material.uuid}:${o.castShadow}:${o.receiveShadow}`;if(!groups.has(key))groups.set(key,[]);groups.get(key).push(o)});
+ root.traverse(o=>{if(!o.isMesh||o.isSkinnedMesh||o.isInstancedMesh||o.userData.dynamic||Array.isArray(o.material)||!o.visible)return;const key=`${o.material.uuid}:${o.castShadow}:${o.receiveShadow}`;if(!groups.has(key))groups.set(key,[]);groups.get(key).push(o)});
  let before=0,after=0;const inverse=root.matrixWorld.clone().invert();
  for(const meshes of groups.values()){const material=meshes[0].material;before+=meshes.length;after++;if(meshes.length<2)continue;const arrays={position:[],normal:[],uv:[]};
   for(const mesh of meshes){let geometry=mesh.geometry.index?mesh.geometry.toNonIndexed():mesh.geometry.clone();geometry.applyMatrix4(inverse.clone().multiply(mesh.matrixWorld));for(const key of Object.keys(arrays)){const attr=geometry.getAttribute(key);if(attr)arrays[key].push(...attr.array)}geometry.dispose();mesh.removeFromParent()}
@@ -13,11 +13,14 @@ export function batchStaticMeshes(root){
  }
  root.userData.batching={before,after};return {before,after};
 }
-export function disposeScene(root){root.userData.releaseResources?.();delete root.userData.releaseResources;const gs=new Set(),ms=new Set(),ts=new Set();root.traverse(o=>{if(o.geometry)gs.add(o.geometry);for(const m of Array.isArray(o.material)?o.material:o.material?[o.material]:[]){ms.add(m);for(const v of Object.values(m))if(v?.isTexture)ts.add(v)}});ts.forEach(t=>{if(!t.userData.shared)t.dispose()});gs.forEach(g=>{if(!g.userData.shared)g.dispose()});ms.forEach(m=>{if(!m.userData.shared)m.dispose()})}
+export function disposeScene(root){root.traverse(o=>{o.userData.releaseResources?.();delete o.userData.releaseResources});const gs=new Set(),ms=new Set(),ts=new Set();root.traverse(o=>{if(o.geometry)gs.add(o.geometry);for(const m of Array.isArray(o.material)?o.material:o.material?[o.material]:[]){ms.add(m);for(const v of Object.values(m))if(v?.isTexture)ts.add(v)}});ts.forEach(t=>{if(!t.userData.shared)t.dispose()});gs.forEach(g=>{if(!g.userData.shared)g.dispose()});ms.forEach(m=>{if(!m.userData.shared)m.dispose()})}
 export function interiorRenderer(canvas){const r=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});r.setPixelRatio(Math.min(devicePixelRatio||1,matchMedia('(pointer:coarse)').matches?1.25:1.5));r.outputColorSpace=THREE.SRGBColorSpace;r.toneMapping=THREE.ACESFilmicToneMapping;r.toneMappingExposure=1.1;r.shadowMap.enabled=true;r.shadowMap.type=THREE.PCFSoftShadowMap;r.shadowMap.autoUpdate=false;return r}
 
 // Identical animated rigs share GPU geometry. Bone transforms still update per person.
 export function instanceAnimatedModels(models){
+ // Skinned characters need their individual skeletons. Flattening them into
+ // rigid instances freezes the bind pose and breaks asynchronous model swaps.
+ if(models.some(m=>m.userData.humanoid)){const group=new THREE.Group();models.forEach(m=>group.add(m));return {group,update(){group.updateMatrixWorld(true)},get drawCalls(){let n=0;group.traverse(o=>{if(o.isMesh)n+=Array.isArray(o.material)?o.geometry.groups.length:1});return n}}}
  const group=new THREE.Group(),parts=models.map(model=>{const nodes=[];model.traverse(o=>{if(o.isMesh)nodes.push(o)});return nodes});
  if(!parts.length)return {group,update(){},drawCalls:0};
  if(parts.some(p=>p.length!==parts[0].length))throw new Error('Instanced rigs must have the same mesh layout');

@@ -22,7 +22,7 @@ test('traffic recovery cannot run a red light or push a queue into a wall',()=>{
  const hit=driveWithContacts(origin,p(0,1),{driving:true,vehicle:'car',heading:0},[0,12],cars,wall,1000);assert.equal(hit.blocked,true);assert.ok(cars[1].position[1]<=p(0,7.65)[1]);assert.equal(bodyContact(cars[0],cars[1]),null);assert.ok(distanceMetres(before[0],cars[0].position)<.2);
 });
 test('camera offers wider third person and eye-level first person',()=>{
- const third=chaseCamera({position:origin,heading:0}),first=chaseCamera({position:origin,heading:0,cabin:true});assert.ok(third.distance>=8&&third.distance<=15);assert.ok(third.altitude>3);assert.equal(first.distance,0);assert.ok(first.altitude>=1.55&&first.altitude<=1.8);assert.ok(Math.abs(first.targetAltitude-first.altitude)<.15);
+ const third=chaseCamera({position:origin,heading:0}),first=chaseCamera({position:origin,heading:0,cabin:true});assert.ok(third.distance>=6&&third.distance<=9);assert.ok(third.altitude>3);assert.equal(first.distance,0);assert.ok(first.altitude>=1.55&&first.altitude<=1.8);assert.ok(Math.abs(first.targetAltitude-first.altitude)<.15);
 });
 test('new jobs resolve to unique mapped destinations across requested categories',()=>{
  assert.ok(CITY_DESTINATIONS.length>=25);assert.equal(new Set(CITY_DESTINATIONS.map(p=>p.id)).size,CITY_DESTINATIONS.length);

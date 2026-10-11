@@ -23,11 +23,11 @@ export function applyRestPose(actor,kind,blend){
   group.position.x+=(-3-group.position.x)*blend;
   group.position.y+=(1.1-group.position.y)*blend;
   group.position.z+=(-1.35-group.position.z)*blend;
-  group.rotation.set(-Math.PI/2*blend,0,0);
+  group.rotation.set(-Math.PI/2*blend,Math.PI*blend,0);
  }else if(kind==='relax'){
   // Hips on the sofa cushion; thighs forward and lower legs down.
   group.position.x+=(3-group.position.x)*blend;
-  group.position.y+=(-.12-group.position.y)*blend;
+  group.position.y+=((actor.rigged?-.25:-.12)-group.position.y)*blend;
   group.position.z+=(-1.8-group.position.z)*blend;
   group.rotation.set(0,Math.PI,0);
   actor.leftLeg.rotation.x=actor.rightLeg.rotation.x=-Math.PI/2*blend;

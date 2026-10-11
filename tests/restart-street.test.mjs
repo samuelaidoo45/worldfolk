@@ -44,6 +44,6 @@ test('detailed shells replace native extrusion only when ready, without rebuildi
 });
 test('street camera gives a low, stable road view and keeps the player in third person',()=>{
  const street=chaseCamera({position:origin,heading:0,street:true,physics}),third=chaseCamera({position:origin,heading:0,physics});
- assert.ok(street.altitude<third.altitude);assert.ok(street.distance>=8);assert.ok(street.targetAltitude<street.altitude);
- const car=chaseCamera({position:origin,heading:0,street:true,driving:true,physics});assert.equal(car.distance,11);assert.ok(car.altitude<3.3);
+ assert.ok(street.altitude<third.altitude);assert.ok(street.distance>=4&&street.distance<third.distance);assert.ok(street.targetAltitude<street.altitude);
+ const car=chaseCamera({position:origin,heading:0,street:true,driving:true,physics});assert.ok(car.distance>street.distance&&car.distance<=12);assert.ok(car.altitude<3.3);
 });

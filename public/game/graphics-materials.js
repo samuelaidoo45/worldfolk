@@ -24,7 +24,7 @@ export function surfaceTexture(kind){
 export function tagSurface(material,kind){material.userData.surface=kind;return material}
 export function enhanceMaterials(root){
  const seen=new Set();root.traverse(object=>{
-  const source=object.material,old=object.geometry,kind=source?.userData.surface;
+  const source=object.material,old=object.geometry,kind=source?.userData?.surface;
   if(old?.type==='BoxGeometry'&&['fabric','wood'].includes(kind)&&!old.userData.finished){
    const {width:w,height:h,depth:d}=old.parameters;
    if(Math.min(w,h,d)>.08&&Math.max(w,h,d)<6){

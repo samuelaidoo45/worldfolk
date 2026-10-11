@@ -34,7 +34,7 @@ test('phone portrait framing widens while desktop framing stays unchanged',()=>{
 });
 test('wider framing preserves first-person position and collision safety',()=>{
  const position=[-.19,5.56],scale=mobileCameraScale(390,844,true);
- assert.ok(chaseCamera({position,heading:0,street:true,viewScale:scale}).distance>8);
+ assert.ok(chaseCamera({position,heading:0,street:true,viewScale:scale}).distance>chaseCamera({position,heading:0,street:true}).distance);
  assert.equal(chaseCamera({position,heading:0,cabin:true,viewScale:scale}).distance,0);
  const blocked=chaseCamera({position,heading:0,street:true,viewScale:scale,physics:{collision:()=>true}});
  assert.ok(blocked.distance<.5);

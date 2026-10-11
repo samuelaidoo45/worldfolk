@@ -115,7 +115,7 @@ function initMap(){
   const Engine=window.maplibregl;
   if(!Engine){toast('Could not load the map library. Check your connection.');return}
   state.engine=Engine;
-  const options={container:'map',center:[-0.1935,5.5515],zoom:14.7,minZoom:10,pitch:54,bearing:0,maxZoom:26,maxPitch:82,canvasContextAttributes:{antialias:true},maxBounds:[[ACCRA_BOUNDS.west,ACCRA_BOUNDS.south],[ACCRA_BOUNDS.east,ACCRA_BOUNDS.north]],style:cityMapStyle()};
+  const options={container:'map',center:[-0.1935,5.5515],zoom:14.7,minZoom:10,pitch:54,bearing:0,maxZoom:26,maxPitch:85,canvasContextAttributes:{antialias:true},maxBounds:[[ACCRA_BOUNDS.west,ACCRA_BOUNDS.south],[ACCRA_BOUNDS.east,ACCRA_BOUNDS.north]],style:cityMapStyle()};
   state.map=new Engine.Map(options);
   installPlaceIcons(state.map);
   state.sceneLoading=createSceneLoading(state.map,()=>state.mode);
@@ -243,7 +243,7 @@ function followCamera(force=false,dt=1/60){
   state.cameraDistance=pose.distance;state.world3d?.setCameraDistance(pose.distance);
   const bump=['drive','transit'].includes(state.mode)?state.roadSurface?.sample():null;state.world3d?.setRoadJolt(bump?.bounce||0,bump?.roll||0);
   const camera=state.map.calculateCameraOptionsFromTo(pose.from,pose.altitude+(bump?.bounce||0)*.16,pose.to,pose.targetAltitude);
-  state.map.jumpTo({...camera,pitch:Math.max(45,Math.min(82,camera.pitch+(bump?.pitch||0)+(state.lookPitch||0))),bearing:state.cameraHeading});
+  state.map.jumpTo({...camera,pitch:Math.max(45,Math.min(85,camera.pitch+(bump?.pitch||0)+(state.lookPitch||0))),bearing:state.cameraHeading});
 }
 function openDrivingHeading(position){if(!state.physics?.count)return state.heading;let best=state.heading,bestDistance=-1;for(let heading=0;heading<360;heading+=30){const angle=heading*Math.PI/180;let distance=0;for(let metres=2;metres<=16;metres+=2){const point=[position[0]+Math.sin(angle)*metres/(111320*Math.cos(position[1]*Math.PI/180)),position[1]+Math.cos(angle)*metres/111320];if(state.physics.collision(point,1.15))break;distance=metres}if(distance>bestDistance){best=heading;bestDistance=distance}}return best}
 function enterRoam(){
@@ -340,7 +340,7 @@ function roamFrame(now){
     if(Math.hypot(east,north)>.1)state.heading=turnToward(state.heading,(Math.atan2(east,north)*180/Math.PI+360)%360,14,dt);
     if(!locked&&state.view!=='2d'){if(state.keys.has('KeyQ'))state.cameraBearing-=75*dt;if(state.keys.has('KeyR'))state.cameraBearing+=75*dt}
   }
-  const speed=dt?metersBetween(before,state.position)/dt:0;state.movementSpeed=speed;state.world3d.setPosition(...state.position,state.heading);state.world3d.setMoving(speed>.08);
+  const speed=dt?metersBetween(before,state.position)/dt:0;state.movementSpeed=speed;state.world3d.setPosition(...state.position,state.heading);state.world3d.setMoving(speed>.08,speed);
   state.scenery?.update(state.position);state.world3d.setScenery(state.scenery?.items||[]);state.cityLife?.tick(dt,state.position,now,state.mode);state.world3d.setAmbient(state.cityLife?.actors||[]);
   followCamera(false,dt);state.navigation?.update(now);
   if(now-state.lastMoveSend>450&&!state.moveInFlight)sendMove();

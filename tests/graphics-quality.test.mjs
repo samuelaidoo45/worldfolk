@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from '../public/game/three.module.js';
-import {createActor,createBus,createCar} from '../public/game/world3d.js';
+import {createBus,createCar} from '../public/game/world3d.js';
+import {createFallbackActor} from '../public/game/actor-fallback.js';
 import {createPalm} from '../public/game/scenery-models.js';
 import {enhanceMaterials,surfaceTexture,cityEnvironment,contactShadow,tagSurface} from '../public/game/graphics-materials.js';
 import {disposeScene,instanceAnimatedModels,batchStaticMeshes} from '../public/game/render-utils.js';
@@ -13,8 +14,8 @@ test('all vehicles retain physics dimensions and bus has a proper full-height ca
  for(const kind of ['car','suv','van','pickup','taxi','hatchback']){const {group}=createCar(0x235eab,kind),stats=measure(group);assert.ok(stats.calls<18);assert.ok(stats.bounds.max.x<=1.08);assert.ok(stats.bounds.min.x>=-1.08);assert.ok(stats.bounds.max.z<2);assert.ok(stats.bounds.min.z> -2);disposeScene(group)}
  const {group}=createBus(),stats=measure(group);assert.ok(stats.calls<=10);assert.ok(stats.bounds.max.x<=1.31);assert.ok(stats.bounds.max.z<=3.56);assert.ok(stats.bounds.min.z>=-3.56);assert.ok(stats.bounds.max.y>2.8&&stats.bounds.max.y<3.2);assert.deepEqual(group.scale.toArray(),[1,1,1]);disposeScene(group);
 });
-test('detailed human rigs retain shared crowd topology and life-size proportions',()=>{
- const actors=['🧑🏾','👩🏾','👨🏽'].map(icon=>createActor(icon)),crowd=instanceAnimatedModels(actors.map(a=>a.group));assert.ok(crowd.drawCalls<20);
+test('loading fallback retains bounded crowd topology and life-size proportions',()=>{
+ const actors=['🧑🏾','👩🏾','👨🏽'].map(icon=>createFallbackActor(icon)),crowd=instanceAnimatedModels(actors.map(a=>a.group));assert.ok(crowd.drawCalls<20);
  for(const actor of actors){const stats=measure(actor.group);assert.ok(stats.bounds.max.y>1.75&&stats.bounds.max.y<2);actor.animate(.4,true);assert.notEqual(actor.leftArm.rotation.x,0);disposeScene(actor.group)}disposeScene(crowd.group);
 });
 test('palm leaflets are batched and scenery has a bounded geometry cost',()=>{
