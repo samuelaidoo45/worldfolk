@@ -31,7 +31,7 @@ test('overview remains near the player and first-person stays at eye height',()=
 import {landmarkArrival} from '../public/game/landmark-arrival.js';
 import {startingPlace} from '../public/game/city-places.js';
 test('landmark arrivals frame the full gate and use the actual parade ground',()=>{
- const gate=landmarkArrival({name:'Black Star Gate'});assert.ok(distanceMetres(gate.position,gate.target)>70);assert.ok(gate.position[0]>gate.target[0]);
+ const gate=landmarkArrival({name:'Black Star Gate'});assert.ok(distanceMetres(gate.position,gate.target)>70);assert.ok(gate.position[0]>gate.target[0]);assert.ok(gate.cameraPitch>=5&&gate.cameraPitch<=12);
  const square=startingPlace('square');assert.ok(distanceMetres([square.lng,square.lat],[-.19256,5.54742])<1);assert.equal(landmarkArrival({name:'Unknown church'}),null);
 });
 
@@ -40,4 +40,28 @@ test('popular landmarks retain mapped footprints and remain discoverable',()=>{
  for(const name of names){const l=CITY_LANDMARKS.find(l=>l.name===name);assert.ok(l?.sourceId);assert.ok(l.rings[0].length>=4);const colliders=landmarkColliders(l.position);assert.ok(colliders.some(c=>c.id===l.id));}
  assert.ok(distanceMetres([startingPlace('theatre').lng,startingPlace('theatre').lat],[-.2005931,5.5536671])<1);
  assert.ok(distanceMetres([startingPlace('kaneshie').lng,startingPlace('kaneshie').lat],[-.236208,5.56594])<1);
+});
+
+test('precinct openings are open in both mesh geometry and ground collisions',()=>{
+ for(const id of ['black-star-gate','independence-arch']){
+  const data=CITY_LANDMARKS.find(l=>l.id===id),model=createCityLandmark(data).group;
+  model.rotation.y=0;model.updateMatrixWorld(true);
+  const ray=new THREE.Raycaster(new THREE.Vector3(0,1,30),new THREE.Vector3(0,0,-1),0,60);
+  assert.equal(ray.intersectObject(model,true).length,0,`${id} centre must not be filled by a facade`);
+  const map={queryRenderedFeatures:()=>[],project:()=>({x:0,y:0}),getLayer:()=>true,isSourceLoaded:()=>true};
+  const physics=createBuildingPhysics(map);physics.refresh(data.position,true);
+  for(let z=-10;z<=10;z+=2){const a=data.rotation*Math.PI/180,p=offsetMetres(data.position,z*Math.sin(a),-z*Math.cos(a));assert.equal(physics.collision(p,.35),null,`${id} portal ${z}`);}
+  disposeScene(model);
+ }
+});
+test('fountains, arch stairs and stand terraces are solid, with clear walking space in front',()=>{
+ const cases=[['black-star-gate',22,0],['independence-arch',15,0],['square-stand-339732242',0,0]];
+ for(const [id,x,z] of cases){const data=CITY_LANDMARKS.find(l=>l.id===id);assert.ok(data,id);const map={queryRenderedFeatures:()=>[],project:()=>({x:0,y:0}),getLayer:()=>true,isSourceLoaded:()=>true};const physics=createBuildingPhysics(map);physics.refresh(data.position,true);const a=data.rotation*Math.PI/180;
+  const point=(x,z)=>offsetMetres(data.position,x*Math.cos(a)+z*Math.sin(a),x*Math.sin(a)-z*Math.cos(a));
+  assert.ok(physics.collision(point(x,z),.3),id);assert.equal(physics.collision(point(0,data.depth/2+4),.3),null);
+ }
+});
+test('all eight grandstands face the square and the model keeps the reference features',()=>{
+ const centre=[-.19256,5.54742];
+ for(const d of CITY_LANDMARKS.filter(l=>l.id.startsWith('square-stand'))){const a=d.rotation*Math.PI/180,front=offsetMetres(d.position,4*Math.sin(a),-4*Math.cos(a));assert.ok(distanceMetres(front,centre)<distanceMetres(d.position,centre));const {group}=createCityLandmark(d);assert.equal(group.userData.precinct.flagFascia,true);assert.equal(group.userData.precinct.aisles,4);disposeScene(group);}
 });

@@ -23,6 +23,8 @@ The current extract covers longitude −0.40 to 0.12 and latitude 5.40 to 5.83. 
 
 ## Build order
 
+**Progress as of 11 October 2026:** first human/camera and vehicle passes are deployed. Work packages 1 and 2 remain in progress; no location has been newly accepted by these releases. Independence precinct now has a verified exterior reconstruction pass; its full visit acceptance remains open. See [implementation progress](implementation-progress.md) for release IDs, verification and remaining work.
+
 | Order | Work package | Acceptance result |
 |---|---|---|
 | 1 | Human character, animations, scale and camera | A convincing person who can run, sit, sleep and interact without sliding or snapping |

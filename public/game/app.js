@@ -516,7 +516,7 @@ async function beginExploring(place){
  await new Promise(resolve=>setTimeout(resolve,950));
  enterRoam();
  // Arrivals face the chosen place instead of always facing geographic north.
- state.heading=state.cameraBearing=bearingTo(state.position,landmarkArrival(place)?.target||[place.lng,place.lat]);state.cameraPosition=null;state.lookOffset=0;state.lookPitch=0;state.world3d?.setPosition(...state.position,state.heading);followCamera(true);
+ const arrival=landmarkArrival(place);state.heading=state.cameraBearing=bearingTo(state.position,arrival?.target||[place.lng,place.lat]);state.cameraPosition=null;state.lookOffset=0;state.lookPitch=arrival?.cameraPitch||0;state.world3d?.setPosition(...state.position,state.heading);followCamera(true);
 }
 async function returnToCity(){
  if(state.self?.life?.rest){toast(state.self.life.rest.kind==='sleep'?'Choose Wake up before leaving':'Choose Stand up before leaving');return}

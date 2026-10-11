@@ -47,3 +47,22 @@ map-driven architecture; this registry is intentionally extensible.
 Vehicles now use distinct sedan, hatchback, SUV, pickup, van, taxi and bus bodies,
 wheel arches, window pillars, mirrors, plates and clearcoat materials. Their
 collision envelope is kept consistent with the existing traffic simulation.
+
+## Independence precinct — 11 October 2026 reconstruction pass
+
+Reference review: [HACSA Foundation's Independence Square exhibit](https://artsandculture.google.com/story/independence-square-hacsa-foundation/5QUhVVravCqiqw?hl=en), including the frontal photograph of the seaward arch and stands; [Black Star Gate photograph](https://commons.wikimedia.org/wiki/File:Black_Star_Monument,_Accra,_Ghana.JPG).
+
+The gate now has three portals, stone courses, circular medallions, a coffered
+soffit, a recessed date panel and a solid star spanning the raised central block.
+The separate seaward arch has two open decks, railings, a front black star and
+stair flights. Its invented gate inscriptions were removed. The eight mapped
+stands have open bent supports, stepped terraces, bench bays, stair aisles and
+red/gold/green frontal fascia. Geometry is batched by material.
+
+Photographs were used as visual reference only and are not shipped as textures.
+Positions and stand orientations retain the OSM extract. Dimensions and details
+are approximations, not a measured survey. The square stays open at ground level;
+portals are collision-free, while piers, fountains, stair bases and seating
+terraces have solid boundaries. Vertical stair climbing, platform access, event
+crowds, the Unknown Soldier Memorial and detailed connecting streets remain
+separate acceptance work. This pass does not mark the entire precinct complete.
