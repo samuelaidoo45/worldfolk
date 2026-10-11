@@ -1,3 +1,4 @@
+import {CASUAL_OUTFITS} from './outfit-catalog.js';
 import {vehicleName} from './vehicle-catalog.js';
 import {EXPERIENCES,workStep,workReady,jobPay} from './work-catalog.js';
 import {sellsAtVenue} from './venue-shopping.js';
@@ -9,7 +10,7 @@ export function createLifeUI({state,action,navigate,enterHome,places}){
  const launch=document.createElement('button');launch.className='life-launch';launch.textContent='I · My life';document.body.append(launch);
  const panel=document.createElement('section');panel.className='life-drawer hidden';panel.setAttribute('aria-label','My virtual life');panel.innerHTML='<header><div><small>YOUR LIFE IN ACCRA</small><h2>Make yourself at home</h2></div><button aria-label="Close my life">×</button></header><div class="life-wallet"></div><nav aria-label="Life sections"></nav><div class="life-content"></div><p class="life-note">All prices and ownership are part of the game. Progress saves automatically.</p>';document.body.append(panel);
  const content=panel.querySelector('.life-content'),wallet=panel.querySelector('.life-wallet');
- for(const [id,label] of [['bag','Bag'],['work','Work'],['shops','Shops'],['homes','Homes'],['transport','Transport'],['leisure','Leisure'],['momo','MoMo']]){const b=document.createElement('button');b.textContent=label;b.onclick=()=>show(id);b.dataset.tab=id;panel.querySelector('nav').append(b)}
+ for(const [id,label] of [['bag','Bag'],['work','Work'],['shops','Shops'],['homes','Homes'],['wardrobe','Wardrobe'],['transport','Transport'],['leisure','Leisure'],['momo','MoMo']]){const b=document.createElement('button');b.textContent=label;b.onclick=()=>show(id);b.dataset.tab=id;panel.querySelector('nav').append(b)}
  function show(section=tab){if(!state.self)return;tab=section;open=true;state.keys.clear();state.joystick={x:0,y:0};panel.classList.remove('hidden');render()}
  function close(){open=false;panel.classList.add('hidden')}
  launch.onclick=()=>open?close():show();panel.querySelector('header button').onclick=close;
@@ -42,14 +43,21 @@ export function createLifeUI({state,action,navigate,enterHome,places}){
  if(tab==='momo'){heading('MoMo agents',`Game money only · saved MoMo balance: ₵${life.momo||0}. Deposit cash for safekeeping or withdraw it to spend in the city.`);const agent=STREET_SERVICES.find(s=>near(s)&&distanceMetres(state.position,[s.lng,s.lat])<=45);if(agent){heading(agent.name);const form=document.createElement('form'),amount=document.createElement('input');amount.type='number';amount.min='1';amount.max='100000';amount.step='1';amount.placeholder='Amount in game cedis';amount.setAttribute('aria-label','MoMo amount');form.append(amount);for(const operation of ['deposit','withdraw']){const b=document.createElement('button');b.type='button';b.textContent=operation==='deposit'?'Deposit cash':'Withdraw cash';b.disabled=busy||p.driving;b.onclick=()=>transact({type:'momo',operation,amount:Number(amount.value)});form.append(b)}content.append(form)}else for(const agent of STREET_SERVICES){const b=row(agent.name,'Fictional game agent · no real-money transactions');button(b,'Find agent',()=>route({...agent,emoji:'💛'}))}}
  if(tab==='bag'){const health=row('Health',`${Math.ceil(life.health??100)} / 100 · ${life.deaths||0} restarts`);button(health,'Rest and recover at home',()=>transact({type:'recover'}),state.mode!=='indoor'||!p.placeId.startsWith(`p_${p.id}_`)||(life.health??100)>=100);
   heading('Your bag','Buy groceries and goods in the city. Eat food wherever you are; place furniture inside your own home.');let count=0;
-  for(const item of GOODS){const qty=life.inventory[item.id]||0;if(!qty)continue;count++;const buttons=row(`${item.icon} ${item.name} × ${qty}`,item.kind==='food'?`Restores hunger${item.energy?' and energy':''}`:item.kind==='groceries'?'Cook two meals in your kitchen':item.kind==='furniture'?'Use inside your home':life.outfit===item.id?'Currently using':'Owned');
+  for(const item of GOODS){const qty=life.inventory[item.id]||0;if(!qty)continue;count++;const buttons=row(`${item.icon} ${item.name} × ${qty}`,item.kind==='food'?`Restores hunger${item.energy?' and energy':''}`:item.kind==='groceries'?'Cook two meals in your kitchen':item.kind==='furniture'?'Use inside your home':(item.kind==='device'?life.device:life.outfit)===item.id?'Currently using':'Owned');
    if(item.kind==='food')button(buttons,'Eat / drink',()=>transact({type:'consume',itemId:item.id}));
-   if(['clothing','device'].includes(item.kind))button(buttons,life.outfit===item.id?'Equipped':'Equip',()=>transact({type:'equip',itemId:item.id}),life.outfit===item.id);
+   if(['clothing','device'].includes(item.kind))button(buttons,(item.kind==='device'?life.device:life.outfit)===item.id?'Equipped':item.kind==='clothing'?'Wear at home':'Equip',()=>transact({type:'equip',itemId:item.id}),(item.kind==='device'?life.device:life.outfit)===item.id||item.kind==='clothing'&&(state.mode!=='indoor'||!p.placeId.startsWith(`p_${p.id}_`)));
    if(item.kind==='furniture')button(buttons,'Place in home',()=>transact({type:'furnish',itemId:item.id}),!p.placeId.startsWith(`p_${p.id}_`));
    if(item.kind==='groceries')button(buttons,'Cook two meals',()=>transact({type:'cook-inventory'}),state.mode!=='indoor');
   }
   if(!count)heading('Your bag is empty','Visit Makola Market or Accra Mall to buy food, clothing, furniture and more.');
   const b=row('Your household',life.furnished.length?life.furnished.map(id=>GOODS.find(g=>g.id===id)?.name).join(' · '):'Starter furnishings included with your home');button(b,'Find shops',()=>show('shops'));
+ }
+ if(tab==='wardrobe'){
+  const atHome=state.mode==='indoor'&&p.placeId.startsWith(`p_${p.id}_`),resting=!!life.rest||!!state.interior?.resting;
+  heading('Your wardrobe','Casual clothes included with your home. Your outfit saves to your profile and other players see what you wear.');
+  if(!atHome){const b=row('Change at home','Enter one of your own homes to use its wardrobe.');button(b,'Find my home',()=>show('homes'))}
+  if(resting)heading('Finish your activity first','Wake up, stand up or finish your activity before changing clothes.');
+  for(const outfit of CASUAL_OUTFITS){const b=row(outfit.name,outfit.description),swatches=document.createElement('div');swatches.style.cssText='display:flex;gap:6px;margin:8px 0';swatches.setAttribute('aria-hidden','true');for(const part of ['shirt','pants','shoes']){const chip=document.createElement('span');chip.style.cssText=`width:24px;height:24px;border-radius:50%;border:1px solid #82948a;background:#${outfit[part].toString(16).padStart(6,'0')}`;swatches.append(chip)}b.before(swatches);button(b,life.outfit===outfit.id?'Wearing':'Wear outfit',()=>transact({type:'outfit-change',outfitId:outfit.id}),!atHome||resting||!!life.shift||life.outfit===outfit.id)}
  }
  if(tab==='shops'){
   heading('City shops','Walk or drive to the shop, park, then purchase with your earned cedis.');

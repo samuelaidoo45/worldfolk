@@ -1,3 +1,4 @@
+import {CASUAL_OUTFITS} from '../../../public/game/outfit-catalog.js';
 import {inAccra} from '../../../public/game/map-region.js';
 import {EXPERIENCES,shiftCanMove,canUseVehicle,taskSeconds,workStep,workReady,restoreWorkVehicle,jobPay} from '../../../public/game/work-catalog.js';
 import {MAX_RIDE_PROGRESS_SPEED} from '../../../public/game/ride-speed.js';
@@ -14,7 +15,7 @@ import {GOODS,HOMES,JOBS,TERMINALS,propertyId} from '../../../public/game/life-c
 export type LifePlayer={id:string;name:string;life_json:string;revision:number;money:number;energy:number;hunger:number;fun:number;social:number;hygiene:number;xp:number;jobs_done:number;job:string;place_id:string;pos_lng:number|null;pos_lat:number|null;driving:number;last_action_at:number};
 type Flight={from:string;to:string;startedAt:number;endsAt:number};
 type WorkShift={jobId:string;endsAt:number;drove?:boolean;version?:number;id?:string;step?:number;nextTaskAt?:number;vehicle?:string;previousVehicle?:string};
-type Life={rest:{kind:'sleep'|'relax';placeId:string;startedAt:number}|null;explorationPending?:boolean;startPlaceId?:string|null;autoDriveRate:number;lastDriveSkipAt:number;career:Record<string,{shifts:number;earned:number}>;lastServiceAt:number;wanted:number;arrested:boolean;arrests:number;lastTheftAt:number;momo:number;health:number;deaths:number;lastTrafficHitAt:number;lastVitalAt:number;lastCrashAt:number;drivingSince:number;transit:Ride|null;home:string;inventory:Record<string,number>;vehicles:string[];vehicle:string;properties:string[];job:string|null;shift:WorkShift|null;flight:Flight|null;outfit:string|null;furnished:string[]};
+type Life={rest:{kind:'sleep'|'relax';placeId:string;startedAt:number}|null;explorationPending?:boolean;startPlaceId?:string|null;autoDriveRate:number;lastDriveSkipAt:number;career:Record<string,{shifts:number;earned:number}>;lastServiceAt:number;wanted:number;arrested:boolean;arrests:number;lastTheftAt:number;momo:number;health:number;deaths:number;lastTrafficHitAt:number;lastVitalAt:number;lastCrashAt:number;drivingSince:number;transit:Ride|null;home:string;inventory:Record<string,number>;vehicles:string[];vehicle:string;properties:string[];job:string|null;shift:WorkShift|null;flight:Flight|null;outfit:string|null;device?:string|null;furnished:string[]};
 export function readLife(p:LifePlayer):Life {let saved;try{saved=JSON.parse(p.life_json||'{}')}catch{saved={}}return {rest:null,autoDriveRate:1,lastDriveSkipAt:0,career:{},lastServiceAt:0,wanted:0,arrested:false,arrests:0,lastTheftAt:0,momo:0,health:100,deaths:0,lastTrafficHitAt:0,lastVitalAt:0,lastCrashAt:0,drivingSince:0,transit:null,home:'starter',inventory:{},vehicles:['car'],vehicle:'car',properties:['starter'],job:null,shift:null,flight:null,outfit:null,furnished:[],...saved}}
 export function lifeView(p:LifePlayer){const life=readLife(p);return {...life,homeId:propertyId(p.id,life.home),homeName:HOMES.find(h=>h.id===life.home)?.name,apartment:p.id.slice(0,6).toUpperCase()}}
 export const metres=(a:number[],b:number[])=>Math.hypot((a[0]-b[0])*111320*Math.cos(a[1]*Math.PI/180),(a[1]-b[1])*111320);
@@ -28,7 +29,7 @@ export async function residences(db:D1Database,ownerId?:string){const rows=await
 async function hash(code:string){return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(code)))).map(x=>x.toString(16).padStart(2,'0')).join('')}
 export async function handleLife(db:D1Database,p:LifePlayer,input:Record<string,unknown>,view:(p:any)=>unknown):Promise<Response|null>{
  const type=String(input.type),life=readLife(p),now=Date.now();
- const kinds=['rest-end','drive-speed','drive-skip','momo','buy','consume','equip','furnish','vehicle-select','job-apply','shift-start','work-task','experience-buy','shift-complete','shift-cancel','property-buy','home-set','pass-create','pass-redeem','pass-revoke','flight-book','flight-arrive','cook-inventory','vitals','crash','respawn','recover','ride-book','ride-progress','ride-skip','ride-exit','ride-social','bus-board','bus-arrive','traffic-hit'];
+ const kinds=['outfit-change','rest-end','drive-speed','drive-skip','momo','buy','consume','equip','furnish','vehicle-select','job-apply','shift-start','work-task','experience-buy','shift-complete','shift-cancel','property-buy','home-set','pass-create','pass-redeem','pass-revoke','flight-book','flight-arrive','cook-inventory','vitals','crash','respawn','recover','ride-book','ride-progress','ride-skip','ride-exit','ride-social','bus-board','bus-arrive','traffic-hit'];
  if(!kinds.includes(type))return null;
  if((life.health<=0||life.arrested)&&!['respawn','vitals'].includes(type))return fail('Restart at home to continue');
  if(life.transit&&!['respawn','bus-arrive','ride-progress','ride-skip','ride-exit','ride-social','vitals'].includes(type))return fail('Your bus is travelling');
@@ -37,6 +38,13 @@ export async function handleLife(db:D1Database,p:LifePlayer,input:Record<string,
  async function homeAccess(){const property=await propertyInfo(db,p.place_id);return !!property&&!p.driving&&metres([p.pos_lng??0,p.pos_lat??0],property.coords)<=85&&await canEnter(db,p,p.place_id)}
  async function save(touchAction=true){const result=await db.prepare('UPDATE players SET money=?,life_json=?,place_id=?,energy=?,hunger=?,fun=?,social=?,hygiene=?,xp=?,job=?,jobs_done=?,revision=revision+1,last_action_at=?,last_seen_at=? WHERE id=? AND revision=?').bind(next.money,JSON.stringify(life),next.place_id,next.energy,next.hunger,next.fun,next.social,next.hygiene,next.xp,next.job,next.jobs_done,touchAction?now:p.last_action_at,now,p.id,p.revision).run();if(!result.meta.changes)return fail('Your state changed. Please try again.',409);const updated=await db.prepare('SELECT *, (SELECT username FROM accounts WHERE player_id=players.id) AS handle FROM players WHERE id=?').bind(p.id).first();return Response.json({self:view(updated),event,...extra},{headers:{'Cache-Control':'no-store'}})}
 
+ if(type==='outfit-change'){
+  if(life.explorationPending)return fail('Choose a starting place before using your home wardrobe');
+  const outfit=CASUAL_OUTFITS.find(o=>o.id===input.outfitId);if(!outfit)return fail('Choose an outfit from your wardrobe');
+  if(!p.place_id.startsWith(`p_${p.id}_`)||!await homeAccess())return fail('Enter your own home to change clothes');
+  if(life.rest||life.shift)return fail('Finish your current activity before changing clothes');
+  life.outfit=outfit.id;event=`Changed into ${outfit.name}`;return save(false);
+ }
  if(type==='rest-end'){
   if(!life.rest)return fail('You are already standing');
   event=life.rest.kind==='sleep'?'You woke up':'You stood up';life.rest=null;life.lastVitalAt=now;return save(false);
@@ -127,7 +135,7 @@ export async function handleLife(db:D1Database,p:LifePlayer,input:Record<string,
  if(['consume','equip','furnish'].includes(type)){
   if(!item||!(life.inventory[item.id]>0))return fail('You do not own this item');
   if(type==='consume'){if(item.kind!=='food')return fail('Choose food or a drink');life.inventory[item.id]--;next.hunger=Math.min(100,p.hunger+(item.hunger||0));next.energy=Math.min(100,p.energy+(item.energy||0));event=`Enjoyed ${item.name}`}
-  if(type==='equip'){if(!['clothing','device'].includes(item.kind))return fail('This item cannot be equipped');if(life.outfit===item.id)return fail('This item is already equipped');life.outfit=item.id;next.fun=Math.min(100,p.fun+(item.fun||0));next.social=Math.min(100,p.social+(item.social||0));event=`Using ${item.name}`}
+  if(type==='equip'){if(!['clothing','device'].includes(item.kind))return fail('This item cannot be equipped');if(item.kind==='clothing'){if(!p.place_id.startsWith(`p_${p.id}_`)||!await homeAccess())return fail('Enter your own home to change clothes');if(life.rest||life.shift)return fail('Finish your current activity before changing clothes');if(life.outfit===item.id)return fail('This item is already equipped');life.outfit=item.id;}else{if(life.device===item.id)return fail('This device is already equipped');life.device=item.id;}next.fun=Math.min(100,p.fun+(item.fun||0));next.social=Math.min(100,p.social+(item.social||0));event=`Using ${item.name}`}
   if(type==='furnish'){if(item.kind!=='furniture')return fail('Choose furniture');if(!p.place_id.startsWith(`p_${p.id}_`)||!await homeAccess())return fail('Enter your own home to place furniture');if(life.furnished.includes(item.id))return fail('This furniture is already placed');life.furnished.push(item.id);life.inventory[item.id]--;event=`Placed ${item.name} in your home`}
   return save();
  }

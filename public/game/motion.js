@@ -3,7 +3,7 @@ export const damp=(value,target,rate,dt)=>value+(target-value)*(1-Math.exp(-rate
 export const angleDelta=(from,to)=>(((to-from+180)%360)+360)%360-180;
 export const turnToward=(from,to,rate,dt)=>from+angleDelta(from,to)*(1-Math.exp(-rate*dt));
 export function stepWalker(velocity,x,y,bearing,running,dt){
-  const length=Math.max(1,Math.hypot(x,y)),speed=running?5.2:2.6,a=bearing*Math.PI/180;
+  const length=Math.max(1,Math.hypot(x,y)),speed=running?5.2:1.65,a=bearing*Math.PI/180;
   const east=(Math.sin(a)*y+Math.cos(a)*x)/length*speed,north=(Math.cos(a)*y-Math.sin(a)*x)/length*speed;
   const rate=Math.hypot(x,y)>.05?10:15;
   return [damp(velocity[0],east,rate,dt),damp(velocity[1],north,rate,dt)];

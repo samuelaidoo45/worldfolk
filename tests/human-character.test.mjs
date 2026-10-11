@@ -54,3 +54,14 @@ test('default camera keeps an adult readable without filling the screen or showi
  assert.ok(fraction>.18&&fraction<.33,`character screen height ${fraction}`);assert.ok(foot.y>-.85&&head.y<.7,'whole body remains in frame');
  const near=chaseCamera({position:origin,heading:0,previousDistance:pose.distance,physics:{collision:p=>distanceMetres(origin,p)>2}});assert.ok(near.distance<2);
 });
+
+test('wardrobe recolours a single player and keeps fabric at a fine weave scale',()=>{
+ const a=createRiggedActor(male,'👨🏾','same'),b=createRiggedActor(male,'👨🏾','same');
+ let bodyA,bodyB;a.group.traverse(o=>{if(Array.isArray(o.material))bodyA=o});b.group.traverse(o=>{if(Array.isArray(o.material))bodyB=o});
+ const before=bodyB.material[1].color.getHex();a.outfit('coastal');
+ assert.equal(bodyA.material[1].color.getHex(),0x517fa1);assert.equal(bodyA.material[2].color.getHex(),0xafa084);
+ assert.equal(bodyB.material[1].color.getHex(),before);assert.equal(bodyA.material[1].map.repeat.x,12);
+ for(let i=0;i<60;i++)a.animate(i/60,true,{speed:5.2});for(let i=60;i<180;i++)a.animate(i/60,false);
+ assert.ok(Math.abs(a.leftLeg.rotation.x)<.001&&Math.abs(a.group.position.y)<.001,'stopping settles to an upright idle');
+ disposeScene(a.group);disposeScene(b.group);
+});

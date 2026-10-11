@@ -5,7 +5,7 @@ import {createActor} from './world3d.js';
 import {createRoomPhysics} from './room-physics.js';
 import {batchStaticMeshes,disposeScene,interiorRenderer,instanceAnimatedModels} from './render-utils.js';
 import {LARGE_VENUES} from './venue-layouts.js';
-export function createVenueScene({kind,name,avatar,design={}}){
+export function createVenueScene({kind,name,avatar,identity,outfit,design={}}){
  const layout=LARGE_VENUES[kind],canvas=document.createElement('canvas');canvas.className='interior-canvas';canvas.setAttribute('aria-label',name);canvas.dataset.paint=design.palette?.wall||'';document.body.append(canvas);
  const renderer=interiorRenderer(canvas),scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(64,1,.1,280);scene.environment=cityEnvironment();scene.background=new THREE.Color(kind==='stadium'?0x9ec5d7:0x9aa8ac);scene.fog=new THREE.Fog(scene.background,100,260);
  scene.add(new THREE.HemisphereLight(0xd9ecff,0x615642,2));const sun=new THREE.DirectionalLight(0xffe3c2,3);sun.position.set(25,45,18);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);sun.shadow.camera.left=-45;sun.shadow.camera.right=45;sun.shadow.camera.top=65;sun.shadow.camera.bottom=-65;sun.shadow.camera.far=160;sun.shadow.normalBias=.08;sun.shadow.bias=-.0003;scene.add(sun);if(kind==='theatre'){scene.background.set(0x171920);scene.fog.color.copy(scene.background);scene.children[0].intensity=.7;sun.intensity=.35;}
@@ -76,7 +76,7 @@ export function createVenueScene({kind,name,avatar,design={}}){
  if(kind==='stadium')for(let i=0;i<22;i++){const actor=createActor(i<11?'👨🏾':'👩🏽');actor.group.traverse(o=>{if(o.material?.color&&o.material.roughness===.86)o.material.color.set(i<11?0xe3b541:0x417da8)});animated.push(actor)}
  if(kind==='theatre')for(let i=0;i<4;i++){const actor=createActor(i%2?'👩🏾':'👨🏽');animated.push(actor)}
  if(['mall','terminal','stadium','theatre'].includes(kind))for(let i=0;i<(kind==='stadium'||kind==='theatre'?4:8);i++){const actor=createActor(i%2?'👩🏾':'👨🏽');residents.push(actor)}
- const actor=createActor(avatar);scene.add(actor.group);const physics=createRoomPhysics(blockers,layout.bounds);let [x,z]=layout.spawn,watching=false,last=0,width=0,height=0,viewYaw=0,viewPitch=0;const cameraTarget=new THREE.Vector3(),lookTarget=new THREE.Vector3();camera.position.set(x,4,z+7);
+ const actor=createActor(avatar,identity);actor.outfit(outfit);scene.add(actor.group);const physics=createRoomPhysics(blockers,layout.bounds);let [x,z]=layout.spawn,watching=false,last=0,width=0,height=0,viewYaw=0,viewPitch=0;const cameraTarget=new THREE.Vector3(),lookTarget=new THREE.Vector3();camera.position.set(x,4,z+7);
  let pointerLook=null;
  canvas.addEventListener('contextmenu',e=>e.preventDefault());
  canvas.addEventListener('pointerdown',e=>{if(e.button!==2&&e.pointerType!=='touch')return;pointerLook=[e.clientX,e.clientY];canvas.setPointerCapture(e.pointerId)});
@@ -102,5 +102,5 @@ export function createVenueScene({kind,name,avatar,design={}}){
   if(!watching){const a=viewYaw*Math.PI/180;let distance=cameraMode==='first'?0:cameraMode==='overview'?20:6.8;for(;distance>1.3;distance-=.3){const cx=x-Math.sin(a)*distance,cz=z+Math.cos(a)*distance;if(physics.clear(cx,cz)&&physics.visible([x,z],[cx,cz]))break}cameraTarget.set(x-Math.sin(a)*distance,cameraMode==='first'?1.65:Math.min(5.5,2.1+distance*.14)+viewPitch,z+Math.cos(a)*distance);lookTarget.set(x+Math.sin(a)*1.2,1.15,z-Math.cos(a)*1.2)}else if(kind!=='stadium'){cameraTarget.set(x,2.1,z+1);lookTarget.set(0,2,-17)}camera.position.lerp(cameraTarget,1-Math.exp(-dt*7));actor.group.visible=cameraMode!=='first';camera.lookAt(lookTarget);renderer.render(scene,camera);
  }
  function destroy(){disposeScene(scene);for(const a of [...animated,...residents])disposeScene(a.group);renderer.dispose();renderer.forceContextLoss();canvas.remove()}
- return {move,nearby,render,destroy,interact,look(yaw,pitch=0){viewYaw+=yaw;viewPitch=Math.max(-.6,Math.min(1,viewPitch+pitch*.03))},get bearing(){return viewYaw},playAction(){},get isActing(){return false},get position(){return [x,z]},get name(){return name},description:layout.description,stats};
+ return {setOutfit(id){actor.outfit(id)},move,nearby,render,destroy,interact,look(yaw,pitch=0){viewYaw+=yaw;viewPitch=Math.max(-.6,Math.min(1,viewPitch+pitch*.03))},get bearing(){return viewYaw},playAction(){},get isActing(){return false},get position(){return [x,z]},get name(){return name},description:layout.description,stats};
 }

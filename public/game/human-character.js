@@ -1,7 +1,9 @@
 import * as THREE from './three.module.js';
 import {GLTFLoader,clone} from './humanoid-loader.js';
 import {createFallbackActor} from './actor-fallback.js';
-import {contactShadow,tagSurface,enhanceMaterials} from './graphics-materials.js';
+import {contactShadow,tagSurface,enhanceMaterials,surfaceTexture} from './graphics-materials.js';
+import {casualOutfit} from './outfit-catalog.js';
+import {gaitPose} from './human-gait.js';
 import {civilianGeometry} from './human-garments.js';
 import {disposeScene} from './render-utils.js';
 
@@ -11,7 +13,8 @@ const trousers=[0x243343,0x343631,0x645847];
 const q=new THREE.Quaternion(),q2=new THREE.Quaternion();
 function hash(value){let n=0;for(const c of value)n=(Math.imul(n,31)+c.charCodeAt(0))>>>0;return n}
 const gender=icon=>String(icon).startsWith('👩')?'Female':'Male';
-const material=(name,color,roughness)=>{const m=tagSurface(new THREE.MeshStandardMaterial({color,roughness,metalness:0}),name==='skin'?'skin':'fabric');m.name=name;m.userData.graphicsEnhanced=true;return m};
+let clothTexture;
+const material=(name,color,roughness)=>{const m=tagSurface(new THREE.MeshStandardMaterial({color,roughness,metalness:0}),name==='skin'?'skin':'fabric');m.name=name;if(!clothTexture){clothTexture=surfaceTexture('fabric').clone();clothTexture.repeat.set(12,12);clothTexture.userData.shared=true;clothTexture.needsUpdate=true}m.map=clothTexture;m.bumpMap=clothTexture;m.bumpScale=.0015;m.userData.graphicsEnhanced=true;return m};
 
 // Convert the CC0 base into a clothed civilian. Skin retains the authored face
 // and normal maps; clothing gets its own opaque materials and garment volume.
@@ -67,7 +70,8 @@ export function createRiggedActor(template,icon='🧑🏾',identity=''){
  visual.traverse(o=>{if(o.isBone){bones.set(o.name,o);binds.set(o.name,{local:o.quaternion.clone(),parent:o.parent.getWorldQuaternion(new THREE.Quaternion())})}});
  const originals=new Map();visual.traverse(o=>{if(!o.isMesh)return;const copy=m=>{if(!originals.has(m)){const c=m.clone();c.userData={...m.userData};originals.set(m,c)}return originals.get(m)};o.material=Array.isArray(o.material)?o.material.map(copy):copy(o.material);o.frustumCulled=false});
  const byName=new Map([...originals.values()].map(m=>[m.name,m]));
- byName.get('shirt').color.setHex(shirts[seed%shirts.length]);byName.get('pants').color.setHex(trousers[(seed>>>3)%trousers.length]);
+ function outfit(id){const clothes=casualOutfit(id,seed);for(const part of ['shirt','pants','shoes'])byName.get(part).color.setHex(clothes[part])}
+ outfit(null);
  // The authored dark skin texture keeps facial detail; small tints add variety.
  const tone=String(icon).includes('🏽')?0xe1ba9b:String(icon).includes('🏿')?0x82624f:0xd6b195;byName.get('skin').color.setHex(tone);
  const joint=(name,rest=new THREE.Quaternion())=>{const b=bones.get(name),v=binds.get(name);b.parent.updateWorldMatrix(true,false);return poseJoint(b,b.parent.getWorldQuaternion(new THREE.Quaternion()),v.local,rest)};
@@ -84,23 +88,25 @@ export function createRiggedActor(template,icon='🧑🏾',identity=''){
  // Keep both bases near 1.8m; do not scale NPCs down relative to the player.
  if(gender(icon)==='Female')visual.scale.setScalar(1.02);
  const shadow=new THREE.Mesh(new THREE.PlaneGeometry(.8,.65),new THREE.MeshBasicMaterial({map:contactShadow(),color:0x172723,transparent:true,opacity:.48,depthWrite:false}));shadow.rotation.x=-Math.PI/2;shadow.position.y=.012;shadow.userData.dynamic=true;group.add(shadow);
+ const boneDistance=(a,b)=>bones.get(a).getWorldPosition(new THREE.Vector3()).distanceTo(bones.get(b).getWorldPosition(new THREE.Vector3()));
+ const upper=boneDistance('thigh_l','calf_l'),lower=boneDistance('calf_l','foot_l');
  let last=null,phase=0,blend=0,smoothSpeed=0;
  function animate(t,moving,options={}){
   const dt=last===null?1/60:Math.max(0,Math.min(.05,t-last));last=t;
-  const speed=options.speed??(moving?2.6:0),target=moving?Math.max(0,Math.min(9,speed)):0;
-  const ease=1-Math.exp(-dt*12);smoothSpeed+=(target-smoothSpeed)*ease;blend+=((moving?1:0)-blend)*ease;
-  const run=Math.max(0,Math.min(1,(smoothSpeed-2.7)/2)),stride=1.25+run*1.65;
-  phase+=dt*smoothSpeed/stride*Math.PI*2;
-  const step=Math.sin(phase),opposite=-step,amplitude=(.42+run*.38)*blend;
+  const speed=options.speed??(moving?1.65:0),target=moving?Math.max(0,Math.min(7,speed)):0;
+  const ease=1-Math.exp(-dt*10);smoothSpeed+=(target-smoothSpeed)*ease;blend+=((moving&&target>.08?1:0)-blend)*ease;
+  const gait=gaitPose(phase,smoothSpeed,upper,lower),run=gait.run;
+  phase=(phase+dt*gait.cadence*Math.min(1,smoothSpeed/.65))%1;
   for(const p of [leftArm,rightArm,leftLeg,rightLeg,...elbows,...knees,...ankles,spine,head])p.rotation.set(0,0,0);
-  leftLeg.rotation.x=step*amplitude;rightLeg.rotation.x=opposite*amplitude;
-  knees[0].rotation.x=Math.max(0,-step)*(.6+run*.8)*blend;knees[1].rotation.x=Math.max(0,step)*(.6+run*.8)*blend;
-  leftArm.rotation.x=-step*amplitude*.65;rightArm.rotation.x=step*amplitude*.65;
-  elbows.forEach(e=>e.rotation.x=-.12-run*.95-Math.abs(step)*blend*.12);
-  ankles[0].rotation.x=-knees[0].rotation.x*.22;ankles[1].rotation.x=-knees[1].rotation.x*.22;
-  spine.rotation.set(-run*.08*blend,Math.sin(phase)*.065*blend,Math.sin(phase)*.018*blend);
-  head.rotation.y=Math.sin(t*.53+seed%9)*.045*(1-blend);
-  group.position.y=Math.abs(Math.sin(phase))*(.012+run*.035)*blend;
+  for(const [i,leg] of [gait.left,gait.right].entries()){
+   [leftLeg,rightLeg][i].rotation.x=leg.hip*blend;knees[i].rotation.x=leg.knee*blend;ankles[i].rotation.x=leg.ankle*blend;
+  }
+  const swing=Math.cos(phase*Math.PI*2),arm=(.24+run*.3)*blend;
+  leftArm.rotation.x=swing*arm;rightArm.rotation.x=-swing*arm;
+  elbows.forEach((e,i)=>e.rotation.x=-.12-(run*.95+Math.max(0,Math.sin(phase*Math.PI*2+i*Math.PI))*.12)*blend);
+  spine.rotation.set(run*.075*blend,swing*.035*blend,swing*.012*blend);
+  head.rotation.y=Math.sin(t*.53+seed%9)*.035*(1-blend);
+  group.position.y=gait.bodyOffset*blend;
   visual.position.y=.025+Math.sin(t*1.8)*.002*(1-blend);
   if(options.action)pose(options.action,t,options.blend??1);
  }
@@ -122,7 +128,7 @@ export function createRiggedActor(template,icon='🧑🏾',identity=''){
   }
  }
  group.userData.releaseResources=()=>{const seen=new Set();visual.traverse(o=>{if(o.skeleton&&!seen.has(o.skeleton)){seen.add(o.skeleton);o.skeleton.dispose()}})};
- return {group,leftArm,rightArm,leftLeg,rightLeg,knees,elbows,spine,head,rigged:true,animate,pose,outfit(id){byName.get('shirt').color.setHex(id==='shirt'?0xb88c41:shirts[seed%shirts.length]);byName.get('shoes').color.setHex(id==='trainers'?0xdbd8ca:0x282522)}};
+ return {group,leftArm,rightArm,leftLeg,rightLeg,knees,elbows,spine,head,rigged:true,animate,pose,outfit};
 }
 
 export function createActor(icon='🧑🏾',identity=''){

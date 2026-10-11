@@ -1,6 +1,6 @@
 # Realism implementation progress
 
-**Updated 11 October 2026.** The human/camera, vehicle and Independence precinct exterior passes are live at [worldfolk.world](https://worldfolk.world/game/). The full realism milestones remain in progress.
+**Updated 11 October 2026.** The human/camera, walking and wardrobe, vehicle and Independence precinct exterior passes are live at [worldfolk.world](https://worldfolk.world/game/). The full realism milestones remain in progress.
 
 ## Current milestone status
 
@@ -15,6 +15,21 @@
 **Latest verification:** 41 focused landmark, camera, movement and traffic checks passed; the production build succeeded. Exterior review covered the gate, arch, stands and mapped layout. Full-game review confirmed the authored arch and stands appear at Independence Square. No errors were reported in the exterior fixture. These checks do not establish million-player capacity or a device-wide frame-rate guarantee.
 
 **Next precinct work:** vertical stair/platform access, the Unknown Soldier Memorial and connecting-street detail. Shared human/vehicle refinements remain open; moving to the landmark package does not mark those milestones complete.
+
+## 11 October 2026 — Walking, running and home wardrobe
+
+**Status: deployed to worldfolk.world.** Cloudflare version `3bc834a3-e2f9-45e7-a826-21c5c0e149ce`.
+
+- Replaced the sine-driven legs with stance/swing foot targets and two-bone leg solving. Walking has a supporting foot; running has a short flight phase. Hip height follows leg reach, ankles counter-rotate, and arms swing opposite the legs.
+- Reduced walking speed from 2.6 to 1.65 metres/second. Running remains 5.2 metres/second and retains the existing Run toggle. Starts and stops blend smoothly.
+- Relaxed, untucked casual shirt geometry, trousers and sneakers with a fine fabric weave. Four starter outfits: Everyday green, Coastal blue, Weekend rust and City casual.
+- Added a physical wardrobe interaction in homes and **My life → Wardrobe**. Outfit changes persist in the existing profile and apply immediately to city and interior characters.
+- Server validates the outfit, home ownership, distance and activity state. Clothing changes are unavailable during rest or a shift; equipped devices no longer replace clothing.
+- Public polling and WebSocket presence include the outfit ID, so nearby players use the saved appearance without exposing inventory or session data.
+
+**Verification:** 30 animation, movement, clothing and rest tests; an authenticated API integration check covering home restrictions, saving, account isolation, money preservation and two-player WebSocket appearance; production build and desktop/mobile browser checks of the walking/running rigs and home wardrobe. Live game returned HTTP 200; deployed gait and wardrobe modules match the verified source.
+
+**Remaining realism work:** these are procedural gait improvements and casual garment variations on the existing rigs. Authored motion capture, terrain-aware foot placement, additional body types and independently modelled clothing remain open.
 
 ## 11 October 2026 — Human and camera foundation
 
