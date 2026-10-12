@@ -141,7 +141,7 @@ function renderMapMarkers(){
   state.selectedMarker?.remove();state.selectedMarker=null;
   const selected=placeForId(state.selectedPlace);if(state.map?.getSource('worldfolk-map-places'))updateOverheadPlaces(state.map,PLACES,selected);if(selected?.id.startsWith('g_')&&state.map){const el=document.createElement('button');el.type='button';el.className='poi-marker selected';el.setAttribute('aria-label',`Selected: ${selected.name}`);el.innerHTML=`<span class="poi-icon">${selected.emoji}</span><span class="poi-label"></span>`;setPlaceIcon(el.querySelector('.poi-icon'),selected);el.querySelector('.poi-label').textContent=selected.name;state.selectedMarker=new state.engine.Marker({element:el,anchor:'bottom'}).setLngLat([selected.lng,selected.lat]).addTo(state.map)}
   state.playerMarkers.forEach(m=>m.remove());state.playerMarkers=[];
-  if(!state.map||state.roam)return;
+  if(!state.map||state.roam||state.cityWelcome?.active)return;
   const visible=state.players.slice(0,80);const counts={};
   visible.forEach(p=>{const place=placeForId(p.placeId);if(!place)return;const n=counts[p.placeId]||0;counts[p.placeId]=n+1;
     const angle=n*2.4;const radius=.00038+Math.sqrt(n)*.00016;

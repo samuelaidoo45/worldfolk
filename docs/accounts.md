@@ -7,7 +7,7 @@ Public profiles expose handles, never credentials.
 ## Credentials and recovery
 
 - Case-insensitive usernames: 3–24 ASCII letters, digits or underscores.
-- Passwords are chosen by the player: 15–128 characters, spaces and memorable words
+- Passwords are chosen by the player: 8–128 characters, spaces and memorable words
   accepted with no special-character requirement. Existing users can choose Change
   password in their profile; the current password is required and old sessions are revoked.
 - Password storage: salted scrypt (N=32768, r=8, p=3, 32-byte output).

@@ -47,7 +47,7 @@ export async function POST(request:Request){
   if(changing&&!ownAccount)return reply({error:'Sign in before changing your password.'},401);
   const username=changing?ownAccount!.username:String(input.username||'').trim().toLowerCase(),password=input.password;
   if(!/^[a-z0-9_]{3,24}$/.test(username))return reply({error:'Use 3–24 letters, numbers or underscores for your username.'},400);
-  if(typeof password!=='string'||password.length<(action==='login'?1:15)||password.length>128)return reply({error:'Choose your own password: 15–128 characters. Several memorable words work well; numbers and symbols are optional.'},400);
+  if(typeof password!=='string'||password.length<(action==='login'?1:8)||password.length>128)return reply({error:'Use a password of 8–128 characters.'},400);
   if(await limited(request,username))return reply({error:'Too many attempts. Try again in 15 minutes.'},429,{'Retry-After':'900'});
   const account=await db.prepare('SELECT * FROM accounts WHERE username=?').bind(username).first<Account>();
   const remembered=input.rememberMe===true, maxAge=remembered?2592000:null;

@@ -1,6 +1,6 @@
 import {HOMES,propertyId,startingLife} from '../public/game/life-catalog.js';
 import test from 'node:test';import assert from 'node:assert/strict';import {spawnSync} from 'node:child_process';import WebSocket from 'ws';
-const base=process.env.GAME_TEST_URL||'http://127.0.0.1:3001',tag=Date.now().toString(36),username=`auth_${tag}`,password='A private test passphrase 902!';
+const base=process.env.GAME_TEST_URL||'http://127.0.0.1:3001',tag=Date.now().toString(36),username=`auth_${tag}`,password='Mango92!';
 async function call(path,cookie,body,origin=base){const r=await fetch(base+path,{method:body?'POST':'GET',headers:{...(cookie?{Cookie:cookie}:{}),...(body?{'Content-Type':'application/json',Origin:origin}:{})},body:body?JSON.stringify(body):undefined});return {status:r.status,body:await r.json(),cookie:r.headers.get('set-cookie')?.split(';')[0],setCookie:r.headers.get('set-cookie')}}
 function sql(statement,params=[]){const script=`import sqlite3,json,sys\nfrom pathlib import Path\np=next(x for x in Path('.wrangler/state/v3/d1/miniflare-D1DatabaseObject').glob('*.sqlite') if x.name!='metadata.sqlite')\nc=sqlite3.connect(p)\nr=c.execute(sys.argv[1],json.loads(sys.argv[2])).fetchall()\nc.commit()\nprint(json.dumps(r))`;const r=spawnSync('python3',['-c',script,statement,JSON.stringify(params)],{encoding:'utf8'});assert.equal(r.status,0,r.stderr);return JSON.parse(r.stdout)}
 // Legacy fixtures only: the public API no longer creates guests.
@@ -10,7 +10,7 @@ function socket(cookie){const ws=new WebSocket(base.replace('http','ws')+'/api/r
 test('guest upgrades, resumes on another session, and can recover without losing their life', {timeout:60000},async()=>{
  sql('DELETE FROM auth_rate_limits');const g=await guest('Auth Guest');const home=HOMES.find(h=>h.id===g.self.life.home);assert.ok(home);assert.equal(g.self.placeId,propertyId(g.self.id,home.id));assert.deepEqual([g.self.lng,g.self.lat],[home.lng,home.lat]);assert.ok(g.self.life.properties.includes(home.id));assert.equal((await call('/api/game',g.cookie,{type:'enter',placeId:g.self.life.homeId})).status,403);sql('UPDATE players SET money=4321,xp=99 WHERE id=?',[g.self.id]);
  assert.equal((await call('/api/auth',g.cookie)).body.mode,'unregistered');assert.equal((await call('/api/auth',null)).body.mode,'none');
- assert.equal((await call('/api/auth',g.cookie,{action:'register',username,password:'short'})).status,400);
+ assert.equal((await call('/api/auth',g.cookie,{action:'register',username,password:'Mango92'})).status,400);
  assert.equal((await call('/api/auth',g.cookie,{action:'register',username,password},'https://attacker.example')).status,403);
  const reg=await call('/api/auth',g.cookie,{action:'register',username,password});assert.equal(reg.status,201,JSON.stringify(reg.body));assert.match(reg.setCookie,/HttpOnly/);assert.match(reg.setCookie,/SameSite=Lax/);assert.notEqual(reg.cookie,g.cookie);assert.match(reg.body.recoveryCode,/^[a-f0-9]{48}$/);
 
@@ -24,8 +24,9 @@ test('guest upgrades, resumes on another session, and can recover without losing
  const login=await call('/api/auth',null,{action:'login',username:username.toUpperCase(),password});assert.equal(login.status,200);assert.equal((await call('/api/game',login.cookie)).body.self.id,g.self.id);assert.equal((await call('/api/game',reg.cookie)).body.self,null);
  assert.equal((await call('/api/auth',login.cookie,{action:'logout'})).status,200);assert.equal((await call('/api/game',login.cookie)).body.self,null);
  assert.equal((await call('/api/game',`accralife_session=${g.self.id}`)).body.self,null,'a public player ID cannot restore a logged-out session');
- const newPassword='A replacement test passphrase 904!';
+ const newPassword='Coast94!';
  assert.equal((await call('/api/auth',null,{action:'recover',username,password:newPassword,recoveryCode:'0'.repeat(48)})).status,401);
+ assert.equal((await call('/api/auth',null,{action:'recover',username,password:'Coast94',recoveryCode:reg.body.recoveryCode})).status,400);
  const recovery=await call('/api/auth',null,{action:'recover',username,password:newPassword,recoveryCode:reg.body.recoveryCode});assert.equal(recovery.status,200);assert.notEqual(recovery.body.recoveryCode,reg.body.recoveryCode);
  assert.equal((await call('/api/auth',null,{action:'recover',username,password:newPassword,recoveryCode:reg.body.recoveryCode})).status,401,'used recovery codes are revoked');
  assert.equal((await call('/api/auth',null,{action:'login',username,password})).status,401);
@@ -115,13 +116,14 @@ test('direct registration, persistent friends and city-wide presence', {timeout:
 
 test('memorable passwords, opt-in remembered sessions, and authenticated password changes', {timeout:60000},async()=>{
  sql('DELETE FROM auth_rate_limits');
- const username=`memory_${tag}`,password='mango trees beside the sea',next='quiet mornings by the beach';
+ const username=`memory_${tag}`,password='mango trees beside the sea',next='Beach94!';
  const reg=await call('/api/auth',null,{action:'register',username,password,name:'Memory Tester',rememberMe:false});
  assert.equal(reg.status,201,JSON.stringify(reg.body));assert.doesNotMatch(reg.setCookie,/Max-Age|Expires=/i);
  const player=(await call('/api/game',reg.cookie)).body.self;
  const expiry=sql('SELECT session_expires_at FROM players WHERE id=?',[player.id])[0][0];assert.ok(expiry>Date.now()+23*3600000&&expiry<=Date.now()+86400000);
  assert.equal((await call('/api/auth',null,{action:'change-password',password:next,currentPassword:password})).status,401);
  assert.equal((await call('/api/auth',reg.cookie,{action:'change-password',password:next,currentPassword:'wrong'})).status,401);
+ assert.equal((await call('/api/auth',reg.cookie,{action:'change-password',password:'Beach94',currentPassword:password})).status,400);
  const changed=await call('/api/auth',reg.cookie,{action:'change-password',username:'not_this_user',password:next,currentPassword:password,rememberMe:true});
  assert.equal(changed.status,200,JSON.stringify(changed.body));assert.equal(changed.body.username,username);assert.match(changed.setCookie,/Max-Age=2592000/);assert.match(changed.setCookie,/HttpOnly/);
  assert.equal((await call('/api/auth',reg.cookie)).body.mode,'none');
