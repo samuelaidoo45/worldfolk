@@ -214,3 +214,14 @@ body.touch-device.roam-mode.mobile-paused .life-shift.work-assignment{visibility
 @media(max-height:500px){.venue-programme{top:6px;width:min(460px,calc(100vw - 240px));font-size:10px;padding:5px 10px}.venue-programme strong{font-size:10px}}
 
 @media(max-width:650px){body.indoor-mode .roam-status{display:none}}
+
+/* In-game communication alerts live at the screen edge, including over dialogs. */
+.friend-call[popover],.game-notification[popover]{margin:0;inset:auto;top:max(12px,env(safe-area-inset-top));right:max(12px,env(safe-area-inset-right));left:auto;bottom:auto;transform:none}
+.friend-call[popover]{width:min(340px,calc(100vw - 28px));max-height:calc(100dvh - 24px);overflow:auto}
+.friend-call::backdrop,.game-notification::backdrop{background:transparent;pointer-events:none}
+.game-notification{z-index:161;position:fixed;box-sizing:border-box;width:min(320px,calc(100vw - 28px));border:1px solid #95bfae;border-radius:16px;padding:0;background:#153d32f5;color:#fff;box-shadow:0 6px 24px #0004;overflow:hidden;font:13px system-ui,sans-serif}
+.game-notification[hidden]{display:none}.notification-open{display:block;width:100%;text-align:left;background:none;border:0;color:inherit;padding:13px 46px 13px 14px;cursor:pointer;min-height:48px;font:inherit}
+.notification-heading{display:block;font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.notification-preview{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere;line-height:1.4;margin-top:5px;color:#e3efe8}.notification-reply{display:block;margin-top:7px;color:#f3cf80;font-weight:650}.notification-dismiss{position:absolute;right:0;top:0;min-width:44px;min-height:44px;border:0;background:none;color:#fff;font-size:24px;cursor:pointer}.notification-open:focus-visible,.notification-dismiss:focus-visible,.friend-call button:focus-visible{outline:3px solid #f3cf80;outline-offset:-3px}.notification-announcement{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+.game-notification.is-compact{width:210px}.is-compact .notification-preview,.is-compact .notification-reply,.is-compact .notification-dismiss{display:none}.is-compact .notification-open{padding:12px}
+@media(orientation:portrait) and (max-width:600px){.friend-call[popover],.game-notification[popover]{top:max(70px,calc(env(safe-area-inset-top) + 60px))}}
+@media(orientation:landscape) and (max-height:500px){.game-notification{width:270px}.notification-preview{-webkit-line-clamp:1}.notification-open{padding-top:9px;padding-bottom:9px}.friend-call{font-size:12px}}

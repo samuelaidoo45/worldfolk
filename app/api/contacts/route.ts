@@ -7,9 +7,18 @@ export async function GET(request:Request){try{
  const db=env.DB;if(!db)return reply({error:'Contacts storage unavailable'},503);const p=await loadPlayer<{id:string}>(db,request);if(!p)return reply({error:'Enter the game to use contacts'},401);
  const now=Date.now(),offset=Math.max(0,Math.min(1000000,Number(new URL(request.url).searchParams.get('offset'))||0));
  const contacts=await db.prepare(`SELECT f.id,f.status,f.requested_by AS requestedBy,p.id AS playerId,p.name,p.avatar,a.username AS handle,(p.last_seen_at>? AND p.session_token IS NOT NULL AND (p.session_expires_at=0 OR p.session_expires_at>?)) AS online FROM friendships f JOIN players p ON p.id=CASE WHEN f.player_a=? THEN f.player_b ELSE f.player_a END JOIN accounts a ON a.player_id=p.id WHERE f.player_a=? OR f.player_b=? ORDER BY f.created_at DESC,f.id DESC LIMIT 200 OFFSET ?`).bind(now-120000,now,p.id,p.id,p.id,Math.floor(offset)).all();
- const call=await db.prepare(`SELECT c.id,c.caller,c.callee,c.status,c.expires_at AS expiresAt,p.name,p.avatar FROM friend_calls c JOIN players p ON p.id=CASE WHEN c.caller=? THEN c.callee ELSE c.caller END WHERE (c.caller=? OR c.callee=?) AND c.status IN ('ringing','active') AND c.expires_at>? ORDER BY c.created_at DESC LIMIT 1`).bind(p.id,p.id,p.id,now).first();
+ const call=await db.prepare(`SELECT c.id,c.caller,c.callee,c.status,c.expires_at AS expiresAt,p.name,p.avatar,(SELECT username FROM accounts WHERE player_id=p.id) AS handle FROM friend_calls c JOIN players p ON p.id=CASE WHEN c.caller=? THEN c.callee ELSE c.caller END WHERE (c.caller=? OR c.callee=?) AND c.status IN ('ringing','active') AND c.expires_at>? ORDER BY c.created_at DESC LIMIT 1`).bind(p.id,p.id,p.id,now).first();
  const totals=await db.prepare("SELECT COUNT(*) AS total,COALESCE(SUM(status='accepted'),0) AS friendCount,COALESCE(SUM(status='pending' AND requested_by<>?),0) AS requestCount FROM friendships WHERE player_a=? OR player_b=?").bind(p.id,p.id,p.id).first<{total:number;friendCount:number;requestCount:number}>();
- return reply({contactCode:p.id,contacts:contacts.results,friendCount:totals?.friendCount||0,requestCount:totals?.requestCount||0,nextOffset:offset+contacts.results.length<(totals?.total||0)?offset+contacts.results.length:null,call});
+ let alerts;
+ if(new URL(request.url).searchParams.has('alerts')){
+  const value=new URL(request.url).searchParams.get('after');
+  const high=await db.prepare('SELECT COALESCE(MAX(rowid),0) AS cursor FROM messages').first<{cursor:number}>();
+  const after=value===null?null:Number(value);
+  if(after!==null&&(!Number.isSafeInteger(after)||after<0))return reply({error:'Invalid notification cursor'},400);
+  const rows=after===null?[]:(await db.prepare(`SELECT m.rowid AS cursor,m.id,m.player_id AS senderId,m.body,m.created_at AS at,p.name,p.avatar,a.username AS handle FROM messages m JOIN players p ON p.id=m.player_id JOIN accounts a ON a.player_id=p.id WHERE m.rowid>? AND m.rowid<=? AND m.player_id<>? AND (m.channel LIKE ? OR m.channel LIKE ?) ORDER BY m.rowid LIMIT 50`).bind(after,high?.cursor||0,p.id,`dm:${p.id}:%`,`dm:%:${p.id}`).all()).results;
+  alerts={messages:rows,cursor:rows.length===50?(rows.at(-1) as {cursor:number}).cursor:Math.max(after||0,high?.cursor||0)};
+ }
+ return reply({alerts,contactCode:p.id,contacts:contacts.results,friendCount:totals?.friendCount||0,requestCount:totals?.requestCount||0,nextOffset:offset+contacts.results.length<(totals?.total||0)?offset+contacts.results.length:null,call});
  }catch(e){console.error('Contacts GET',e);return reply({error:'Contacts are temporarily unavailable'},503)}}
 export async function POST(request:Request){try{
  if(request.headers.get('origin')!==new URL(request.url).origin)return reply({error:'Origin not allowed'},403);

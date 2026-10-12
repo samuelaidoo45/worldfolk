@@ -43,6 +43,7 @@ import {createScenery} from './scenery.js';
 import {worldAtmosphere,createAtmosphere} from './atmosphere.js';
 import {createTransit} from './transit.js';
 import {createVoice} from './voice.js';
+import {createGameNotifications} from './game-notifications.js';
 import {createLifeUI} from './life-ui.js';
 import {HOMES,JOBS,GOODS,TERMINALS,propertyId} from './life-catalog.js';
 import {damp,turnToward,stepWalker,stepCar,offsetMetres,bearingTo} from './motion.js';
@@ -486,7 +487,8 @@ function setCameraMode(mode){if(state.view==='2d')setPlayView('3d');state.camera
 state.setCameraMode=setCameraMode;
 function toggleScenic(){const modes=['street','third','first','overview'];setCameraMode(modes[(modes.indexOf(state.cameraMode)+1)%modes.length])}
 const cameraButton=document.createElement('button');cameraButton.className='world-tool camera-launch';cameraButton.textContent='K · Third-person';cameraButton.onclick=toggleScenic;document.body.append(cameraButton);
-state.voice=createVoice({getPlayer:()=>state.self,toast});
+state.notifications=createGameNotifications({getPlayer:()=>state.self,isMuted:id=>state.muted.has(id),getOpenPeer:()=>state.socialUI?.currentPeer,openChat:id=>state.socialUI.show(id),sound:kind=>state.audio.effect(kind)});
+state.voice=createVoice({getPlayer:()=>state.self,toast,notifications:state.notifications});
 setInterval(async()=>{if(!state.self?.handle||document.hidden||state.vitalPending||state.interactionPending)return;state.vitalPending=true;try{const data=await api('POST',{type:'vitals'});if(data.self)state.self=newestPlayer(state.self,data.self);syncLife()}catch{}finally{state.vitalPending=false}},30000);
 
 function openVenueScene(place){if(isOutdoorLandmark(place)){toast('Explore the real square on foot · walk through the arch and visit the grandstands');return}if(state.view==='2d')setPlayView('3d');state.interior?.destroy();state.indoorPlace=place;state.interior=createInterior3D({design:interiorDesign(place,state.architecture?.details),avatar:state.self.avatar,identity:state.self.id,outfit:state.self.life?.outfit,kind:interiorDesign(place,state.architecture?.details).kind,name:place.name,activities:place.activities});state.mode='indoor';state.keys.clear();state.walkVelocity=[0,0];state.world3d.setEnabled(false);document.body.classList.add('indoor-mode');updateRoamHud()}
