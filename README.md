@@ -6,7 +6,7 @@
 
 Accra is the first playable city. The longer-term vision is to let people explore and experience more cities through their places, culture and everyday activities.
 
-**[Play the live demo →](https://worldfolk.world/game/)** · [Five-minute walkthrough](#five-minute-walkthrough-for-judges) · [Technical overview](#how-it-works) · [Development setup](docs/development.md)
+**[Play the live demo →](https://worldfolk.world/game/)** · [Getting started](#getting-started) · [Technical overview](#how-it-works) · [Development setup](docs/development.md)
 
 > **Project stage:** playable prototype under active development. Real map data supports the world; landmark models, characters, interiors and gameplay are being improved incrementally. This is not yet a photorealistic replica of all Accra.
 
@@ -20,9 +20,9 @@ The central loop is simple:
 
 **Choose a place → explore → meet people → work → earn → spend → keep building your life.**
 
-## Five-minute walkthrough for judges
+## Getting started
 
-A desktop or laptop with a modern WebGL-capable browser is recommended for the first review. Mobile touch controls support portrait and landscape. No game installation or Mapbox key is needed.
+A desktop or laptop with a modern WebGL-capable browser is recommended for your first visit. Mobile touch controls support portrait and landscape. No game installation or Mapbox key is needed.
 
 1. **Open [Worldfolk](https://worldfolk.world/game/).** Browse the city map, search a location, or select **Independence Square**. Registration is required before entering gameplay.
 2. **Create your player.** Choose an `@handle` and a memorable password or passphrase of at least 8 characters. Save the recovery code shown during registration. New players start with **₵100,000 in fictional game money** and a virtual home; the selected map location determines where exploration begins.
@@ -30,7 +30,7 @@ A desktop or laptop with a modern WebGL-capable browser is recommended for the f
 4. **Try the life and travel loop.** Open the game menu → **Work**, select a profession and travel to its workplace. Complete its task steps to collect wages. Try **Public transport** for a taxi or tro-tro journey; accelerated travel and **Skip ride** are available. Use **My life** to browse shops, home options and leisure activities.
 5. **Try multiplayer with a second person or device.** Register a separate account, open **Friends & messages**, and search the other player's `@handle`. Send a private message, add and accept a friend request, then try **Friends & calls**. Incoming messages and calls produce in-game notifications. Voice requires microphone permission from each participant.
 
-**Only have one account?** Exploration, NPCs, work, transport and home activities can be reviewed solo. NPC visitors are computer-controlled characters; they do not count as online players. Calls require a second online player who has accepted the friendship.
+**Only have one account?** Exploration, NPCs, work, transport and home activities can be enjoyed solo. NPC visitors are computer-controlled characters; they do not count as online players. Calls require a second online player who has accepted the friendship.
 
 Use **City home** to return to the city-selection map and choose another place. Progress belongs to the registered player account.
 
@@ -121,7 +121,7 @@ npm run install:ci
 npm run build
 ```
 
-Continue with the [local database, preview and deployment guide](docs/development.md). The live demo above is the fastest way to evaluate the project; cloning is optional.
+Continue with the [local database, preview and deployment guide](docs/development.md). The live demo above is the fastest way to try Worldfolk; cloning is optional.
 
 ### Repository guide
 

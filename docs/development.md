@@ -1,6 +1,6 @@
 # Development and deployment
 
-For the project overview and judge walkthrough, see the [README](../README.md).
+For the project overview and getting-started guide, see the [README](../README.md).
 
 ## Local setup
 
