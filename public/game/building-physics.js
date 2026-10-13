@@ -1,3 +1,5 @@
+import {vehicleSpec} from './vehicle-catalog.js';
+const vehicleSampleCache=new Map();
 import {precinctCollision,moveOnPrecinct} from './precinct-navigation.js';
 import {isCityLandmark,landmarkColliders} from './city-landmarks.js';
 // The polygons come from the rendered OpenStreetMap building layer.
@@ -31,8 +33,9 @@ export function createBuildingPhysics(map){
     }
     return {position:current,blocked};
   }
-  function vehicleCollision(position,heading,kind='car'){const angle=heading*Math.PI/180,length=kind==='motorcycle'?.65:1.05,radius=kind==='motorcycle'?.46:.88;return [-length,0,length].some(d=>collision(global(position,Math.sin(angle)*d,Math.cos(angle)*d),radius))}
-  function vehicleDepth(position,heading,kind='car'){const angle=heading*Math.PI/180,length=kind==='motorcycle'?.65:1.05,radius=kind==='motorcycle'?.46:.88;return [-length,0,length].reduce((sum,d)=>sum+penetration(global(position,Math.sin(angle)*d,Math.cos(angle)*d),radius),0)}
+  function vehicleSamples(kind){if(vehicleSampleCache.has(kind))return vehicleSampleCache.get(kind);const spec=vehicleSpec(kind),radius=spec.width*.48,length=Math.max(0,spec.length/2-radius),count=Math.max(2,Math.ceil(2*length/radius));const samples={radius,offsets:Array.from({length:count+1},(_,i)=>-length+2*length*i/count)};vehicleSampleCache.set(kind,samples);return samples}
+  function vehicleCollision(position,heading,kind='car'){const angle=heading*Math.PI/180,{radius,offsets}=vehicleSamples(kind);return offsets.some(d=>collision(global(position,Math.sin(angle)*d,Math.cos(angle)*d),radius))}
+  function vehicleDepth(position,heading,kind='car'){const angle=heading*Math.PI/180,{radius,offsets}=vehicleSamples(kind);return offsets.reduce((sum,d)=>sum+penetration(global(position,Math.sin(angle)*d,Math.cos(angle)*d),radius),0)}
   function moveVehicle(from,to,heading,kind='car'){
     const delta=local(from,to),steps=Math.max(1,Math.ceil(Math.hypot(...delta)/.2));let current=[...from],blocked=false;
     for(let i=0;i<steps;i++){

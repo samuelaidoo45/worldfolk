@@ -1,3 +1,4 @@
+import {vehicleFootprint} from './vehicle-catalog.js';
 import {offsetMetres,distanceMetres} from './motion.js';
 // Resolve moving people, parked vehicles and props together with the building
 // sweep. Existing overlaps may shrink, but movement cannot enter a new obstacle.
@@ -18,7 +19,7 @@ export function moveAroundObstacles(from,to,circles,resolve,slide=true){
 
 // Signed separation of oriented physical footprints (positive means a gap).
 export function footprintGap(a,b){
- const size=o=>o.driving?(o.vehicle==='bus'?[1.3,3.55]:o.vehicle==='motorcycle'?[.38,1.21]:[1.04,1.86]):[o.radius||.3,o.radius||.3];
+ const size=o=>o.driving?vehicleFootprint(o.vehicle):[o.radius||.3,o.radius||.3];
  const axes=o=>{const r=(o.heading||0)*Math.PI/180;return [[Math.cos(r),-Math.sin(r)],[Math.sin(r),Math.cos(r)]]};
  const aa=axes(a),bb=axes(b),sa=size(a),sb=size(b),d=[(b.position[0]-a.position[0])*111320*Math.cos(a.position[1]*Math.PI/180),(b.position[1]-a.position[1])*111320];
  const dot=(u,v)=>u[0]*v[0]+u[1]*v[1];

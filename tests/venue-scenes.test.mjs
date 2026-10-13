@@ -34,8 +34,8 @@ test('car variants have distinct silhouettes and remain efficiently batched',()=
  for(const kind of ['car','hatchback','suv','pickup','van','taxi']){
   const {group}=createCar(0xcc4422,kind),box=new THREE.Box3().setFromObject(group);let calls=0,vertices=0;
   group.traverse(m=>{if(m.isMesh){calls++;vertices+=m.geometry.attributes.position.count}});
-  assert.ok(calls<18,kind+' draw calls');assert.ok(box.max.x-box.min.x<2.3);assert.ok(box.max.z-box.min.z<4.2);
-  signatures.add([vertices,box.max.y].join(':'));
+  assert.ok(calls<18,kind+' draw calls');assert.ok(box.max.x-box.min.x<2.3);assert.ok(box.max.z-box.min.z<5.5);
+  signatures.add([vertices,box.max.y,box.max.z-box.min.z].join(':'));
  }
  assert.equal(signatures.size,6,'each model has its own geometry');
 });

@@ -1,3 +1,4 @@
+import {vehicleSpec} from './vehicle-catalog.js';
 import {canUseVehicle} from './work-catalog.js';
 import {playerLabel} from './player-labels.js';
 import {signalPhase} from './traffic-signals.js';
@@ -10,7 +11,7 @@ export function createOverheadView({state}){
   ctx.rotate(((person.heading||0)-state.map.getBearing())*Math.PI/180);
   if(self){ctx.beginPath();ctx.moveTo(0,-27);ctx.lineTo(-6,-19);ctx.lineTo(6,-19);ctx.closePath();ctx.fillStyle='#137a82';ctx.fill()}
   const scale=self?1.15:Math.max(.65,Math.min(1.15,Math.pow(2,(state.map.getZoom()-17)*.35)));ctx.scale(scale,scale);
-  if(person.driving){const bus=person.vehicle==='bus',w=bus?11:person.vehicle==='suv'?10:9,h=bus?23:person.vehicle==='van'?19:person.vehicle==='hatchback'?14:16;ctx.fillStyle=person.vehicle==='taxi'||bus?'#e3ad3e':self?'#147ca6':'#38575c';ctx.strokeStyle='#12282d';ctx.lineWidth=1;ctx.fillRect(-w/2,-h/2,w,h);ctx.strokeRect(-w/2,-h/2,w,h);ctx.fillStyle='#c9e7ee';ctx.fillRect(-w/2+1,-h/2+3,w-2,4);ctx.fillStyle='#f8efc8';ctx.fillRect(-w/2,-h/2,2,2);ctx.fillRect(w/2-2,-h/2,2,2)}
+  if(person.driving){const bus=['bus','minibus'].includes(person.vehicle),v=vehicleSpec(person.vehicle),w=Math.max(4,v.width*4.5),h=v.length*4.2;ctx.fillStyle=person.vehicle==='taxi'||bus?'#e3ad3e':self?'#147ca6':'#38575c';ctx.strokeStyle='#12282d';ctx.lineWidth=1;ctx.fillRect(-w/2,-h/2,w,h);ctx.strokeRect(-w/2,-h/2,w,h);ctx.fillStyle='#c9e7ee';ctx.fillRect(-w/2+1,-h/2+3,w-2,4);ctx.fillStyle='#f8efc8';ctx.fillRect(-w/2,-h/2,2,2);ctx.fillRect(w/2-2,-h/2,2,2)}
   else{const running=person.running,phase=person.moving?Math.sin(t*(running?15:9))*3:0;ctx.lineWidth=3;ctx.strokeStyle='#243e46';ctx.beginPath();ctx.moveTo(-3,1);ctx.lineTo(-3,5+phase);ctx.moveTo(3,1);ctx.lineTo(3,5-phase);ctx.stroke();ctx.fillStyle=self?'#168ba9':'#bc795d';ctx.beginPath();ctx.ellipse(0,0,5,4,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#845334';ctx.beginPath();ctx.arc(0,-3,3,0,Math.PI*2);ctx.fill()}
   ctx.restore();if(self||person.identity){const p=person.identity||state.self;visibleIds.add(p.id);let button=buttons.get(p.id);if(!button){button=document.createElement('button');button.type='button';button.onpointerdown=e=>e.stopPropagation();button.onclick=e=>{e.stopPropagation();state.socialUI.show(p.id)};links.append(button);buttons.set(p.id,button)}button.textContent=playerLabel(p);button.style.transform=`translate(${x}px,${y+21}px) translateX(-50%)`;button.setAttribute('aria-label',`Open ${playerLabel(p)} profile`);return;}
  }

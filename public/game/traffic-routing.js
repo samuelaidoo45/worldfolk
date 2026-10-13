@@ -1,3 +1,4 @@
+import {vehicleSpec} from './vehicle-catalog.js';
 import {driveWithContacts,bodyContact} from './vehicle-contacts.js';
 import {distanceMetres,bearingTo,offsetMetres,projectOnSegment} from './motion.js';
 export const angleDifference=(a,b)=>Math.abs(((a-b+540)%360)-180);
@@ -5,7 +6,7 @@ export const angleDifference=(a,b)=>Math.abs(((a-b+540)%360)-180);
 export function trafficSpeed(position,heading,speed,maximum,actors,id=''){
  let allowed=maximum;
  for(const other of actors){if(other.id===id)continue;const d=distanceMetres(position,other.position),a=(bearingTo(position,other.position)-heading)*Math.PI/180,forward=d*Math.cos(a),side=Math.abs(d*Math.sin(a));
-  const clearance=other.driving?(other.vehicle==='bus'?9:6):3;
+  const clearance=other.driving?(Math.max(6,vehicleSpec(other.vehicle).length/2+4)):3;
   if(forward<=0||side>(other.driving?2.15:1.5)||forward>Math.max(16,speed*2+12))continue;
   const gap=Math.max(0,forward-clearance),following=other.driving&&angleDifference(heading,other.heading)<45?Math.max(0,other.speed||0):0;
   allowed=Math.min(allowed,Math.sqrt(following*following+2*3*gap),gap<.4?0:gap/1.1);
@@ -15,7 +16,7 @@ export function trafficSpeed(position,heading,speed,maximum,actors,id=''){
 // Connect to real road vertices, including a T junction that meets another line mid-segment.
 export function roadContinuation(npc,roads){
  const endpoint=npc.line[npc.index],candidates=[];
- for(const road of roads){if(road.walkOnly||road.layer!==(npc.layer||0))continue;
+ for(const road of roads){if(road.walkOnly||road.layer!==(npc.layer||0)||(['bicycle','tricycle'].includes(npc.vehicle)&&road.highway)||(['truck','minibus','bus'].includes(npc.vehicle)&&road.width<8))continue;
   for(let i=0;i<road.line.length-1;i++){
    const projection=projectOnSegment(endpoint,road.line[i],road.line[i+1]);if(projection.distance>2)continue;
    for(const direction of [1,-1]){if(road.oneway===1&&direction<0||road.oneway===-1&&direction>0)continue;

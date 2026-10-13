@@ -7,13 +7,13 @@
 | Order | Milestone | Status | Remaining acceptance work |
 |---|---|---|---|
 | 1 | Humans, animation, scale and camera | First pass deployed | Broader character variety, detailed clothing, authored animation, furniture alignment and device/crowd benchmarks |
-| 2 | Vehicles, materials, lighting and street surfaces | First vehicle pass deployed; milestone in progress | Reference-based local vehicles and tro-tros, doors, occupants, projected headlights, surface/lighting review and performance checks |
+| 2 | Vehicles, materials, lighting and street surfaces | Reference-led 12-family fleet deployed; milestone in progress | Authored high-detail assets, working doors, refined driver poses, projected headlights, surface/lighting review and device benchmarks |
 | 3 | Independence precinct | Exterior and playable precinct pass deployed | Event crowds and complete visit acceptance |
 | 4 | Accra Mall | Reference-led exterior and playable interior implemented | More accurate curved roof sections, full tenant layout, parking and current entrance references |
 | 5–8 | Osu, Makola, Legon and Labadi | Queued for reference-based implementation and acceptance | Complete each location and its activities before expanding to the next |
 | 9–12 | Religious spaces, heritage, daily-life loop and remaining areas | Queued | Follow the master checklist and location-level acceptance criteria |
 
-**Latest verification:** 35 focused landmark, movement and vertical-navigation checks plus one authenticated HTTP/WebSocket/checkpoint test passed. The production build and full-game stair/camera review passed. These checks do not establish million-player capacity or a device-wide frame-rate guarantee.
+**Latest verification:** 46 focused vehicle, traffic, collision, batching and audio checks passed. The production build and full-game vehicle review passed; five deployed game modules match the verified source byte-for-byte. These checks do not establish million-player capacity or a device-wide frame-rate guarantee.
 
 **Next precinct work:** event crowds and complete visit acceptance. Shared human/vehicle refinements remain open; moving to the landmark package does not mark those milestones complete.
 
@@ -150,3 +150,16 @@ Next accuracy work: verify the full renovated museum/reception campus against ad
 - Two older broad `venue-scenes` assertions still assume merged skinned crowds and six unique vehicle geometries; those unrelated baselines are not changed by this release.
 
 References and image links: [Accra Mall reference record](accra-mall.md).
+
+## 13 October 2026 — Accra vehicle fleet
+
+- Used local taxi/tro-tro photographs, Accra bicycle and motorcycle photography, an Accra cargo-tricycle photograph, and manufacturer references to distinguish twelve ground-vehicle families. Component references and limitations are in [accra-vehicles.md](accra-vehicles.md).
+- Added a cab-forward tro-tro with sliding-door details and visible seats, cab-over delivery truck with dual rear wheels, bicycle with diamond frame and pedals, and blue aboboyaa cargo tricycle. Updated private cars, taxis, SUVs, pickups, vans and buses with shaped panels, glazing, lamps, trim, wheels and cabins.
+- Connected the families to traffic, player ownership, shop purchases and overhead rendering. Vehicle dimensions now agree across contacts and building collision; long-vehicle noses and following gaps use the actual family length. Slow cycles stay off highways and heavy vehicles avoid narrow routes.
+- Shared wheel geometry and sign textures keep repeated vehicles inexpensive. Wheels roll and steer; lights and brakes animate. Bicycle engine audio is silent.
+- Verification: 44 focused vehicle/movement/traffic/audio tests plus two existing rendering/batching checks pass (46 total). Production build passed. The running game loaded with no console errors. Review fixtures cover daylight, night/brake lamps, cabins and cycle riders. This is not a full-suite or mobile frame-rate certification.
+- The new purchasable vehicles use the existing authenticated server catalogue, price, proximity and balance validation. No database migrations or new credentials were introduced.
+- Deployment: Cloudflare version `d606436b-a1fe-4fe8-9402-4daa874d6631`; `/game/` returns HTTP 200 and the five principal updated modules match local source.
+- These remain original procedural models, not photogrammetric or licensed manufacturer replicas. Higher-detail body assets, articulated doors, suspension, exact rider hand/foot alignment and projected headlights remain open.
+
+Visual reviews: [commuter fleet](../../review-artifacts/accra-commuter-fleet.png), [commercial fleet](../../review-artifacts/accra-commercial-fleet.png), [cycles](../../review-artifacts/accra-cycle-fleet.png), [night lighting](../../review-artifacts/accra-fleet-night.png).

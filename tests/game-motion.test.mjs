@@ -80,8 +80,8 @@ test('a bumped pedestrian yields, while a wall still prevents displacement',asyn
 test('physical car footprints permit close parallel passing but stop actual contact',async()=>{
  const {footprintGap,moveAroundObstacles}=await import('../public/game/obstacle-motion.js');
  const car={position:origin,heading:0,driving:true,vehicle:'car'},other={...car,position:point(2.2,0)};
- assert.ok(footprintGap(car,other)>0);assert.ok(footprintGap(car,{...other,position:point(2,0)})<0);
- assert.ok(footprintGap(car,{...other,position:point(0,3.8)})>0);assert.ok(footprintGap(car,{...other,position:point(0,3.6)})<0);
+ assert.ok(footprintGap(car,other)>0);assert.ok(footprintGap(car,{...other,position:point(1.7,0)})<0);
+ assert.ok(footprintGap(car,{...other,position:point(0,4.5)})>0);assert.ok(footprintGap(car,{...other,position:point(0,4.2)})<0);
  const obstacle={position:other.position,radius:9,gap:position=>footprintGap({...car,position},other)};
  const pass=moveAroundObstacles(point(0,-5),point(0,5),[obstacle],(a,b)=>({position:b,blocked:false}),false);assert.equal(pass.blocked,false);
  const hit=moveAroundObstacles(point(2.2,-5),point(2.2,5),[obstacle],(a,b)=>({position:b,blocked:false}),false);assert.equal(hit.blocked,true);

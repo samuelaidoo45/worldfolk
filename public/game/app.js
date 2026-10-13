@@ -293,14 +293,14 @@ function movementObstacles(driving){
 }
 function roamFrame(now){
   updatePlayerLocation(now);state.minimap?.update(now);
-  if(!state.roam){state.audio.update({active:false});return;}
+  if(!state.roam){state.audio.update({vehicle:state.self?.life?.vehicle,active:false});return;}
   requestAnimationFrame(roamFrame);
   state.sceneLoading?.update();
   const dt=Math.min(.05,(now-state.lastFrame)/1000||0);state.lastFrame=now;
   const locked=state.returningHome||state.sessionPaused||state.moveSyncPaused||(state.mode!=='indoor'&&!state.sceneLoading?.ready)||document.body.classList.contains('game-menu-open')||document.body.classList.contains('mobile-paused')||(state.self?.life?.health<=0||state.self?.life?.arrested)||state.transit?.isOpen||state.actionMenuOpen||state.chatOpen||state.navigation?.isOpen||state.interactionPending||state.lifeUI?.isOpen||state.accountUI?.isOpen||state.adsUI?.isOpen||state.socialUI?.isOpen||workLocked()||/INPUT|TEXTAREA/.test(document.activeElement?.tagName||'');
   if(state.precinctActivity&&(state.mode!=='walk'||metersBetween(state.position,state.precinctActivity.position)>3||(state.self?.life?.health<=0||state.self?.life?.arrested)))stopPrecinctActivity();
   const precinctPeople=state.precinctLife.tick(now/1000,state.position,worldAtmosphere().minute);
-  state.audio.update({ambience:state.mode==='walk'?precinctAmbience(state.position,precinctPeople,worldAtmosphere().minute):null,active:!locked,mode:state.mode,speed:state.mode==='transit'?state.transit?.speed:state.carSpeed,moving:Math.hypot(...state.walkVelocity)>.1,running:state.running||state.keys.has('ShiftLeft')||state.keys.has('ShiftRight'),rain:worldAtmosphere().weather==='rain',venue:state.mode==='indoor'?state.interior?.programme:state.precinctActivity?.kind==='watch'?{kind:'square',id:state.precinctActivity.id+':'+Math.floor(now/60000),sound:'speech',text:state.precinctActivity.text||'Welcome to our square gathering. Take a look across the parade ground toward Independence Arch. You can explore the platforms, find a seat in the stands, or meet friends near the memorial. Enjoy your visit.'}:null});
+  state.audio.update({vehicle:state.mode==='transit'?'bus':state.self?.life?.vehicle,ambience:state.mode==='walk'?precinctAmbience(state.position,precinctPeople,worldAtmosphere().minute):null,active:!locked,mode:state.mode,speed:state.mode==='transit'?state.transit?.speed:state.carSpeed,moving:Math.hypot(...state.walkVelocity)>.1,running:state.running||state.keys.has('ShiftLeft')||state.keys.has('ShiftRight'),rain:worldAtmosphere().weather==='rain',venue:state.mode==='indoor'?state.interior?.programme:state.precinctActivity?.kind==='watch'?{kind:'square',id:state.precinctActivity.id+':'+Math.floor(now/60000),sound:'speech',text:state.precinctActivity.text||'Welcome to our square gathering. Take a look across the parade ground toward Independence Arch. You can explore the platforms, find a seat in the stands, or meet friends near the memorial. Enjoy your visit.'}:null});
   if(now-(state.lastLifeHud||0)>250){state.lastLifeHud=now;state.lifeUI?.tick();updateLifeStatus();updateSurvival()}
   if(state.mode!=='indoor'){state.roadGeometry?.update(state.position);state.roadSurface?.update(state.position);state.world3d.setPotholes(state.roadSurface?.holes||[]);if(state.view!=='2d'){state.architecture?.update(state.position);state.world3d.setArchitecture(state.architecture?.details||[]);}}
   if((state.self?.life?.health<=0||state.self?.life?.arrested)){state.overhead?.update(now);return}if(state.self?.life?.transit&&state.transit){for(let step=0;step<state.transit.rate;step++){state.transit.tick(dt);state.cityLife?.tick(dt,state.position,now,state.mode)}updateDistrict();state.scenery?.update(state.position);state.world3d.setScenery(state.scenery?.items||[]);state.world3d.setAmbient([...(state.cityLife?.actors||[]),...precinctPeople]);followCamera(false,dt);state.overhead?.update(now);return}if(state.mode==='flight'){flightFrame(now);state.overhead?.update(now);return}
@@ -327,7 +327,8 @@ function roamFrame(now){
       if(auto.offRoute)state.navigation.stopAuto('Off route · recalculate or skip arrival');
       if(auto.done&&Math.abs(state.carSpeed)<.2){state.carSpeed=0;state.navigation.stopAuto('Arrived · press F to park');break}
     }
-    const next=stepCar(state.carSpeed,state.steer,state.heading,y,x,locked||state.keys.has('Space')||!!auto?.brake,dt,state.self.life?.vehicle==='motorcycle');
+    const next=stepCar(state.carSpeed,state.steer,state.heading,y,x,locked||state.keys.has('Space')||!!auto?.brake,dt,['motorcycle','bicycle'].includes(state.self.life?.vehicle));
+    if(state.self.life?.vehicle==='bicycle')next.speed=Math.max(-3,Math.min(10,next.speed));
     state.carSpeed=next.speed;state.steer=next.steer;
     if(!state.physics?.vehicleCollision(state.position,next.heading,state.self.life?.vehicle)||state.physics.vehicleDepth(state.position,next.heading,state.self.life?.vehicle)<state.physics.vehicleDepth(state.position,state.heading,state.self.life?.vehicle))state.heading=next.heading;
     state.cameraBearing=state.heading;$('vehicleCabin').style.setProperty('--steer',`${Math.round(state.steer*42)}deg`);
@@ -548,7 +549,7 @@ async function returnToCity(){
   await flushMove();state.map.setCenterClampedToGround(true);state.cityWelcome.show();state.roam=false;state.mapModeRequested=true;
   state.interior?.destroy();state.interior=null;state.indoorPlace=null;
   state.navigation?.cancel();state.navigation?.toggle(false);state.transit?.suspend();state.lifeUI?.close();
-  stopPrecinctActivity();if(state.chatOpen)toggleRoamChat();closeActions();state.audio.update({active:false});
+  stopPrecinctActivity();if(state.chatOpen)toggleRoamChat();closeActions();state.audio.update({vehicle:state.self?.life?.vehicle,active:false});
   state.mode=state.self?.driving?'drive':'walk';state.view='3d';state.cabinView=false;state.cameraPosition=null;state.map.setVerticalFieldOfView(36.87);state.cameraFov=36.87;
   document.body.classList.remove('roam-mode','map-play','indoor-mode','cabin-mode','transit-mode','flight-mode');$('roamHud').classList.add('hidden');
   state.world3d?.setAircraft(false);state.world3d?.setCabinView(false);state.world3d?.setDriving(false);state.world3d?.setPreview(true);

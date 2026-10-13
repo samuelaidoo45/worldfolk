@@ -15,7 +15,7 @@ export function createGameAudio({host=window,doc=document,storage=localStorage}=
  function tone(frequency,duration=.12,volume=.15,type='sine',delay=0){if(!enabled||doc.hidden||context?.state!=='running')return;const now=context.currentTime+delay,o=context.createOscillator(),g=context.createGain();o.type=type;o.frequency.setValueAtTime(frequency,now);g.gain.setValueAtTime(volume,now);g.gain.exponentialRampToValueAtTime(.001,now+duration);o.connect(g).connect(master);o.onended=()=>{o.disconnect();g.disconnect()};o.start(now);o.stop(now+duration)}
  function effect(kind){const now=context?.currentTime||0;if(now-lastEffect<.15)return;lastEffect=now;if(kind==='message'){tone(740,.12,.15);tone(990,.16,.12,'sine',.13)}else if(kind==='ring'){tone(660,.24,.16);tone(880,.24,.12,'sine',.28)}else if(kind==='horn'){tone(350,.3,.22,'triangle');tone(440,.3,.12,'triangle')}else if(kind==='impact')tone(65,.18,.28,'triangle');else if(kind==='reward'){tone(523,.12,.12);tone(784,.2,.12,'sine',.12)}else if(kind==='arrive'){tone(660,.14,.12);tone(880,.22,.12,'sine',.14)}}
  function stopSpeech(){if(speaking)host.speechSynthesis?.cancel();speaking=false;lastProgramme=''}
- function update({active,mode,speed=0,moving=false,running=false,rain=false,venue=null,ambience=null}){
+ function update({active,mode,speed=0,moving=false,running=false,rain=false,venue=null,ambience=null,vehicle=null}){
   if(!active||!venue||!enabled||doc.hidden||lastProgramme&&!lastProgramme.startsWith(venue.kind+':'))stopSpeech();if(context?.state!=='running')return;const audible=enabled&&active&&!doc.hidden;
   if(audible&&venue){
    if(venue.sound==='speech'&&lastProgramme!==venue.id){
@@ -25,7 +25,7 @@ export function createGameAudio({host=window,doc=document,storage=localStorage}=
    if(venue.sound==='music'){const beat=Math.floor(context.currentTime/.14);if(beat!==lastBeat){lastBeat=beat;const notes=[130.81,0,164.81,196,0,164.81,146.83,0];if(beat%4===0)tone(60,.16,.3,'sine');if(beat%4===2)tone(180,.06,.14,'triangle');tone(4500,.025,.015,'square');if(notes[beat%8])tone(notes[beat%8],.12,.12,'triangle')}}
   }else lastBeat=-1;
   for(const [kind,g] of Object.entries(ambienceGains)){const swell=kind==='surf'?.7+Math.sin(context.currentTime*.38)*.3:kind==='crowd'?.65+Math.sin(context.currentTime*2.7)*.2+Math.sin(context.currentTime*4.3)*.15:1;param(g.gain,audible&&mode==='walk'?(ambience?.[kind]||0)*swell:0);}
-  param(engineGain.gain,audible&&['drive','transit'].includes(mode)?.055+Math.min(Math.abs(speed),25)*.002:0);
+  param(engineGain.gain,audible&&vehicle!=='bicycle'&&['drive','transit'].includes(mode)?.055+Math.min(Math.abs(speed),25)*.002:0);
   param(engine.frequency,40+Math.min(Math.abs(speed),30)*3);param(rainGain.gain,audible&&venue?.sound==='surf'?.065+Math.sin(context.currentTime*.5)*.025:audible&&rain&&mode!=='indoor'?.1:0);
   if(audible&&moving&&['walk','indoor'].includes(mode)&&context.currentTime-lastStep>(running?.26:.44)){lastStep=context.currentTime;tone(100+Math.random()*25,.055,.15,'triangle')}
  }

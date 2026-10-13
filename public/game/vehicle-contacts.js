@@ -1,9 +1,10 @@
+import {vehicleSpec,vehicleFootprint} from './vehicle-catalog.js';
 import {offsetMetres,distanceMetres} from './motion.js';
 
 const dot=(a,b)=>a[0]*b[0]+a[1]*b[1];
-const mass=o=>o.driving?(o.vehicle==='bus'?6500:o.vehicle==='motorcycle'?220:1250):80;
+const mass=o=>o.driving?vehicleSpec(o.vehicle).mass:80;
 const axes=o=>{const a=(o.heading||0)*Math.PI/180;return [[Math.cos(a),-Math.sin(a)],[Math.sin(a),Math.cos(a)]]};
-const size=o=>o.driving?(o.vehicle==='bus'?[1.3,3.55]:o.vehicle==='motorcycle'?[.38,1.21]:[1.04,1.86]):[.28,.28];
+const size=o=>o.driving?vehicleFootprint(o.vehicle):[.28,.28];
 export function bodyContact(a,b){
  const aa=axes(a),bb=axes(b),sa=size(a),sb=size(b),delta=[(b.position[0]-a.position[0])*111320*Math.cos(a.position[1]*Math.PI/180),(b.position[1]-a.position[1])*111320];
  let depth=Infinity,normal=null;

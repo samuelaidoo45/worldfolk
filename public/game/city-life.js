@@ -1,4 +1,4 @@
-import {TRAFFIC_MODELS} from './vehicle-catalog.js';
+import {trafficModelsForRoad} from './vehicle-catalog.js';
 import {roadIntrusion,sidewalkMove,reversePedestrian} from './pedestrian-paths.js';
 import {driveWithContacts,bodyContact} from './vehicle-contacts.js';
 import {signalSpeedLimit} from './traffic-signals.js';
@@ -27,13 +27,13 @@ export function createCityLife(map,physics,onHit=()=>{},getSignals=()=>[]){
     for(let attempt=0;attempt<18;attempt++){
       const index=serial++,road=options[(index*7+attempt)%options.length],line=road.line,seg=Math.max(0,Math.min(line.length-2,road.best.index+(index%5)-2)),a=line[seg],b=line[seg+1],length=distanceMetres(a,b);if(length<3)continue;
       const direction=isCar&&(road.oneway===-1||!road.oneway&&index%2)?-1:1,t=.2+(index%7)*.1,base=[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t],heading=direction===1?bearingTo(a,b):bearingTo(b,a),angle=heading*Math.PI/180,side=isCar?road.width*.23:(index%2?1:-1)*(road.width/2+1.15),point=offsetMetres(base,Math.cos(angle)*side,-Math.sin(angle)*side);
-      const vehicle=isCar?(road.width>=9&&index%8===0?'bus':TRAFFIC_MODELS[index%TRAFFIC_MODELS.length]):null;
+      const models=trafficModelsForRoad(road.width,road.highway),vehicle=isCar?(road.width>=9&&index%8===0?'bus':models[index%models.length]):null;
       if(isCar&&physics.vehicleCollision?.(point,heading,vehicle))continue;
       const distance=distanceMetres(position,point);if(isCar&&(distanceMetres(base,a)<9||distanceMetres(base,b)<9))continue;
       if(priority&&distanceMetres(priority.position,point)<65)continue;
       if(!isCar&&roadIntrusion(point,available)>0)continue;
       if(distance<10||distance>150||physics.collision(point,isCar?1.2:.5)||[...people,...traffic].some(n=>distanceMetres(n.position,point)<10))continue;
-      return {id:`ambient-${index}`,name:names[index%names.length],avatar:looks[index%looks.length],driving:isCar,vehicle,position:point,heading,line,width:road.width,layer:road.layer,index:direction===1?seg+1:seg,direction,side,speed:0,roadClass:road.roadClass,highway:road.highway,maxSpeed:isCar?(road.highway?25+index%9:12+index%5):1.05+(index%4)*.12,pauseUntil:0,blockedFor:0,moving:false};
+      return {id:`ambient-${index}`,name:names[index%names.length],avatar:looks[index%looks.length],driving:isCar,vehicle,position:point,heading,line,width:road.width,layer:road.layer,index:direction===1?seg+1:seg,direction,side,speed:0,roadClass:road.roadClass,highway:road.highway,maxSpeed:isCar?(vehicle==='bicycle'?5:vehicle==='tricycle'?9:road.highway?25+index%9:12+index%5):1.05+(index%4)*.12,pauseUntil:0,blockedFor:0,moving:false};
     }return null;
   }
   function maintain(position,now){if(now-lastSeed<2500||!physics.count)return;lastSeed=now;
