@@ -1,3 +1,5 @@
+import {isAccraMall} from './accra-mall-data.js';
+import {createAccraMallInterior} from './accra-mall-interior.js';
 import {createRoomAction,restPrompt,REST_SPOTS,applyRestPose} from './resting.js';
 import {tagSurface,cityEnvironment} from './graphics-materials.js';
 import {mobileFieldOfView} from './display-settings.js';
@@ -17,6 +19,7 @@ function cylinder(scene,material,r,h,x,y,z){const mesh=new THREE.Mesh(new THREE.
 function roomFloor(kind){const canvas=document.createElement('canvas');canvas.width=256;canvas.height=256;const c=canvas.getContext('2d');const tiled=['clinic','shop','cafe'].includes(kind);c.fillStyle=tiled?'#c9d3cc':kind==='library'?'#806346':'#b19b7e';c.fillRect(0,0,256,256);c.strokeStyle=tiled?'#eef1e9':'#6d57413a';c.lineWidth=2;for(let y=0;y<256;y+=tiled?64:32){c.strokeRect(0,y,256,tiled?64:32);for(let x=(y/32%2)*64;x<256;x+=tiled?64:128)c.strokeRect(x,y,tiled?64:128,tiled?64:32)}const texture=new THREE.CanvasTexture(canvas);texture.wrapS=texture.wrapT=THREE.RepeatWrapping;texture.repeat.set(4,4);texture.colorSpace=THREE.SRGBColorSpace;return texture}
 function labelTexture(text){const canvas=document.createElement('canvas');canvas.width=512;canvas.height=128;const ctx=canvas.getContext('2d');ctx.fillStyle='#214436';ctx.fillRect(0,0,512,128);ctx.fillStyle='#f4dfaa';ctx.font='bold 49px sans-serif';ctx.textAlign='center';ctx.fillText(text.slice(0,18),256,78);return new THREE.CanvasTexture(canvas)}
 export function createInterior3D({avatar,identity,outfit,kind,name,activities=[],furniture=[],design={}}){
+  if(isAccraMall(name))return createAccraMallInterior({avatar,identity,outfit});
   if(PUBLIC_VENUES[kind])return createPublicVenueScene({avatar,identity,outfit,kind,name,activities,design});
   if(LARGE_VENUES[kind])return createVenueScene({avatar,identity,outfit,kind,name,activities,design});
   const palette=design.palette||PAINTS[0],cream=new THREE.MeshStandardMaterial({color:palette.wall,roughness:.88}),fabric=new THREE.MeshStandardMaterial({color:palette.accent,roughness:.8}),darkWood=new THREE.MeshStandardMaterial({color:palette.roof,roughness:.75}),wood=new THREE.MeshStandardMaterial({color:palette.roof,roughness:.8}),metal=new THREE.MeshStandardMaterial({color:0x394d51,metalness:.45,roughness:.48}),glass=new THREE.MeshStandardMaterial({color:0x8dd4ec,roughness:.18,emissive:0x326c8b,emissiveIntensity:.25});

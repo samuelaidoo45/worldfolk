@@ -1,8 +1,10 @@
+import {createAccraMall} from './accra-mall.js';
 import * as THREE from './three.module.js';
 import {batchStaticMeshes} from './render-utils.js';
 import {surfaceTexture} from './graphics-materials.js';
 // Reference-led geometry; geographic rings keep large complexes on their real plots.
 export function createPopularLandmark(data){
+ if(data.id==='accra-mall')return createAccraMall(data);
  const group=new THREE.Group();group.name=data.name;
  const mat=(color,roughness=.78,metalness=0)=>new THREE.MeshStandardMaterial({color,roughness,metalness});
  const cream=mat('#e5dcc4'),white=mat('#f2efe5'),stone=mat('#b5ac96'),red=mat('#984b35'),ochre=mat('#d0a94e'),dark=mat('#343937'),glass=mat('#244752',.18,.35),metal=mat('#6f7a7c',.36,.55),green=mat('#477551'),water=mat('#357e83',.2,.25);

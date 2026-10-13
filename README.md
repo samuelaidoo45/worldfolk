@@ -64,7 +64,7 @@ The most developed landmark package is the **Independence precinct**: Black Star
 
 Other locations have mapped geometry and/or themed game environments, with varying levels of custom detail. **A mapped location does not mean its exterior and interior have both been faithfully reconstructed.** Buildings with missing source detail use approximations; interiors are designed game spaces rather than surveyed replicas.
 
-**Kwame Nkrumah Memorial Park** now has a distinct mausoleum, statue, fountain walk, gardens and an interactive interpretive museum. See the [reference record and accuracy notes](docs/realism/nkrumah-park.md). The wider roadmap includes Accra Mall, Osu, Makola, the University of Ghana and Labadi, alongside better character animation, vehicles, lighting and device performance.
+**Kwame Nkrumah Memorial Park** now has a distinct mausoleum, statue, fountain walk, gardens and an interactive interpretive museum. See the [reference record and accuracy notes](docs/realism/nkrumah-park.md). **Accra Mall** has a mapped exterior, steel entrance tower, walkable shopping concourses, food court and upstairs cinema, with purchases and retail jobs connected to the game economy. See its [references and reconstruction limits](docs/realism/accra-mall.md). The wider roadmap includes Osu, Makola, the University of Ghana and Labadi, alongside better character animation, vehicles, lighting and device performance.
 
 See the [realism checklist](docs/realism/accra-realism-master-checklist.md), [place inventory](docs/realism/priority-places.csv) and [implementation progress](docs/realism/implementation-progress.md) for the detailed sequence and evidence.
 

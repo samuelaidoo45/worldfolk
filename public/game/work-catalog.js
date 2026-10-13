@@ -48,6 +48,7 @@ export const workStep=(job,shift)=>job?.steps?.[shift?.step||0];
 export const workReady=(job,shift,now=Date.now())=>!!shift&&now>=shift.endsAt&&(shift.version!==2||shift.step>=job.steps.length);
 export function restoreWorkVehicle(life){if(life.shift?.vehicle)life.vehicle=life.shift.previousVehicle||life.vehicles?.[0]||'car'}
 export const EXPERIENCES=[
+ {id:'mall-cinema',name:'Accra Mall cinema',place:'mall',price:45,fun:45,social:10,description:'Watch an original Worldfolk animated short. Game ticket; stay until you leave your seat.'},
  {id:'haircut',name:'Haircut and styling',place:'osu',price:35,fun:12,hygiene:30,description:'Freshen up at the salon.'},
  {id:'restaurant-meal',name:'Restaurant meal',place:'osu',price:28,hunger:60,social:8,description:'Enjoy a full meal.'},
  {id:'beach-day',name:'Beach day',place:'labadi',price:20,fun:40,energy:10,description:'Relax by the coast.'},

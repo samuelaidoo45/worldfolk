@@ -1,6 +1,6 @@
 # Realism implementation progress
 
-**Updated 11 October 2026.** The human/camera, walking and wardrobe, vehicle and Independence precinct exterior passes are live at [worldfolk.world](https://worldfolk.world/game/). The full realism milestones remain in progress.
+**Updated 13 October 2026.** The human/camera, walking and wardrobe, vehicle and Independence precinct exterior passes are live at [worldfolk.world](https://worldfolk.world/game/). The full realism milestones remain in progress.
 
 ## Current milestone status
 
@@ -9,7 +9,8 @@
 | 1 | Humans, animation, scale and camera | First pass deployed | Broader character variety, detailed clothing, authored animation, furniture alignment and device/crowd benchmarks |
 | 2 | Vehicles, materials, lighting and street surfaces | First vehicle pass deployed; milestone in progress | Reference-based local vehicles and tro-tros, doors, occupants, projected headlights, surface/lighting review and performance checks |
 | 3 | Independence precinct | Exterior and playable precinct pass deployed | Event crowds and complete visit acceptance |
-| 4–8 | Accra Mall, Osu, Makola, Legon and Labadi | Queued for reference-based implementation and acceptance | Complete each location and its activities before expanding to the next |
+| 4 | Accra Mall | Reference-led exterior and playable interior implemented | More accurate curved roof sections, full tenant layout, parking and current entrance references |
+| 5–8 | Osu, Makola, Legon and Labadi | Queued for reference-based implementation and acceptance | Complete each location and its activities before expanding to the next |
 | 9–12 | Religious spaces, heritage, daily-life loop and remaining areas | Queued | Follow the master checklist and location-level acceptance criteria |
 
 **Latest verification:** 35 focused landmark, movement and vertical-navigation checks plus one authenticated HTTP/WebSocket/checkpoint test passed. The production build and full-game stair/camera review passed. These checks do not establish million-player capacity or a device-wide frame-rate guarantee.
@@ -137,3 +138,15 @@ Verification: centre openings tested against both rendered mesh rays and collisi
 - Verification: 24 landmark/activity/navigation tests pass, including mesh-level museum doorway clearance, pool collision/retreat, activity reachability and continuous NPC paths. Full-game review confirms city-home arrival, walking the central promenade, starting/stopping a monument photo pose and activating the fountain viewpoint with its historical caption. A reusable visual fixture covers the approach, gardens, statue and museum.
 
 Next accuracy work: verify the full renovated museum/reception campus against additional current references before claiming a complete park replica. The wider sequence continues with Accra's other priority landmarks in the master checklist.
+
+## 13 October 2026 — Accra Mall
+
+- Consulted exterior/interior Wikimedia photographs and the mall's official directory/floor map. Retained the mapped outer footprint and courtyard hole; added the steel entrance tower, canopy, brick piers, glazing and bollards.
+- Added a dedicated walkable interior with six distinct shop displays, open dining court, staff, shoppers and an upstairs cinema. Sitting and watching continue until explicitly stopped. Stairs use an interaction to change floors.
+- Shop counters open relevant goods; food orders, cinema tickets and retail work use existing authoritative server transactions. Cinema plays an original procedural Worldfolk short. All prices are game prices.
+- Unified the client/server mall arrival position so entrance, purchases, jobs and tickets agree.
+- Verification: 19 geometry/navigation/activity tests and one registered-player API test passed. The API test covers remote purchase rejection, arrival, entry, inventory, ticket cost/cooldown, work tasks, wages and duplicate collection rejection. Full-game review covers arrival, entry, walking to the cinema, purchase, seated view and leaving the seat. The fixture additionally covers shop filtering, persistent food-court seating and returning downstairs. Production build passed.
+- Accuracy: this is a stylized, compressed reconstruction, not a surveyed replica. Exact tenant positions, detailed parking, all curved roof sections and a complete cinema foyer remain open. Local NPCs and seated poses are not synchronized multiplayer interiors.
+- Two older broad `venue-scenes` assertions still assume merged skinned crowds and six unique vehicle geometries; those unrelated baselines are not changed by this release.
+
+References and image links: [Accra Mall reference record](accra-mall.md).

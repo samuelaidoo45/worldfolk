@@ -6,12 +6,12 @@ import {STREET_SERVICES} from './street-services.js';
 import {HOMES,GOODS,JOBS,TERMINALS,propertyId,rideFare} from './life-catalog.js';
 import {distanceMetres} from './motion.js';
 export function createLifeUI({state,action,navigate,enterHome,places}){
- let open=false,tab='bag',signature='',busy=false,lastPass='',workCategory='All',selectedJob=null,arrivalPending=false,selectionOwner=null;
+ let shopContext={},open=false,tab='bag',signature='',busy=false,lastPass='',workCategory='All',selectedJob=null,arrivalPending=false,selectionOwner=null;
  const launch=document.createElement('button');launch.className='life-launch';launch.textContent='I · My life';document.body.append(launch);
  const panel=document.createElement('section');panel.className='life-drawer hidden';panel.setAttribute('aria-label','My virtual life');panel.innerHTML='<header><div><small>YOUR LIFE IN ACCRA</small><h2>Make yourself at home</h2></div><button aria-label="Close my life">×</button></header><div class="life-wallet"></div><nav aria-label="Life sections"></nav><div class="life-content"></div><p class="life-note">All prices and ownership are part of the game. Progress saves automatically.</p>';document.body.append(panel);
  const content=panel.querySelector('.life-content'),wallet=panel.querySelector('.life-wallet');
  for(const [id,label] of [['bag','Bag'],['work','Work'],['shops','Shops'],['homes','Homes'],['wardrobe','Wardrobe'],['transport','Transport'],['leisure','Leisure'],['momo','MoMo']]){const b=document.createElement('button');b.textContent=label;b.onclick=()=>show(id);b.dataset.tab=id;panel.querySelector('nav').append(b)}
- function show(section=tab){if(!state.self)return;tab=section;open=true;state.keys.clear();state.joystick={x:0,y:0};panel.classList.remove('hidden');render()}
+ function show(section=tab,context={}){if(!state.self)return;shopContext=context;if(context.jobId&&JOBS.some(j=>j.id===context.jobId)){selectedJob=context.jobId;arrivalPending=false;saveSelection()}tab=section;open=true;state.keys.clear();state.joystick={x:0,y:0};panel.classList.remove('hidden');render()}
  function close(){open=false;panel.classList.add('hidden')}
  launch.onclick=()=>open?close():show();panel.querySelector('header button').onclick=close;
  const near=p=>state.position&&distanceMetres(state.position,[p.lng,p.lat])<85;
@@ -63,9 +63,9 @@ export function createLifeUI({state,action,navigate,enterHome,places}){
   heading('City shops','Walk or drive to the shop, park, then purchase with your earned cedis.');
   const indoor=state.mode==='indoor'?state.indoorPlace:null;
   const nearby=places.filter(q=>['makola','kaneshie','osu','mall','airport'].includes(q.id)&&near(q));
-  if(indoor)heading(indoor.name,'Purchases use your game money and are saved in your bag.');
+  if(indoor)heading(shopContext.title||indoor.name,'Purchases use your game money and are saved in your bag.');
   if(!nearby.length&&!indoor){for(const id of ['makola','mall','osu','kaneshie']){const q=place(id),b=row(q.name,q.area);button(b,'Set route',()=>route(q))}}
-  for(const item of GOODS.filter(g=>indoor?sellsAtVenue(g,indoor)||g.shops.some(id=>nearby.some(q=>q.id===id)):!nearby.length||g.shops.some(id=>nearby.some(q=>q.id===id)))){const available=!!indoor&&sellsAtVenue(item,indoor)||item.shops.some(id=>nearby.some(q=>q.id===id)),owned=item.kind==='vehicle'&&life.vehicles.includes(item.id);const b=row(`${item.icon} ${item.name}`,`₵${item.price} · ${item.shops.map(id=>place(id)?.name).join(' / ')}`);button(b,owned?'Owned':available?'Buy':'Visit shop to buy',()=>transact({type:'buy',itemId:item.id}),owned||!available||p.driving||p.money<item.price)}
+  for(const item of GOODS.filter(g=>!shopContext.kinds||shopContext.kinds.includes(g.kind)).filter(g=>indoor?sellsAtVenue(g,indoor)||g.shops.some(id=>nearby.some(q=>q.id===id)):!nearby.length||g.shops.some(id=>nearby.some(q=>q.id===id)))){const available=!!indoor&&sellsAtVenue(item,indoor)||item.shops.some(id=>nearby.some(q=>q.id===id)),owned=item.kind==='vehicle'&&life.vehicles.includes(item.id);const b=row(`${item.icon} ${item.name}`,`₵${item.price} · ${item.shops.map(id=>place(id)?.name).join(' / ')}`);button(b,owned?'Owned':available?'Buy':'Visit shop to buy',()=>transact({type:'buy',itemId:item.id}),owned||!available||p.driving||p.money<item.price)}
  }
  if(tab==='work'){
   heading('Find work','Select a job below, travel to its workplace and start your shift on arrival. Driving shifts include a work vehicle. Five completed shifts increase your pay; earnings buy goods, homes, services and experiences.');
@@ -115,7 +115,7 @@ export function createLifeUI({state,action,navigate,enterHome,places}){
  }
  if(tab==='leisure'){
   heading('Services & experiences','Spend your earned game cedis at a venue. Benefits apply immediately and progress is saved.');
-  for(const experience of EXPERIENCES){const q=place(experience.place);if(!q)continue;const b=row(experience.name,`₵${experience.price} · ${q.name} · ${experience.description}`);if(near(q))button(b,'Buy experience',()=>transact({type:'experience-buy',experienceId:experience.id}),p.driving||!!life.shift||p.money<experience.price);else{button(b,'Set route',()=>route(q));button(b,'Get a ride',()=>{close();navigate(q);state.transit?.show()})}}
+  for(const experience of EXPERIENCES.filter(e=>!shopContext.experienceId||e.id===shopContext.experienceId)){const q=place(experience.place);if(!q)continue;const b=row(experience.name,`₵${experience.price} · ${q.name} · ${experience.description}`);if(near(q))button(b,'Buy experience',()=>transact({type:'experience-buy',experienceId:experience.id}),p.driving||!!life.shift||p.money<experience.price);else{button(b,'Set route',()=>route(q));button(b,'Get a ride',()=>{close();navigate(q);state.transit?.show()})}}
  }
  if(tab==='transport'){const bus=row('🚐 Tro-tro or taxi','Pickup at your current location · choose any listed destination');button(bus,'Request pickup',()=>{close();state.transit?.show()});
   heading('Your garage','Vehicles depend on your starting background. Buy a car or motorcycle in the city, or request public transport.');for(const id of life.vehicles){const b=row(`${id==='motorcycle'?'🏍️':'🚙'} ${vehicleName(id)}`,life.vehicle===id?'Selected vehicle':'Owned');button(b,life.vehicle===id?'Selected':'Use vehicle',()=>transact({type:'vehicle-select',vehicle:id}),p.driving||life.vehicle===id||!state.nearCar)}

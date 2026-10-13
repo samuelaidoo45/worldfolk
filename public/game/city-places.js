@@ -14,7 +14,7 @@ export const CITY_PLACES = [
   {id:'arts',name:'Arts Centre',area:'Accra Central',type:'Culture',emoji:'🎨',lng:-0.2033,lat:5.5464,description:'Find craft, colour and creativity by the coast.',activities:['browse']},
   {id:'theatre',name:'National Theatre',area:'Victoriaborg',type:'Culture',emoji:'🎭',lng:-0.2005931,lat:5.5536671,description:'Take a stroll past one of Accra’s cultural landmarks.',activities:['stroll']},
   {id:'dubois',name:'W. E. B. Du Bois Centre',area:'Cantonments',type:'Learning',emoji:'📚',lng:-0.1698,lat:5.5815,description:'Reflect, learn and discover ideas that travelled the world.',activities:['museum','study']},
-  {id:'mall',name:'Accra Mall',area:'Tetteh Quarshie',type:'Shopping',emoji:'🛍️',lng:-0.1738,lat:5.6224,description:'A lively place to shop and meet up.',activities:['shopping']},
+  {id:'mall',name:'Accra Mall',area:'Tetteh Quarshie',type:'Shopping',emoji:'🛍️',lng:-.173222,lat:5.623115,description:'A lively place to shop and meet up.',activities:['shopping']},
   {id:'airport',name:'Airport City',area:'Airport Residential',type:'Work',emoji:'🏢',lng:-0.1787,lat:5.6093,description:'Offices, hotels and a chance to make career moves.',activities:['office']},
   {id:'eastlegon',name:'East Legon',area:'East Legon',type:'Neighbourhood',emoji:'🌳',lng:-0.1572,lat:5.6357,description:'Explore cafés, shops and residential streets.',activities:['shopping','stroll']},
   {id:'legon',name:'University of Ghana',area:'Legon',type:'Learning',emoji:'🎓',lng:-0.1874,lat:5.6510,description:'Spend some time learning on the green campus.',activities:['study']},

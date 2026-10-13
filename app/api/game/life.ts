@@ -1,3 +1,4 @@
+import {MALL_ARRIVAL} from '../../../public/game/accra-mall-data.js';
 import {CASUAL_OUTFITS} from '../../../public/game/outfit-catalog.js';
 import {inAccra} from '../../../public/game/map-region.js';
 import {EXPERIENCES,shiftCanMove,canUseVehicle,taskSeconds,workStep,workReady,restoreWorkVehicle,jobPay} from '../../../public/game/work-catalog.js';
@@ -19,7 +20,7 @@ type Life={elevation?:number;rest:{kind:'sleep'|'relax';placeId:string;startedAt
 export function readLife(p:LifePlayer):Life {let saved;try{saved=JSON.parse(p.life_json||'{}')}catch{saved={}}return {rest:null,autoDriveRate:1,lastDriveSkipAt:0,career:{},lastServiceAt:0,wanted:0,arrested:false,arrests:0,lastTheftAt:0,momo:0,health:100,deaths:0,lastTrafficHitAt:0,lastVitalAt:0,lastCrashAt:0,drivingSince:0,transit:null,home:'starter',inventory:{},vehicles:['car'],vehicle:'car',properties:['starter'],job:null,shift:null,flight:null,outfit:null,furnished:[],...saved}}
 export function lifeView(p:LifePlayer){const life=readLife(p);return {...life,homeId:propertyId(p.id,life.home),homeName:HOMES.find(h=>h.id===life.home)?.name,apartment:p.id.slice(0,6).toUpperCase()}}
 export const metres=(a:number[],b:number[])=>Math.hypot((a[0]-b[0])*111320*Math.cos(a[1]*Math.PI/180),(a[1]-b[1])*111320);
-const publicCoords:Record<string,number[]>={arts:[-.2033,5.5464],theatre:[-.2047,5.5516],dubois:[-.1698,5.5815],home:[-.1949,5.5682],makola:[-.2141,5.5485],kaneshie:[-.2346,5.5724],osu:[-.1819,5.5598],mall:[-.1738,5.6224],airport:[-.1787,5.6093],labadi:[-.140846,5.561955],legon:[-.1874,5.651]};
+const publicCoords:Record<string,number[]>={arts:[-.2033,5.5464],theatre:[-.2047,5.5516],dubois:[-.1698,5.5815],home:[-.1949,5.5682],makola:[-.2141,5.5485],kaneshie:[-.2346,5.5724],osu:[-.1819,5.5598],mall:MALL_ARRIVAL,airport:[-.1787,5.6093],labadi:[-.140846,5.561955],legon:[-.1874,5.651]};
 for(const place of CITY_DESTINATIONS)publicCoords[place.id]=[place.lng,place.lat];
 const here=(p:LifePlayer,place:string)=>!p.driving&&!!publicCoords[place]&&metres([p.pos_lng??-.1949,p.pos_lat??5.5682],publicCoords[place])<=85;
 const fail=(message:string,status=400)=>Response.json({error:message},{status,headers:{'Cache-Control':'no-store'}});
