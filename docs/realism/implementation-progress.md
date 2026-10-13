@@ -163,3 +163,10 @@ References and image links: [Accra Mall reference record](accra-mall.md).
 - These remain original procedural models, not photogrammetric or licensed manufacturer replicas. Higher-detail body assets, articulated doors, suspension, exact rider hand/foot alignment and projected headlights remain open.
 
 Visual reviews: [commuter fleet](../../review-artifacts/accra-commuter-fleet.png), [commercial fleet](../../review-artifacts/accra-commercial-fleet.png), [cycles](../../review-artifacts/accra-cycle-fleet.png), [night lighting](../../review-artifacts/accra-fleet-night.png).
+
+## 13 October 2026 — Bicycle rolling correction
+
+- Fixed the bicycle tyre tumbling: the single torus mesh bypassed static batching, so its axle orientation was lost when its geometry was used by the wheel instances. Wheel geometry now preserves its source transform.
+- Integrated pedal rotation independently of the wrapped wheel angle to prevent a snap at each wheel revolution; corrected pedalling direction and removed the bicycle's duplicate fixed footrests.
+- Verification: 13 focused fleet and motion tests passed, including tyre orientation/contact throughout a full revolution and continuous crank movement, stopping and reversing. Production build and running browser fixture passed with no console errors. [Visual review](../../review-artifacts/bicycle-wheel-fix.png).
+- Deployed as Cloudflare version `29de60f4-1f0b-4a73-a9b6-6f813b37ec7d`; both changed runtime modules match the live source.

@@ -92,7 +92,7 @@ export function createCycle(kind='motorcycle',color=0x2266a1){
  for(const side of [-1,1]){tube(paint,[side*.07,r,rear],crank,bike?.02:.034);tube(paint,[side*.07,r,rear],saddle,bike?.018:.03);tube(chrome,[side*.07,r,front],[side*.07,head[1],head[2]],bike?.018:.032)}
  tube(paint,crank,saddle,bike?.025:.04);tube(paint,saddle,head,bike?.023:.042);tube(paint,crank,head,bike?.027:.043);
  tube(chrome,head,[0,1.23,front+.35],.025);tube(chrome,[-.3,1.23,front+.35],[.3,1.23,front+.35],.02);
- for(const s of [-1,1]){tube(rubber,[s*.22,1.23,front+.35],[s*.32,1.23,front+.35],.029);box(rubber,.08,.035,.19,s*.2,.34,.05)}
+ for(const s of [-1,1]){tube(rubber,[s*.22,1.23,front+.35],[s*.32,1.23,front+.35],.029);if(!bike)box(rubber,.08,.035,.19,s*.2,.34,.05)}
  rounded(rubber,bike?.2:.36,.095,bike?.3:.71,0,saddle[1]+.05,bike?.22:.27,.028);
  if(!bike){
   const tank=k.add(new T.SphereGeometry(1,16,10),paint,0,.91,-.22);tank.scale.set(.22,.21,.33);
@@ -111,12 +111,14 @@ export function createCycle(kind='motorcycle',color=0x2266a1){
  }
  k.group.userData.vehicleKind=kind;const model=k.finish(cargo?1.65:.85,cargo?3.35:2.2,{spokes:bike});
  // Cranks are kept dynamic; tyres and spokes still use just two instanced draws.
- const pedals=new T.Group();pedals.userData.dynamic=true;pedals.position.set(0,.34,0);
+ const pedals=new T.Group();pedals.name='bicycle-crank';pedals.userData.dynamic=true;pedals.position.set(0,.34,0);
  for(const s of [-1,1]){const arm=new T.Mesh(new T.BoxGeometry(.018,.17,.02),chrome);arm.position.set(s*.09,s*.085,0);pedals.add(arm);const foot=new T.Mesh(new T.BoxGeometry(.12,.026,.07),rubber);foot.position.set(s*.15,s*.17,0);pedals.add(foot)}
  if(bike)model.group.add(pedals);
  const rider=createActor('🧑🏾','rider-'+kind);rider.group.scale.setScalar(.87);model.group.add(rider.group);model.rider=rider.group;
  const hideFootShadow=()=>rider.group.traverse(o=>{if(o.material?.isMeshBasicMaterial&&o.material.transparent&&o.material.map)o.visible=false});hideFootShadow();rider.ready?.then(hideFootShadow);
- const animate=model.animateVehicle;
- model.animateVehicle=(input={},dt)=>{animate(input,dt);const p= bike?-model.wheelPhase*.42:0;if(bike)pedals.rotation.x=p;rider.group.position.set(0,bike?.2:.22,cargo?-.38:.12);rider.leftArm.rotation.x=-.85;rider.rightArm.rotation.x=-.85;rider.leftLeg.rotation.x=-1.16+(bike?Math.sin(p)*.32:0);rider.rightLeg.rotation.x=-1.16+(bike?Math.sin(p+Math.PI)*.32:0);rider.knees?.forEach((joint,i)=>joint.rotation.x=1.3+(bike?Math.sin(p+i*Math.PI)*.35:0));rider.elbows?.forEach(joint=>joint.rotation.x=-.32)};
+ const animate=model.animateVehicle;let pedalPhase=0;
+ // Integrate the crank separately: scaling a wrapped wheel angle jumps once
+ // each wheel revolution and turns the pedals backwards during forward travel.
+ model.animateVehicle=(input={},dt)=>{animate(input,dt);if(bike)pedalPhase=(pedalPhase-(input.distance||0)/r*.42)%(Math.PI*2);const p=pedalPhase;if(bike)pedals.rotation.x=p;rider.group.position.set(0,bike?.2:.22,cargo?-.38:.12);rider.leftArm.rotation.x=-.85;rider.rightArm.rotation.x=-.85;rider.leftLeg.rotation.x=-1.16+(bike?Math.sin(p)*.32:0);rider.rightLeg.rotation.x=-1.16+(bike?Math.sin(p+Math.PI)*.32:0);rider.knees?.forEach((joint,i)=>joint.rotation.x=1.3+(bike?Math.sin(p+i*Math.PI)*.35:0));rider.elbows?.forEach(joint=>joint.rotation.x=-.32)};
  model.animateVehicle();return model;
 }

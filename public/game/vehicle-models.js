@@ -124,5 +124,9 @@ function wheelGeometry(r,spokes=false,steel=false){
   for(let n=0;n<(spokes?24:10);n++){const a=n*Math.PI*2/(spokes?24:10),m=add(new THREE.BoxGeometry(spokes?.006:.025,r*(spokes?.86:.51),spokes?.006:.028),metal,side*(spokes?.019:.115));m.position.y=Math.cos(a)*r*(spokes?.43:.34);m.position.z=Math.sin(a)*r*(spokes?.43:.34);m.rotation.x=a;}
   const hub=add(new THREE.CylinderGeometry(r*.17,r*.17,.025,12),metal,side*(spokes?.025:.125));hub.rotation.z=Math.PI/2;
  }
- batchStaticMeshes(root);const parts={};root.traverse(o=>{if(o.isMesh){o.geometry.userData.shared=true;parts[o.material===rubber?'tire':'rim']=o.geometry}});rubber.dispose();metal.dispose();wheelCache.set(key,parts);return parts;
+ batchStaticMeshes(root);root.updateMatrixWorld(true);const parts={};
+ // Batching bakes transforms only when a material has multiple meshes. A
+ // bicycle tyre is a single torus: preserve its axle rotation before instancing.
+ root.traverse(o=>{if(o.isMesh){const geometry=o.geometry.clone().applyMatrix4(o.matrixWorld);geometry.userData.shared=true;parts[o.material===rubber?'tire':'rim']=geometry;o.geometry.dispose()}});
+ rubber.dispose();metal.dispose();wheelCache.set(key,parts);return parts;
 }

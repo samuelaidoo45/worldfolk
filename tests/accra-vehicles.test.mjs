@@ -26,6 +26,33 @@ test('all Accra families have finite geometry, animated wheels and bounded rende
 test('truck has rear dual wheels and only the front axle steers',()=>{
  const truck=createVehicle('truck');truck.animateVehicle({steer:.4},.1);for(let i=0;i<6;i++){const m=new T.Matrix4();truck.wheels[0].getMatrixAt(i,m);assert.equal(Math.abs(m.elements[2])>.1,i===0||i===3)}disposeScene(truck.group);
 });
+test('bicycle tyres stay upright and concentric with the rim throughout a revolution',()=>{
+ const bike=createVehicle('bicycle'),radius=bike.group.userData.wheelRadius;
+ for(let step=0;step<16;step++){
+  bike.animateVehicle({distance:Math.PI*2*radius/16},1/60);
+  for(let wheel=0;wheel<2;wheel++){
+   const matrix=new T.Matrix4();bike.wheels[0].getMatrixAt(wheel,matrix);
+   const points=bike.wheels[0].geometry.attributes.position,centre=new T.Vector3().setFromMatrixPosition(matrix);
+   const bounds=new T.Box3();for(let i=0;i<points.count;i++)bounds.expandByPoint(new T.Vector3().fromBufferAttribute(points,i).applyMatrix4(matrix));
+   const size=bounds.getSize(new T.Vector3());
+   assert.ok(size.x<.05,'tyre must stay thin along its axle, not tumble');
+   assert.ok(Math.abs(size.y-radius*2)<.004,'tyre must remain circular and upright');
+   assert.ok(Math.abs(bounds.min.y)<.003,'tyre must stay on the ground');
+   assert.ok(bounds.getCenter(new T.Vector3()).distanceTo(centre)<1e-6);
+   const rimMatrix=new T.Matrix4();bike.wheels[1].getMatrixAt(wheel,rimMatrix);assert.deepEqual(matrix.elements,rimMatrix.elements);
+  }
+ }
+ disposeScene(bike.group);
+});
+test('bicycle crank rolls continuously across wheel revolutions, stops and reverses',()=>{
+ const bike=createVehicle('bicycle'),radius=bike.group.userData.wheelRadius,crank=bike.group.getObjectByName('bicycle-crank');
+ const travel=radius*Math.PI*2*.99;bike.animateVehicle({distance:travel},.1);
+ const before=crank.rotation.x;bike.animateVehicle({distance:radius*Math.PI*2*.02},.1);
+ assert.ok(Math.abs(crank.rotation.x-before+Math.PI*2*.02*.42)<1e-6,'no snap at one wheel revolution');
+ const stopped=crank.rotation.x;bike.animateVehicle({},.1);assert.equal(crank.rotation.x,stopped);
+ bike.animateVehicle({distance:-(travel+radius*Math.PI*2*.02)},.1);assert.ok(Math.abs(crank.rotation.x)<1e-6);
+ disposeScene(bike.group);
+});
 test('the new catalogue families can be bought through the existing vehicle shop',()=>{
  for(const id of ['minibus','truck','bicycle','tricycle']){const item=GOODS.find(g=>g.id===id);assert.equal(item.kind,'vehicle');assert.equal(item.price,vehicleSpec(id).price)}
  assert.ok(!trafficModelsForRoad(12,true).includes('bicycle'));assert.ok(!trafficModelsForRoad(12,true).includes('tricycle'));assert.ok(!trafficModelsForRoad(6).includes('truck'));assert.ok(trafficModelsForRoad(9).includes('minibus'));
