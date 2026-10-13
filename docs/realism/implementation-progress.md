@@ -128,4 +128,12 @@ Verification: centre openings tested against both rendered mesh rays and collisi
 - Verification: 24 focused geometry, activity, character and audio checks pass; full-game checks cover city-map arrival, sitting, attempted movement while seated, standing and walking away, walking to the arch photo spot, starting/stopping a photo pose and returning to the map. Daytime visitor spacing and bench alignment reviewed in `tests/fixtures/precinct-life-review.html`.
 - Scope: ambient NPCs and outdoor poses are client-local; outdoor activities are per-visit and are not yet broadcast as multiplayer poses. No staged parade, live event feed or captured-photo gallery is claimed. Larger event scheduling and mobile crowd performance benchmarks remain future work.
 
-Next landmark: Kwame Nkrumah Memorial Park — mausoleum, statue, fountains, gardens and museum, with location-specific references and interactions.
+## 13 October 2026 — Kwame Nkrumah Memorial Park
+
+- Replaced the generic monument and museum shells with curved marble fins, high openings, black star, draped bronze statue, paired fountain walks, garden paths and a low museum.
+- Added six visitor activities, continuous garden NPC routes, animated jets and a walk-in interpretive gallery with a roof that reveals the interior to visitors.
+- Shared geometry/collision definitions preserve the central walk and museum entrance while blocking water, piers, walls and displays. Removed overlapping paving that flickered in the initial visual review.
+- Sources and limits are recorded per component in [nkrumah-park.md](nkrumah-park.md). This remains a stylized reconstruction with estimated dimensions and an interpreted gallery, not a surveyed replica.
+- Verification: 24 landmark/activity/navigation tests pass, including mesh-level museum doorway clearance, pool collision/retreat, activity reachability and continuous NPC paths. Full-game review confirms city-home arrival, walking the central promenade, starting/stopping a monument photo pose and activating the fountain viewpoint with its historical caption. A reusable visual fixture covers the approach, gardens, statue and museum.
+
+Next accuracy work: verify the full renovated museum/reception campus against additional current references before claiming a complete park replica. The wider sequence continues with Accra's other priority landmarks in the master checklist.

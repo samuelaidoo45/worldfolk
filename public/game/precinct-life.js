@@ -1,3 +1,4 @@
+import {NKRUMAH_PARK,PARK_ACTIVITIES,parkPoint,parkLocal} from './nkrumah-park-data.js';
 import {PRECINCT_LANDMARKS,precinctPoint,precinctLocal,precinctCollision} from './precinct-navigation.js';
 import {distanceMetres,bearingTo} from './motion.js';
 const square=PRECINCT_LANDMARKS.find(p=>p.id==='independence-parade-ground');
@@ -11,11 +12,11 @@ export const PRECINCT_ACTIVITIES=stands.map((stand,i)=>{
  {id:'photo-arch',kind:'photo',label:'Photograph Independence Arch',position:precinctPoint(square,0,49),target:arch.position,elevation:0},
  {id:'photo-memorial',kind:'photo',label:'Photograph the Unknown Soldier Memorial',position:precinctPoint(square,-12,-59),target:memorial.position,elevation:0},
  {id:'square-gathering',kind:'watch',label:'Watch the visitors in the square',position:precinctPoint(square,20,-5),target:precinctPoint(square,10,-5),elevation:0},
-]).map(p=>({...p,heading:p.heading??bearingTo(p.position,p.target)}));
+]).concat(PARK_ACTIVITIES).map(p=>({...p,heading:p.heading??bearingTo(p.position,p.target)}));
 export function nearPrecinctActivity(position,elevation=0){return PRECINCT_ACTIVITIES.map(p=>({...p,distance:distanceMetres(position,p.position)})).filter(p=>p.distance<2&&Math.abs(elevation-p.elevation)<.1).sort((a,b)=>a.distance-b.distance)[0]||null}
 export function precinctAmbience(position,actors=[],minute=720){
  const [x,z]=precinctLocal(square,position),inside=Math.abs(x)<135&&Math.abs(z)<155;
- if(!inside)return null;
+ if(!inside){const [px,pz]=parkLocal(position);return Math.abs(px)<45&&pz> -55&&pz<95?{wind:.018,surf:.012,traffic:.005,crowd:.012}:null;}
  const day=minute>=360&&minute<1140;
  return {wind:.025,surf:.04*Math.max(0,Math.min(1,(z+60)/170)),traffic:.015*Math.max(0,1-Math.min(Math.abs(x-110),Math.abs(x+110),Math.abs(z+105))/60),crowd:day?Math.min(.035,actors.filter(a=>distanceMetres(a.position,position)<35).length*.004):.006};
 }
@@ -23,6 +24,11 @@ export function precinctAmbience(position,actors=[],minute=720){
 export function createPrecinctLife(){
  const names=['Ama','Kojo','Esi','Yaw','Abena','Kwesi'];let actors=[];
  function tick(seconds,position,minute=720){
+  if(distanceMetres(position,NKRUMAH_PARK.position)<220){
+   const day=minute>=360&&minute<1140;actors=[];
+   for(let i=0;i<(day?8:2);i++){const side=i%2?1:-1,phase=(seconds*(.85+i%3*.12)+i*14)%196,forward=phase<98,z=-24+(forward?phase:196-phase);actors.push({id:`park-visitor-${i}`,name:names[i%6],avatar:i%2?'👩🏾':'👨🏾',position:parkPoint(side*23,z),heading:bearingTo(parkPoint(side*23,z),parkPoint(side*23,z+(forward?1:-1))),speed:.85+i%3*.12,moving:true,elevation:0});}
+   return actors;
+  }
   if(distanceMetres(position,square.position)>350){actors=[];return actors}
   const day=minute>=360&&minute<1140,list=[];
   for(let i=0;i<(day?10:3);i++){
@@ -32,7 +38,7 @@ export function createPrecinctLife(){
    if(!precinctCollision(p,.3,0))list.push({id:`square-walker-${i}`,name:names[i%6],avatar:i%2?'👩🏾':'👨🏾',position:p,heading:bearingTo(precinctPoint(square,...a),precinctPoint(square,...b)),speed:1.05+i%3*.12,moving:true,elevation:0});
   }
   if(day){
-   for(const [i,spot] of PRECINCT_ACTIVITIES.entries()){
+   for(const [i,spot] of PRECINCT_ACTIVITIES.filter(p=>!p.id.startsWith('park-')).entries()){
     if(spot.kind==='watch')continue;
     list.push({id:`square-visitor-${i}`,name:names[i%6],avatar:i%2?'👩🏾':'👨🏾',position:spot.kind==='sit'?precinctPoint(stands[i],0,stands[i].depth/2-.9-(stands[i].depth-3)/12*.77):precinctPoint(square,i===8?7:-19,i===8?48:-57),heading:spot.heading,speed:0,moving:false,elevation:spot.elevation,action:spot.kind,poseOffset:spot.offset||0});
    }
