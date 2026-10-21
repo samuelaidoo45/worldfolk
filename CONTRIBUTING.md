@@ -4,6 +4,10 @@ Worldfolk is a browser multiplayer life simulation set in Accra. Contributions s
 
 **Start here:** [local setup](docs/development.md) · [architecture](docs/architecture.md) · [open work](docs/roadmap.md) · [documentation hub](docs/README.md).
 
+## Using a coding agent
+
+Have the agent read [AGENTS.md](AGENTS.md) and the [project context](docs/project-context.md) before editing. [CLAUDE.md](CLAUDE.md) is the Claude entry point. Review the agent's changes and evidence as you would any contribution; keep private prompts, credentials and player data out of the repository.
+
 ## Your first contribution
 
 1. Read the [project overview](README.md), [conduct policy](CODE_OF_CONDUCT.md) and [licensing status](docs/contributing/assets-and-licensing.md).

@@ -3,8 +3,8 @@ import { resolve, dirname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
-const maintained = ['README.md', 'CONTRIBUTING.md', 'SECURITY.md', 'CODE_OF_CONDUCT.md', 'CHANGELOG.md',
-  'docs/README.md', 'docs/security-audit.md', 'docs/development.md', 'docs/architecture.md', 'docs/roadmap.md',
+const maintained = ['AGENTS.md', 'CLAUDE.md', 'README.md', 'CONTRIBUTING.md', 'SECURITY.md', 'CODE_OF_CONDUCT.md', 'CHANGELOG.md',
+  'docs/README.md', 'docs/project-context.md', 'docs/security-audit.md', 'docs/development.md', 'docs/architecture.md', 'docs/roadmap.md',
   ...['contributing', 'templates'].flatMap(dir => readdirSync(resolve(root, `docs/${dir}`)).filter(f => f.endsWith('.md')).map(f => `docs/${dir}/${f}`))];
 let failures = 0;
 for (const file of maintained) {

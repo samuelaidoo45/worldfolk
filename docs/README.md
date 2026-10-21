@@ -17,6 +17,10 @@ Worldfolk combines real Accra geography, authored game spaces and persistent mul
 | [Roadmap and task backlog](roadmap.md) | Priorities, acceptance criteria and good first tasks. |
 | [Release checklist](contributing/releases.md) | Maintainer verification, database safety and rollback preparation. |
 
+## Agent-assisted contributions
+
+[AGENTS.md](../AGENTS.md) is the shared agent instruction guide; [CLAUDE.md](../CLAUDE.md) directs Claude users to the same rules. The [project context and handoff](project-context.md) summarizes established decisions, recent work and outstanding limits without publishing private chat.
+
 ## Reusable templates
 
 Copy the [place implementation brief](templates/place-brief.md) for a new location, or the [engineering proposal](templates/engineering-proposal.md) for a substantial architecture change. GitHub issue and PR forms cover ordinary bounded tasks. See [CHANGELOG](../CHANGELOG.md) for notable unreleased changes.
