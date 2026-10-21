@@ -3,9 +3,19 @@ import {projectOnSegment,distanceMetres} from './motion.js';
 // Keep the whole pedestrian footprint outside every nearby vehicle carriageway,
 // including cross streets. Existing road overlaps may move toward safety.
 export function roadIntrusion(position,roads,radius=.4){
- let depth=0;
+ let depth=0;const scale=111320*Math.cos(position[1]*Math.PI/180);
  for(const road of roads){if(road.walkOnly||['path','pedestrian','steps','cycleway'].includes(road.roadClass))continue;
-  for(let i=1;i<road.line.length;i++){const a=road.line[i-1],b=road.line[i],q=projectOnSegment(position,a,b),heading=Math.atan2(b[0]-a[0],b[1]-a[1])*180/Math.PI;if(roadHeight(q.position,heading,road.roadId??null)>2.2)continue;depth=Math.max(depth,road.width/2+radius-q.distance);}
+  const reach=road.width/2+radius;if(reach<=depth)continue;
+  const dx=reach/scale,dy=reach/111320,west=position[0]-dx,east=position[0]+dx,south=position[1]-dy,north=position[1]+dy;
+  for(let i=1;i<road.line.length;i++){
+   const a=road.line[i-1],b=road.line[i];
+   // Reject only segments wholly outside the pedestrian's carriageway buffer.
+   // Crossing/long segments still receive the exact distance and bridge test.
+   if(a[0]<west&&b[0]<west||a[0]>east&&b[0]>east||a[1]<south&&b[1]<south||a[1]>north&&b[1]>north)continue;
+   const q=projectOnSegment(position,a,b);if(reach-q.distance<=depth)continue;
+   const heading=Math.atan2(b[0]-a[0],b[1]-a[1])*180/Math.PI;if(roadHeight(q.position,heading,road.roadId??null)>2.2)continue;
+   depth=reach-q.distance;
+  }
  }return depth;
 }
 export function sidewalkMove(from,to,physics,roads){

@@ -15,7 +15,7 @@ Worldfolk remains a playable prototype. The immediate goals are stable controls 
 
 | ID | Priority / lane | Scope | Acceptance criteria |
 | --- | --- | --- | --- |
-| WF-001 | P1 · performance | Profile startup/shader and streaming spikes on a fixed route | Before/after p50/p95/p99 and long-frame evidence, same device/settings; measured fix without removing core place identity. |
+| WF-001 | P1 · performance · partial | Profile simulation, startup/shader and streaming spikes on a fixed route | [Simulation CPU tuning](realism/simulation-performance.md) records exact-state-preserving CPU gains. Browser startup/streaming p50/p95/p99 and long-frame evidence on the same device/settings remain required. |
 | WF-002 | P1 · QA | Run physical-phone portrait/landscape benchmark | Complete the [benchmark protocol](realism/mobile-performance-benchmark.md) on a named real device; record thermals/resolution/input/route and failures. Prepared protocol is not a completed phone test. |
 | WF-003 | P1 · controls | Reproduce remaining shaking, control loss or position reset reports | Capture a current reproduction, network/camera state and regression; verify reconnect, resume and explicit travel stay distinct. |
 | WF-004 | P1 · tests | Migrate legacy API fixtures | Convert hard-coded origins/old guest joins to registered accounts and `GAME_TEST_URL`; use isolated fixtures and demonstrate cleanup. Add them to the wrapper only after review. |

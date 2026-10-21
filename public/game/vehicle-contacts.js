@@ -7,11 +7,15 @@ const mass=o=>o.driving?vehicleSpec(o.vehicle).mass:80;
 const axes=o=>{const a=(o.heading||0)*Math.PI/180;return [[Math.cos(a),-Math.sin(a)],[Math.sin(a),Math.cos(a)]]};
 const size=o=>o.driving?vehicleFootprint(o.vehicle):[.28,.28];
 export function bodyContact(a,b){
- if(!sameRoadLevel(a,b))return null;
- const aa=axes(a),bb=axes(b),sa=size(a),sb=size(b),delta=[(b.position[0]-a.position[0])*111320*Math.cos(a.position[1]*Math.PI/180),(b.position[1]-a.position[1])*111320];
+ const sa=size(a),sb=size(b),delta=[(b.position[0]-a.position[0])*111320*Math.cos(a.position[1]*Math.PI/180),(b.position[1]-a.position[1])*111320];
+ // Circumscribed circles cannot exclude a real contact, even for a rotated bus.
+ // Most pairs are far apart; avoid road-height lookups and SAT allocations there.
+ const reach=Math.hypot(...sa)+Math.hypot(...sb);
+ if(delta[0]*delta[0]+delta[1]*delta[1]>reach*reach)return null;
+ const aa=axes(a),bb=axes(b);
  let depth=Infinity,normal=null;
  for(const axis of [...aa,...bb]){const reach=sa.reduce((n,s,i)=>n+s*Math.abs(dot(aa[i],axis)),0)+sb.reduce((n,s,i)=>n+s*Math.abs(dot(bb[i],axis)),0),overlap=reach-Math.abs(dot(delta,axis));if(overlap<=0)return null;if(overlap<depth){depth=overlap;normal=axis.map(v=>v*(dot(delta,axis)<0?-1:1))}}
- return {depth,normal};
+ return sameRoadLevel(a,b)?{depth,normal}:null;
 }
 export function bodyVelocity(body){const a=(body.heading||0)*Math.PI/180;return body.impactVelocity||[Math.sin(a)*(body.speed||0),Math.cos(a)*(body.speed||0)]}
 // Resolve a short chain of movable bodies transactionally. A wall or closed

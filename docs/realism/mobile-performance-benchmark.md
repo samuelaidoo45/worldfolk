@@ -2,6 +2,8 @@
 
 Status: harness prepared. **No physical-phone results yet.** Browser viewport emulation and the Codex desktop browser do not establish mobile performance.
 
+For an offline CPU regression check, see [simulation tuning and its repeatable fixture](simulation-performance.md). Its timings exclude rendering and cannot replace this protocol.
+
 ## Open and record
 
 1. Open the updated game with `?benchmark=1&graphicsStats=1`. Locally: <http://127.0.0.1:3002/game/?benchmark=1&graphicsStats=1>. Use the deployed HTTPS build on a phone after this update is released; this work has not been deployed.

@@ -42,7 +42,8 @@ Use these sources instead of guessing a sequence from conversation fragments:
 ## Engineering status and known limits
 
 - Shader startup/streaming frame-time spikes, input/camera stability and physical-phone acceptance remain priorities. A prepared benchmark or passing geometry budget is not a completed phone result.
-- The latest recorded smoke suite passed **77 tests** after the publication safeguards. Run it for the current result; do not assume future changes inherit that outcome.
+- Local simulation tuning on **21 October 2026** reduced repeated CPU p95 from 1.234 to 0.606 ms (Polo–Airport) and 2.750 to 0.562 ms (mall interchange), with identical final actor states. This is an offline CPU fixture, not rendered FPS; browser control was disabled and phone acceptance remains pending. See [measurement and reproduction](realism/simulation-performance.md). Changes remain local until explicitly released.
+- The latest recorded smoke suite passed **80 tests** after the simulation tuning, with a successful production build. Run it for the current result; do not assume future changes inherit that outcome.
 - Six broader feature-suite assertions remain documented as **WF-016 through WF-021**: T3 camera distance, Airport View identity count/search, traffic-wall recovery, stadium height and crowd draw budget. Investigate intended behavior; do not suppress tests or relax thresholds just to report green.
 - Legacy live/API fixtures have mixed origin/registration conventions. The offline runner excludes the live capacity fixture; supported API tests require disposable loopback data. See [testing](contributing/testing.md).
 - Preview asset watching can emit `EMFILE`; it is tracked as WF-022. Server readiness alone does not prove a clean preview.

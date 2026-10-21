@@ -7,9 +7,10 @@ export const angleDifference=(a,b)=>Math.abs(((a-b+540)%360)-180);
 // Forward corridor plus braking distance: cars in the opposite lane do not stop us.
 export function trafficSpeed(position,heading,speed,maximum,actors,id='',body=null){
  let allowed=Math.min(maximum,mallRoundaboutLimit(position,heading,actors,id));
- for(const other of actors){if(other.id===id||!sameRoadLevel(body||{position,heading,driving:true},other))continue;const d=distanceMetres(position,other.position),a=(bearingTo(position,other.position)-heading)*Math.PI/180,forward=d*Math.cos(a),side=Math.abs(d*Math.sin(a));
+ for(const other of actors){if(other.id===id)continue;const d=distanceMetres(position,other.position),a=(bearingTo(position,other.position)-heading)*Math.PI/180,forward=d*Math.cos(a),side=Math.abs(d*Math.sin(a));
   const clearance=other.driving?(Math.max(6,vehicleSpec(other.vehicle).length/2+4)):3;
   if(forward<=0||side>(other.driving?2.15:1.5)||forward>Math.max(16,speed*2+12))continue;
+  if(!sameRoadLevel(body||{position,heading,driving:true},other))continue;
   const gap=Math.max(0,forward-clearance),following=other.driving&&angleDifference(heading,other.heading)<45?Math.max(0,other.speed||0):0;
   allowed=Math.min(allowed,Math.sqrt(following*following+2*3*gap),gap<.4?0:gap/1.1);
  }

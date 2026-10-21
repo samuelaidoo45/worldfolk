@@ -9,7 +9,7 @@ const legacyIntegration = new Set(['multiplayer-capacity.test.mjs']);
 const smoke = [
   'auth-session-handoff', 'game-notifications', 'game-audio', 'human-gait',
   'precinct-life', 'precinct-navigation', 'session-stability', 'gameplay-stability',
-  'shared-viewport', 'render-preparation', 'voice-peer', 'traffic-routing',
+  'shared-viewport', 'render-preparation', 'voice-peer', 'traffic-routing', 'simulation-proximity',
   'castle-asomdwe', 'contributor-tooling', 'repository-security',
 ].map(name => `tests/${name}.test.mjs`);
 const available = readdirSync('tests').filter(name => name.endsWith('.test.mjs'));
