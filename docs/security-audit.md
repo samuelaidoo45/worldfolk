@@ -17,8 +17,17 @@ Focused code review confirmed that long-lived TURN secrets stay in Worker bindin
 
 ## Verification record
 
-The final history rewrite, scanned commit count, clean-tree scan and remote update are recorded after verification. Earlier audit findings are not waived merely to obtain a passing check. Provider revocation, old clones/forks and GitHub cached/unadvertised refs require separate attention.
+The owner-authorized rewrite sanitized **all 87 then-reachable commits** using git-filter-repo 2.47.0. A private recovery bundle was stored outside the repository. The checked-out source tree hash was identical before/after rewriting; only historical occurrences of the old token were replaced. Gitleaks **8.30.1** then scanned the full rewritten history with **zero remaining findings**. The current tracked/proposed snapshot also passed, and a temporary synthetic credential was correctly blocked with its report value redacted. The contributor smoke suite passed **77 tests**; these security/tooling changes do not claim to fix the six previously recorded broader feature-suite failures.
+
+The local audit covers `main` and its reachable history. No tags or additional local branches existed. An authenticated mirror fetch of remote hidden/unadvertised refs was unavailable, so GitHub caches, pull-request refs and prior external clones are not certified erased. The remote update uses an explicit lease against the last known published head, protecting concurrent work. Its result is recorded in the task response after publication.
+
+**Provider revocation is not confirmed.** Revoke the old Mapbox token if still active; history cleanup does not invalidate copies outside this repository. No Cloudflare/server key or local credential store was found by these scans. Repository visibility and deployment remain unchanged.
 
 ## After a history rewrite
 
 Re-clone the canonical repository before contributing. Do not merge/re-push an old clone's history, and do not publish the local recovery backup. Use the [security policy](../SECURITY.md) for disclosure and the [contribution guide](../CONTRIBUTING.md) for normal work.
+
+## Audit tools
+
+- [Official Gitleaks project](https://github.com/gitleaks/gitleaks) — offline file/history scanning; downloaded release verified against the published SHA-256 and release API digest.
+- [git-filter-repo documentation](https://github.com/newren/git-filter-repo/blob/main/Documentation/git-filter-repo.txt) — targeted history replacement and post-removal coordination.
