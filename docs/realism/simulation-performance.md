@@ -41,7 +41,7 @@ The p95 reduction was approximately **51% / 80%** respectively. The isolated Pol
 
 Focused regressions: **57 passed**, including all vehicle sizes/rotations compared with full SAT (8,112 pairs), exact pedestrian-clearance comparisons, bridge separation, collision-safe 4×/8× transport, and wall/sidewalk behavior. These tests have no timing thresholds tied to one machine.
 
-`npm run check` passed the repository file guard, documentation links and **80 smoke tests** (including the new proximity regressions). `npm run build` completed successfully. Verification is local; this change has not been committed or deployed.
+`npm run check` passed the repository file guard, documentation links and **80 smoke tests** (including the new proximity regressions). `npm run build` completed successfully. Source commit `f57e876` was subsequently pushed to GitHub; deployment is pending Cloudflare authentication. See the [release handoff](../project-context.md#publication-and-release-status).
 
 ## Remaining acceptance
 
