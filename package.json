@@ -20,7 +20,10 @@
     "test:unit": "node scripts/contributors/test.mjs unit",
     "test:api": "node scripts/contributors/test.mjs api",
     "docs:check": "node scripts/contributors/check-docs.mjs",
-    "check": "npm run docs:check && npm test"
+    "check": "npm run security:files && npm run docs:check && npm test",
+    "security:files": "node scripts/security/repository-files.mjs",
+    "security:check": "npm run security:files && node scripts/security/scan.mjs files",
+    "security:history": "node scripts/security/scan.mjs history"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

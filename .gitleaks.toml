@@ -1,0 +1,21 @@
+title = "Worldfolk credential scanning"
+
+[extend]
+useDefault = true
+
+# Exact reviewed prose matches only; never ignore entire docs/tests or token rules.
+[[allowlists]]
+description = "Research brief describes proximity/catalogue API checks, not a key"
+condition = "AND"
+targetRules = ["generic-api-key"]
+paths = ['''(?:^|/)docs/realism/airport-residential-blocks\.md$''']
+regexTarget = "secret"
+regexes = ['''^proximity/catalogue$''']
+
+[[allowlists]]
+description = "Coverage inventory lists cafe/gym/parking access, not a credential"
+condition = "AND"
+targetRules = ["generic-api-key"]
+paths = ['''(?:^|/)docs/realism/coverage-work-items\.csv$''']
+regexTarget = "secret"
+regexes = ['''^cafe/gym/parking$''']

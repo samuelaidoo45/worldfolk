@@ -10,7 +10,7 @@ Worldfolk is a browser multiplayer life simulation set in Accra. Contributions s
 2. Choose one bounded task from the [roadmap](docs/roadmap.md). Open an issue describing your scope, or comment on an existing issue to avoid duplicate work. Backlog IDs are planning references, not already-created GitHub issues.
 3. Fork the repository, clone your fork, and follow the setup guide. Branch from the current default branch, for example `feat/osu-castle-approach` or `fix/mobile-controls`.
 4. Make a small, reviewable change. Include a regression test for a bug when useful, and update the relevant documentation or place inventory. Preserve unrelated work in your checkout.
-5. Run `npm run check` and the relevant focused tests. Run `npm run build` when changing application code, configuration or generated runtime assets. Follow the [testing guide](docs/contributing/testing.md).
+5. Run `npm run check`, `npm run security:check` (requires Gitleaks), and the relevant focused tests. Run `npm run build` when changing application code, configuration or generated runtime assets. Follow the [testing guide](docs/contributing/testing.md).
 6. Open a pull request using the provided template. For a larger design decision, use the [engineering proposal](docs/templates/engineering-proposal.md); new place briefs can use the [place template](docs/templates/place-brief.md). Describe the problem, scope, verification, visible result, performance cost and remaining limitations. For visual changes include before/after screenshots at comparable cameras and viewport sizes.
 
 No deployment access is needed to contribute. CI does not deploy; maintainers control releases.

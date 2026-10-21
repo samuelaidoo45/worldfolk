@@ -10,7 +10,7 @@ const smoke = [
   'auth-session-handoff', 'game-notifications', 'game-audio', 'human-gait',
   'precinct-life', 'precinct-navigation', 'session-stability', 'gameplay-stability',
   'shared-viewport', 'render-preparation', 'voice-peer', 'traffic-routing',
-  'castle-asomdwe', 'contributor-tooling',
+  'castle-asomdwe', 'contributor-tooling', 'repository-security',
 ].map(name => `tests/${name}.test.mjs`);
 const available = readdirSync('tests').filter(name => name.endsWith('.test.mjs'));
 let selected;

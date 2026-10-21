@@ -21,6 +21,10 @@ Worldfolk combines real Accra geography, authored game spaces and persistent mul
 
 Copy the [place implementation brief](templates/place-brief.md) for a new location, or the [engineering proposal](templates/engineering-proposal.md) for a substantial architecture change. GitHub issue and PR forms cover ordinary bounded tasks. See [CHANGELOG](../CHANGELOG.md) for notable unreleased changes.
 
+## Publication safety
+
+Read the [repository exposure audit](security-audit.md) and [security policy](../SECURITY.md). Run the file/history scans before sharing a fork or publishing new source.
+
 ## Systems
 
 - [Accounts and recovery](accounts.md)

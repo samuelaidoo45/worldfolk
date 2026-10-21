@@ -47,7 +47,7 @@ next-env.d.ts
 /work/
 
 # Local dependency download cache
-/.cache/npm/
+/.cache/
 
 # Safe example configuration is intentionally versioned.
 /.dev.vars
@@ -59,3 +59,14 @@ next-env.d.ts
 /review-artifacts/
 __pycache__/
 *.py[cod]
+
+# Local database exports, browser captures and private credentials.
+*.sqlite
+*.sqlite3
+*.sqlite-wal
+*.sqlite-shm
+*.db
+*.key
+*.p12
+*.pfx
+*.har

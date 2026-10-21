@@ -4,6 +4,12 @@ Notable project changes are recorded here. Detailed city implementation evidence
 
 ## Unreleased
 
+### Public repository safeguards · 21 October 2026
+
+- Added redacted secret scans of proposed files and full Git history, a credential/database filename guard, and checksum-pinned CI scanning.
+- Reviewed one historical Mapbox client token and obtained owner authorization to remove it from history; provider revocation and old external copies remain separate.
+
+
 ### Contributor foundation · 21 October 2026
 
 - Added a contributor guide, documentation hub, architecture, engineering/testing/asset/place/release guides and reusable brief/proposal templates.

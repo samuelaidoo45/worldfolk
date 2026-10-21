@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const maintained = ['README.md', 'CONTRIBUTING.md', 'SECURITY.md', 'CODE_OF_CONDUCT.md', 'CHANGELOG.md',
-  'docs/README.md', 'docs/development.md', 'docs/architecture.md', 'docs/roadmap.md',
+  'docs/README.md', 'docs/security-audit.md', 'docs/development.md', 'docs/architecture.md', 'docs/roadmap.md',
   ...['contributing', 'templates'].flatMap(dir => readdirSync(resolve(root, `docs/${dir}`)).filter(f => f.endsWith('.md')).map(f => `docs/${dir}/${f}`))];
 let failures = 0;
 for (const file of maintained) {
