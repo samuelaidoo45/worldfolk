@@ -1,0 +1,73 @@
+id,category,component,status,next_action,evidence,updated
+SYS-001,Homes and compounds,Compound courtyards and shared facilities,Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-002,Homes and compounds,Single-room and chamber-and-hall rentals,Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-003,Homes and compounds,Bungalows and detached houses,Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-004,Homes and compounds,Apartment common areas and stairwells,Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-005,Homes and compounds,Mixed shop/home buildings,Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-006,Homes and compounds,Student hostels and serviced residences,Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-007,Homes and compounds,"Gates, walls, balconies and construction plots",Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-008,Everyday commerce,Provision shops and kiosks,Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-009,Everyday commerce,Food stalls and chop bars at verified pitches,Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-010,Everyday commerce,Bakeries and cold stores,Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-011,Everyday commerce,Hair salons and barber shops,Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-012,Everyday commerce,Tailors and clothing shops,Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-013,Everyday commerce,MoMo and forex counters,Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-014,Everyday commerce,Pharmacies and neighbourhood clinics,Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-015,Everyday commerce,"Hardware, furniture and electronics shops",Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-016,Everyday commerce,"Laundries, printers and photo studios",Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-017,Workplaces and industry,Offices and coworking rooms,Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-018,Workplaces and industry,Mechanic and vulcanizer yards,Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-019,Workplaces and industry,"Carpentry, welding and fabrication shops",Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-020,Workplaces and industry,Warehouses and loading yards,Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-021,Workplaces and industry,Industrial roofs and service roads,Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-022,Workplaces and industry,Delivery and courier counters,Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-023,Public realm,Asphalt roads and correct lane markings,Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-024,Public realm,Concrete and block-paved pavements,Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-025,Public realm,"Bare soil, gravel and worn pedestrian paths",Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-026,Public realm,"Grass verges, trees and planted gardens",Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-027,Public realm,"Open drains, gutters, culverts and covers",Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-028,Public realm,"Crossings, dropped kerbs and pedestrian islands",Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-029,Public realm,Traffic signals at verified junctions,Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-030,Public realm,Street lights and electricity poles,Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-031,Public realm,"Bus shelters, benches and boarding bays",Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-032,Public realm,Taxi ranks and station circulation,Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-033,Public realm,"Footbridges, stairs, ramps and guardrails",Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-034,Public realm,"Parking bays, forecourts and driveways",Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-035,Public realm,"Signs, addresses and approved ad billboards",Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-036,Public realm,Public toilets and accessible entrances,Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-037,Public realm,"Waste bins, collection and recycling points",Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-038,Public realm,"Water tanks, standpipes and utility structures",Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-039,Landscape and water,"Beach sand, shoreline and surf",Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-040,Landscape and water,"Lagoons, streams and wetland edges",Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-041,Landscape and water,Fishing landing areas and canoes,Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-042,Landscape and water,Flood channels and water crossings,Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-043,Landscape and water,"Parks, gardens and recreation fields",Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-044,Landscape and water,Cemeteries and memorial grounds,Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-045,People and everyday life,"Human scale, body and facial variety",In progress,Complete the remaining realism and device acceptance checks recorded in the release notes.,implementation-progress.md: Human and camera foundation,2026-10-13
+SYS-046,People and everyday life,"Walking, running, stairs and slopes",In progress,Complete the remaining realism and device acceptance checks recorded in the release notes.,implementation-progress.md: Walking and walkable precinct updates,2026-10-13
+SYS-047,People and everyday life,Casual clothing and home wardrobe,In progress,Complete the remaining realism and device acceptance checks recorded in the release notes.,"implementation-progress.md: Walking, running and home wardrobe",2026-10-13
+SYS-048,People and everyday life,"Persistent sitting, sleeping and showering",Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-049,People and everyday life,"Eating, drinking, dancing and recreation",Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-050,People and everyday life,Work gestures and tools,Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-051,People and everyday life,"Pedestrian routes, crossings and queues",Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-052,People and everyday life,"School, service and visitor schedules",Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-053,People and everyday life,"Handles, profiles and friends",Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-054,People and everyday life,"Calls, chat and notifications",Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-055,Vehicles and travel,"Private cars, taxis and ride-hailing cars",In progress,Complete the remaining realism and device acceptance checks recorded in the release notes.,accra-vehicles.md,2026-10-13
+SYS-056,Vehicles and travel,"Trotros, vans and buses",In progress,Complete the remaining realism and device acceptance checks recorded in the release notes.,accra-vehicles.md,2026-10-13
+SYS-057,Vehicles and travel,"Trucks, pickups and delivery vehicles",In progress,Complete the remaining realism and device acceptance checks recorded in the release notes.,accra-vehicles.md,2026-10-13
+SYS-058,Vehicles and travel,"Bicycles, motorcycles and aboboyaa",In progress,Complete the remaining realism and device acceptance checks recorded in the release notes.,accra-vehicles.md,2026-10-13
+SYS-059,Vehicles and travel,"Wheel, steering and braking animation",In progress,Complete the remaining realism and device acceptance checks recorded in the release notes.,implementation-progress.md: Bicycle rolling correction,2026-10-13
+SYS-060,Vehicles and travel,Passenger cabins and boarding,In progress,Complete the remaining realism and device acceptance checks recorded in the release notes.,implementation-progress.md: Vehicle animation and cabin pass,2026-10-13
+SYS-061,Vehicles and travel,"Route following, stops and auto-driving",Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-062,Vehicles and travel,"Traffic queues, junction priority and recovery",Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-063,Vehicles and travel,Collision response without trapping people,Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-064,Vehicles and travel,"Sounds, headlights and suspension",Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-065,Shared technical acceptance,Day/night lighting and weather,Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-066,Shared technical acceptance,Stable streaming without location resets,Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-067,Shared technical acceptance,"LOD, culling and texture budgets",Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-068,Shared technical acceptance,"First-person, third-person and overview cameras",In progress,Complete the remaining realism and device acceptance checks recorded in the release notes.,implementation-progress.md: Human and camera foundation,2026-10-13
+SYS-069,Shared technical acceptance,Mobile portrait and landscape controls,Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-070,Shared technical acceptance,"Authoritative work, buying and inventory",Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-071,Shared technical acceptance,"Multiplayer position, pose and activity replication",Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13
+SYS-072,Shared technical acceptance,"Save, reconnect, restart and home persistence",Not assessed,Review the existing implementation; attach a specific defect or reference and a testable acceptance result.,,2026-10-13

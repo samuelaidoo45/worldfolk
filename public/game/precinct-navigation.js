@@ -1,16 +1,21 @@
+import {ASOM_FRAME,ASOM_NAVIGATION} from './castle-asomdwe-data.js';
+import {SPANNER,SPANNER_NAVIGATION,stripLocal,surfaceHeight,surfaceOffset} from './spanner-data.js';
 import {SQUARE_STANDS} from './square-stands.js';
 import {offsetMetres,distanceMetres} from './motion.js';
 // These same metre-space surfaces build the meshes and drive pedestrian physics.
-export const PRECINCT_LANDMARKS=[...SQUARE_STANDS,
+export const PRECINCT_LANDMARKS=[SPANNER,...SQUARE_STANDS,
  {id:'independence-parade-ground',name:'Independence Square parade ground',position:[-.19256,5.54742],rotation:-11,width:210,depth:160,height:0},
  {id:'black-star-gate',name:'Black Star Gate',sourceId:339732252,position:[-.1928568532,5.54899685],rotation:101,width:25,depth:9,height:27},
  {id:'independence-arch',name:'Independence Arch',sourceId:339732244,position:[-.1924081,5.54647445],rotation:-11,width:50,depth:17,height:30},
  {id:'unknown-soldier',name:'Unknown Soldier Memorial',sourceId:1055196850,position:[-.1927328,5.54826075],rotation:-11,width:28,depth:18,height:16},
 ];
+const NAVIGATION_SPACES=[...PRECINCT_LANDMARKS,ASOM_FRAME];
 export function precinctPoint(data,x,z){const a=data.rotation*Math.PI/180;return offsetMetres(data.position,x*Math.cos(a)+z*Math.sin(a),x*Math.sin(a)-z*Math.cos(a))}
 export function precinctLocal(data,position){const a=data.rotation*Math.PI/180,e=(position[0]-data.position[0])*111320*Math.cos(data.position[1]*Math.PI/180),n=(position[1]-data.position[1])*111320;return [e*Math.cos(a)+n*Math.sin(a),e*Math.sin(a)-n*Math.cos(a)]}
 const cache=new Map();
 export function precinctNavigation(data){
+ if(data.id===ASOM_FRAME.id)return ASOM_NAVIGATION;
+ if(data.id===SPANNER.id)return SPANNER_NAVIGATION;
  if(cache.has(data.id))return cache.get(data.id);
  const surfaces=[],solids=[];
  const floor=(x,z,w,d,y,kind='platform',base=y-.22)=>{const s={x,z,w,d,y,kind,base};if(w>0&&d>0)surfaces.push(s);return s};
@@ -56,19 +61,19 @@ export function precinctNavigation(data){
  }
  const result={surfaces,solids};cache.set(data.id,result);return result;
 }
-function contains(s,x,z,pad=0){return Math.abs(x-s.x)<=s.w/2+pad+1e-6&&Math.abs(z-s.z)<=s.d/2+pad+1e-6}
+function contains(s,x,z,pad=0){const [u,v]=stripLocal(s,x,z);return Math.abs(u)<=s.w/2+pad+1e-6&&Math.abs(v)<=s.d/2+pad+1e-6}
 export function precinctFloors(position){
- const values=[0];for(const d of PRECINCT_LANDMARKS){if(distanceMetres(position,d.position)>65)continue;const [x,z]=precinctLocal(d,position),nav=precinctNavigation(d);
+ const values=[0];for(const d of NAVIGATION_SPACES){if(distanceMetres(position,d.position)>65)continue;const [x,z]=precinctLocal(d,position),nav=precinctNavigation(d);
   // In a stair aisle a lower half-tread cuts into the terrace beneath it.
   const half=nav.surfaces.filter(s=>s.kind==='step'&&contains(s,x,z));
-  for(const s of nav.surfaces){if(!contains(s,x,z))continue;if(s.kind==='terrace'&&half.some(h=>h.y<s.y&&s.y-h.y<.2))continue;values.push(s.y)}
+  for(const s of nav.surfaces){if(!contains(s,x,z))continue;if(s.kind==='terrace'&&half.some(h=>h.y<s.y&&s.y-h.y<.2))continue;values.push(surfaceHeight(s,x,z))}
  }return values;
 }
 export function floorHeight(position,previous=0){return precinctFloors(position).filter(y=>Math.abs(y-previous)<=.245).sort((a,b)=>b-a)[0]??null}
 export function precinctCollision(position,radius=.3,elevation=0){
- for(const d of PRECINCT_LANDMARKS){if(distanceMetres(position,d.position)>65)continue;const [x,z]=precinctLocal(d,position),nav=precinctNavigation(d);
-  for(const s of nav.solids)if(elevation<s.top-.02&&elevation+1.75>s.base+.05&&contains(s,x,z,radius))return d;
-  for(const s of nav.surfaces){if(s.y<=elevation+.245||s.base>=elevation+1.75)continue;
+ for(const d of NAVIGATION_SPACES){if(distanceMetres(position,d.position)>65)continue;const [x,z]=precinctLocal(d,position),nav=precinctNavigation(d);
+  for(const s of nav.solids){const rise=surfaceOffset(s,x,z);if(elevation<s.top+rise-.02&&elevation+1.75>s.base+rise+.05&&contains(s,x,z,radius))return d;}
+  for(const s of nav.surfaces){const rise=surfaceOffset(s,x,z);if(s.y+rise<=elevation+.245||s.base+rise>=elevation+1.75)continue;
    if(s.kind==='terrace'&&nav.surfaces.some(h=>h.kind==='step'&&contains(h,x,z)&&h.y<=elevation+.245&&s.y-h.y<.2))continue;
    if(contains(s,x,z,s.kind==='step'?0:radius))return d;
   }

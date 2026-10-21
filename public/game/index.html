@@ -3,16 +3,17 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#e8f1ea" />
+  <meta name="theme-color" content="#0d141b" />
   <meta name="description" content="Live your Accra story. Work, make friends, find your home and explore a shared virtual city." />
-  <title>AccraLife — your city, your story</title>
+  <title>Worldfolk — Your Accra story</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link href="./vendor/maplibre-gl.css" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
   <script src="./vendor/maplibre-gl.js" defer></script>
   <script src="config.js" defer></script>
+  <script src="./game-startup.js" defer></script>
   <script type="module" src="app.js"></script>
   <link rel="stylesheet" href="./mobile.css?v=20261007-1" />
   <link rel="stylesheet" href="./gameplay-hud.css" />
@@ -20,8 +21,21 @@
   <link rel="stylesheet" href="./mobile-layout.css" />
   <link rel="stylesheet" href="./city-welcome.css" />
 <link rel="stylesheet" href="./community.css">
+  <link rel="stylesheet" href="./game-launch.css">
+  <link rel="preload" as="image" href="./assets/launch/accra-key-art.jpg">
 </head>
-<body class="city-home">
+<body class="city-home city-launch boot-active">
+  <section id="gameBoot" class="game-boot" role="dialog" aria-modal="true" aria-labelledby="bootTitle">
+    <div class="boot-art" aria-hidden="true"></div><div class="boot-vignette" aria-hidden="true"></div>
+    <div class="boot-title"><span class="boot-emblem" aria-hidden="true">✺</span><p>AKWAABA TO YOUR NEXT LIFE</p><h1 id="bootTitle">WORLDFOLK</h1><div class="boot-subtitle"><span></span> ACCRA <span></span></div></div>
+    <div class="boot-bottom">
+      <div class="boot-loading"><div class="boot-progress-label"><span id="bootStage" role="status">Preparing your city…</span><span id="bootCount">0 / 4</span></div><progress id="bootProgress" max="4" value="0" aria-label="Startup tasks completed"></progress><p class="boot-tip">Choose your starting place. Your story is yours to make.</p></div>
+      <button id="bootStart" type="button" hidden>PRESS START <span>↗</span></button><p class="boot-input-hint" hidden>PRESS ENTER OR TAP TO START</p>
+      <button id="bootRetry" type="button" hidden>Retry loading ↻</button>
+      <p class="boot-credit">ACCRA, GHANA <span>Original key art · gameplay visuals differ</span></p>
+    </div>
+    <noscript>Enable JavaScript to load Worldfolk.</noscript>
+  </section>
   <div id="map" aria-label="Interactive AccraLife city map"></div>
   <div class="map-shade" aria-hidden="true"></div>
 

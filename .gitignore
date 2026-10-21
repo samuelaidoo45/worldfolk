@@ -45,3 +45,17 @@ next-env.d.ts
 /.codex/
 /outputs/
 /work/
+
+# Local dependency download cache
+/.cache/npm/
+
+# Safe example configuration is intentionally versioned.
+/.dev.vars
+/.dev.vars.*
+!.dev.vars.example
+!.env.example
+
+# Local review evidence and Python bytecode are not application assets.
+/review-artifacts/
+__pycache__/
+*.py[cod]

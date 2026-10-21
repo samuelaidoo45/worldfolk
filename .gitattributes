@@ -1,7 +1,2 @@
-public/maps/accra-v1/*.json linguist-generated=true
-public/maps/accra-v1/graph.json -diff
-public/maps/accra-v1/**/*.pbf binary linguist-generated=true
-public/maps/accra-v1/*.bin binary linguist-generated=true
-public/maps/accra-v1/*.gz binary linguist-generated=true
-public/maps/fonts/*/*.pbf binary linguist-generated=true
-public/game/vendor/* linguist-vendored=true
+# Generated CSV uses platform-independent line endings in repository history.
+*.csv text eol=lf

@@ -1,0 +1,32 @@
+name: Bug report
+description: Report a reproducible gameplay, rendering or API problem.
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: "For security issues use SECURITY.md. Do not attach passwords, cookies, recovery codes, private chat or player data."
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Include map location, camera, mode and whether it happens after reconnect or travel.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Local or live, revision if known, OS/device, browser/version, viewport, orientation and quality mode.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Screenshots, logs and frequency
+      description: Remove sensitive information. Include a short recording for movement or flicker if possible.

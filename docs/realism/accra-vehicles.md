@@ -4,20 +4,21 @@ Updated 13 October 2026.
 
 The fleet now has twelve distinguishable ground-vehicle families. These are original, lightweight procedural models informed by photographs and manufacturer material; they are **not licensed replicas, scans or a complete inventory of every make on Accra's roads**. Source photographs are reference links, not game textures. Vehicle names, prices and number plates in the game are fictional.
 
-## Reference register
+## Active references — reviewed 15 October 2026
 
-| Family | Reference | Details carried into the model |
-|---|---|---|
-| Taxi | [Accra Corolla taxi photograph](https://gh.zimcompass.com/product?id=168841) | Silver sedan body, orange front/rear wing panels, compact roof sign, separate bonnet/cabin/boot and window trim |
-| Commuter tro-tro | [Toyota at Accra Central, sliding door open](https://accratrotro.com/trotro-bus-door-opened/), [Ghana commercial vehicle study](https://link.springer.com/article/10.1007/s44327-025-00081-3) | Cab-forward minibus proportions, continuous dark windows, yellow waist stripe, passenger sliding door rail and step, seat rows and rear doors |
-| Larger public bus | [Toyota Ghana Coaster](https://gh.toyotacfao.com/en/range/toyota-ghana/coaster), [Accra terminal photographs](https://accratrotro.com/category/pictures-of-trotro-buses/) | Taller passenger shell, larger wheels, repeated window bays, visible seats, destination panel, mirrors and twin wipers |
-| Sedan, hatchback, SUV | [Toyota Ghana range](https://gh.toyotacfao.com/en/range/toyota-ghana), [Corolla](https://gh.toyotacfao.com/en/range/toyota-ghana/corolla-Sedan), [RAV4](https://gh.toyotacfao.com/en/range/toyota-ghana/rav4) | Different wheelbases, widths, roof heights and rear profiles, crowned bonnets, tapered glazing and family-specific front grilles; representative shapes rather than exact current models |
-| Pickup | [Toyota Ghana Hilux](https://gh.toyotacfao.com/en/range/toyota-ghana/hilux) | Raised double cab, rear seat, open ribbed load bed, separate bed sides and tailgate |
-| Delivery van | [Toyota Ghana Hiace](https://gh.toyotacfao.com/en/range/toyota-ghana/Hiace-GD) | Long cargo body, taller roof, solid rear cargo panels and sliding-door seam; model remains an approximate delivery-van family |
-| Truck | [Toyota Ghana's Hino listing](https://www.toyotaghana.com/sales/vehicle/HILUX/vehicle/HILUX/), [manufacturer Hino 300 specification/reference sheet](https://www.toyotazambia.co.zm/hino/brochureHino300.pdf) | Cab-over proportions, separate cargo body/chassis, six wheels including rear duals, steps, mirrors, cargo-door bars and marker lamps. The regional manufacturer sheet supplements Ghana distribution evidence; it is not an Accra street photograph |
-| Motorcycle | [Ofoe Amegavie's Accra motorcycle photo essay](https://www.thefader.com/2019/09/18/12-oclock-in-accra-ghana-bikes-photo-essay) | Visible frame, fork, separate tank/seat, engine fins, exhaust, suspension, mirrors, lamps and posed rider. The commuter model is an interpretation; the essay also includes dirt bikes not yet separately modelled |
-| Bicycle | [WHO Accra Urban Health Initiative photographs](https://www.who.int/news-room/facts-in-pictures/detail/urban-health-initiative-accra-story) | Diamond frame, narrow tyres, open spoked wheels, saddle, chain run, pedals and alternating pedalling pose |
-| Aboboyaa | [UNEP's North Industrial Area scrap transport photograph](https://www.unep.org/switchafricagreen/news-and-stories/beneficiaries-story/scrap-metal-dealer-develops-sustainable-e-waste-management) | Motorcycle front, two rear wheels, blue open pressed-steel cargo bed, raised rails and rear panel |
+Use the [current reference register](current-reference-images.md) and its image-specific dates. Previous source lists are retained in [the historical archive](historical-references.md).
+
+- [Toyota Ghana current official vehicle range](https://gh.toyotacfao.com/) — **capture date unknown**. Use current Ghana catalogue as a body/specification reference, not evidence that all Accra vehicles are new models.
+- [Toyota Ghana Coaster](https://gh.toyotacfao.com/en/range/toyota-ghana/coaster) — **capture date unknown**. Undated official product imagery; confirm exact generation and local livery separately.
+- [Toyota Ghana Hilux](https://gh.toyotacfao.com/en/range/toyota-ghana/hilux) — **capture date unknown**. Undated official product imagery; confirm exact generation and local livery separately.
+- [Toyota Ghana Hiace GD](https://gh.toyotacfao.com/en/range/toyota-ghana/Hiace-GD) — **capture date unknown**. Undated official product imagery; confirm exact generation and local livery separately.
+- [Toyota Ghana Corolla Sedan](https://gh.toyotacfao.com/en/range/toyota-ghana/corolla-Sedan) — **capture date unknown**. Undated official product imagery; confirm exact generation and local livery separately.
+- [Toyota Ghana RAV4](https://gh.toyotacfao.com/en/range/toyota-ghana/rav4) — **capture date unknown**. Undated official product imagery; confirm exact generation and local livery separately.
+- [CFAO Ghana Toyota and Hino distribution update](https://www.cfaogroup.com/en/cfao-mobility-strengthens-its-commitment-to-ghana-with-the-official-launch-of-toyota-tsusho-manufacturing-ghana-ttmg-2/) — **published 2026-02-16; capture date unknown**. Replaces the erroneous Hilux link previously labelled Hino. Establishes Ghana distribution only; a truck close-up is still needed.
+- [Ghud Park Absa Auto Fair photographic report](https://www.citinewsroom.com/2026/08/day-one-of-absa-auto-fair-in-pictures/) — **published 2026-08-23; capture date unknown**. As-built lawn, temporary exhibition tents, light poles, people and vehicles. Temporary tents are not permanent park architecture. Full park layout and bench details remain unverified.
+- [Accra aboboyaa reporting and image source](https://www.citinewsroom.com/2026/07/dvla-over-90-of-aboboyaa-in-accra-operate-without-side-mirrors/) — **published 2026-07-22; capture date unknown**. Article date alone cannot establish when the photograph was taken; require a dated Accra vehicle photograph before accepting livery/wear.
+
+Current manufacturer galleries establish a selected body generation, not Accra’s complete fleet or local taxi/trotro livery. The 2026 Ghud Park photograph shows an event-display SUV, not a typical taxi. Dated street close-ups are still needed for taxis, older tro-tros, delivery trucks, commuter motorcycles, bicycles and cargo tricycles. The Hino-labelled Hilux URL is rejected; the 2019 motorcycle essay and older transport images are historical context only.
 
 ## What is integrated
 

@@ -34,7 +34,7 @@ test('2D map layers validate with collision-aware places and buildings below roa
   assert.equal(map.getLayer('worldfolk-road-labels').layout['symbol-placement'],'line');
   assert.ok(style.layers.findIndex(l=>l.id==='worldfolk-overhead-buildings')<style.layers.findIndex(l=>l.id==='worldfolk-roads'));
   assert.equal(map.getSource('worldfolk-map-places').data.features[0].properties.placeId,'mall');
-  const {setData,...source}=style.sources['worldfolk-map-places'];style.sources['worldfolk-map-places']=source;
+  for(const [id,value] of Object.entries(style.sources)){const {setData,...source}=value;style.sources[id]=source;}
   assert.deepEqual(validateStyleMin(style).map(e=>e.message),[]);
   setMapPresentation(map,false);assert.equal(map.getLayer('worldfolk-overhead-buildings').layout.visibility,'none');assert.deepEqual(validateStyleMin(style).map(e=>e.message),[]);
  }finally{delete globalThis.window;delete globalThis.location}

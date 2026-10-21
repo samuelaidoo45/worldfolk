@@ -1,0 +1,93 @@
+{
+  "as_of": "2026-10-20",
+  "scope": "Both sides of native Liberation Road within 220 m, clipped to 5.6046–5.624 latitude, with explicit mall/Polo/Association spurs. Vertex/midpoint selection, not surveyed parcels.",
+  "spurs": [
+    [
+      "mall",
+      [
+        -0.1793,
+        5.6193,
+        -0.1703,
+        5.624
+      ]
+    ],
+    [
+      "polo",
+      [
+        -0.1756,
+        5.6143,
+        -0.1712,
+        5.619
+      ]
+    ],
+    [
+      "school",
+      [
+        -0.1794,
+        5.6088,
+        -0.177,
+        5.6111
+      ]
+    ]
+  ],
+  "counts": {
+    "building": 343,
+    "landuse": 50,
+    "road": 312
+  },
+  "place_records": 78,
+  "authored_buildings": 200,
+  "native_only_buildings": 143,
+  "sections": [
+    {
+      "id": "C01",
+      "name": "Mall / interchange / Villaggio",
+      "objects": 178,
+      "buildings": 29,
+      "place_records": 53
+    },
+    {
+      "id": "C02",
+      "name": "Regent / Shangri-La",
+      "objects": 98,
+      "buildings": 73,
+      "place_records": 3
+    },
+    {
+      "id": "C03",
+      "name": "Polo / Elizabeth / Senchi",
+      "objects": 98,
+      "buildings": 51,
+      "place_records": 5
+    },
+    {
+      "id": "C04",
+      "name": "Mirage / KASS / offices",
+      "objects": 106,
+      "buildings": 79,
+      "place_records": 4
+    },
+    {
+      "id": "C05",
+      "name": "Association / Opeibea",
+      "objects": 62,
+      "buildings": 36,
+      "place_records": 3
+    },
+    {
+      "id": "C06",
+      "name": "Airport View approach",
+      "objects": 163,
+      "buildings": 75,
+      "place_records": 10
+    }
+  ],
+  "limitations": [
+    "Inventory is not a count of unique real-world properties; building parts and overlapping labels remain separate.",
+    "Native building height values may be defaults and do not prove tower height.",
+    "Authored Partial identifies a source-ID link, not current accuracy or acceptance.",
+    "No appearance, business ownership or private access is inferred from proximity.",
+    "Road segments can extend beyond the review boundary.",
+    "Waterway/land-use records can cross other records; never add layers as unique places."
+  ]
+}

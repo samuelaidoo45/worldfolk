@@ -1,3 +1,5 @@
+import {FRONTAGE_PLACE,atFrontageCounter} from '../../../public/game/mall-frontage-data.js';
+import {MALL_TERMINAL,TERMINAL_SERVICES,terminalBoardingPoint,terminalDeparture} from '../../../public/game/mall-terminal-data.js';
 import {MALL_ARRIVAL} from '../../../public/game/accra-mall-data.js';
 import {CASUAL_OUTFITS} from '../../../public/game/outfit-catalog.js';
 import {inAccra} from '../../../public/game/map-region.js';
@@ -22,7 +24,7 @@ export function lifeView(p:LifePlayer){const life=readLife(p);return {...life,ho
 export const metres=(a:number[],b:number[])=>Math.hypot((a[0]-b[0])*111320*Math.cos(a[1]*Math.PI/180),(a[1]-b[1])*111320);
 const publicCoords:Record<string,number[]>={arts:[-.2033,5.5464],theatre:[-.2047,5.5516],dubois:[-.1698,5.5815],home:[-.1949,5.5682],makola:[-.2141,5.5485],kaneshie:[-.2346,5.5724],osu:[-.1819,5.5598],mall:MALL_ARRIVAL,airport:[-.1787,5.6093],labadi:[-.140846,5.561955],legon:[-.1874,5.651]};
 for(const place of CITY_DESTINATIONS)publicCoords[place.id]=[place.lng,place.lat];
-const here=(p:LifePlayer,place:string)=>!p.driving&&!!publicCoords[place]&&metres([p.pos_lng??-.1949,p.pos_lat??5.5682],publicCoords[place])<=85;
+const here=(p:LifePlayer,place:string)=>place===FRONTAGE_PLACE.id?atFrontageCounter(p):!p.driving&&!!publicCoords[place]&&metres([p.pos_lng??-.1949,p.pos_lat??5.5682],publicCoords[place])<=85;
 const fail=(message:string,status=400)=>Response.json({error:message},{status,headers:{'Cache-Control':'no-store'}});
 export async function propertyInfo(db:D1Database,id:string){const match=/^p_([a-f0-9-]{36})_([a-z-]+)$/.exec(id);if(!match)return null;const owner=await db.prepare('SELECT *, (SELECT username FROM accounts WHERE player_id=players.id) AS handle FROM players WHERE id=?').bind(match[1]).first<LifePlayer>();const home=HOMES.find(h=>h.id===match[2]);if(!owner||!home||!readLife(owner).properties.includes(home.id))return null;return {id,ownerId:owner.id,ownerName:owner.name,home,coords:[home.lng,home.lat] as [number,number]}}
 export async function canEnter(db:D1Database,p:LifePlayer,id:string){const property=await propertyInfo(db,id);if(!property)return false;if(property.ownerId===p.id)return true;return !!await db.prepare('SELECT id FROM property_invites WHERE property_id=? AND guest_id=? AND expires_at>? LIMIT 1').bind(id,p.id,Date.now()).first()}
@@ -30,7 +32,7 @@ export async function residences(db:D1Database,ownerId?:string){const rows=await
 async function hash(code:string){return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(code)))).map(x=>x.toString(16).padStart(2,'0')).join('')}
 export async function handleLife(db:D1Database,p:LifePlayer,input:Record<string,unknown>,view:(p:any)=>unknown):Promise<Response|null>{
  const type=String(input.type),life=readLife(p),now=Date.now();
- const kinds=['outfit-change','rest-end','drive-speed','drive-skip','momo','buy','consume','equip','furnish','vehicle-select','job-apply','shift-start','work-task','experience-buy','shift-complete','shift-cancel','property-buy','home-set','pass-create','pass-redeem','pass-revoke','flight-book','flight-arrive','cook-inventory','vitals','crash','respawn','recover','ride-book','ride-progress','ride-skip','ride-exit','ride-social','bus-board','bus-arrive','traffic-hit'];
+ const kinds=['outfit-change','rest-end','drive-speed','drive-skip','momo','buy','consume','equip','furnish','vehicle-select','job-apply','shift-start','work-task','experience-buy','shift-complete','shift-cancel','property-buy','home-set','pass-create','pass-redeem','pass-revoke','flight-book','flight-arrive','cook-inventory','vitals','crash','respawn','recover','terminal-board','ride-book','ride-progress','ride-skip','ride-exit','ride-social','bus-board','bus-arrive','traffic-hit'];
  if(!kinds.includes(type))return null;
  if((life.health<=0||life.arrested)&&!['respawn','vitals'].includes(type))return fail('Restart at home to continue');
  if(life.transit&&!['respawn','bus-arrive','ride-progress','ride-skip','ride-exit','ride-social','vitals'].includes(type))return fail('Your bus is travelling');
@@ -91,6 +93,21 @@ export async function handleLife(db:D1Database,p:LifePlayer,input:Record<string,
   if(!life.transit)return fail('Board a vehicle first');if(now-p.last_action_at<8000)return fail('Give your fellow passenger a moment',429);
   next.social=Math.min(100,p.social+5);next.fun=Math.min(100,p.fun+2);event='You shared a conversation with a fellow passenger';return save();
  }
+ if(type==='terminal-board'){
+  const service=TERMINAL_SERVICES.find(s=>s.id===input.serviceId),from=[p.pos_lng??0,p.pos_lat??0];
+  if(!service||input.terminalId!==MALL_TERMINAL.id)return fail('Choose a service at the mall terminal');
+  if(p.driving||life.shift||life.rest||!terminalBoardingPoint(from,service))return fail('Walk to the marked boarding bay and finish your current activity first');
+  const fare=rideFare(metres(service.vehiclePosition,service.destination),'trotro');if(p.money<fare)return fail(`You need ₵${fare} for this ticket`);
+  if(now-p.last_action_at<2000)return fail('Please wait a moment before boarding',429);
+  const gate=await db.prepare('UPDATE players SET last_action_at=? WHERE id=? AND revision=? AND last_action_at<?').bind(now,p.id,p.revision,now-2000).run();if(!gate.meta.changes)return fail('A boarding request is already being processed',429);
+  const approach=terminalDeparture(service);let route;try{route=await roadRoute(approach.at(-1)!,service.destination)}catch(error){console.warn('Terminal road routing unavailable',error);return fail('This road service is unavailable. Please try again.',503)}
+  if(metres(approach.at(-1)!,route.coordinates[0])>15)return fail('The terminal road connection is unavailable. Please try again.',503);
+  const coordinates=[...approach,...route.coordinates.slice(1)],rideId=crypto.randomUUID(),departure=now+8000;
+  life.transit={routeId:'pickup',rideId,kind:'trotro',vehicle:'minibus',vehicleColor:service.color,terminalId:MALL_TERMINAL.id,serviceId:service.id,destinationId:service.place,name:service.name,fare,progress:0,progressAt:departure,coordinates,startedAt:departure,endsAt:departure+(route.seconds+30)*1000};
+  const waiting=await db.prepare("SELECT life_json FROM players WHERE last_seen_at>? AND place_id LIKE 'ride_%' LIMIT 50").bind(now-60000).all<LifePlayer>();
+  for(const other of waiting.results){const trip=readLife(other).transit;if(trip?.terminalId===MALL_TERMINAL.id&&trip.serviceId===service.id&&trip.startedAt>now+2000){life.transit={...trip,fare};break}}
+  next.money-=fare;next.place_id=`ride_${life.transit.rideId}`;event=`Boarded bay ${service.bay} for ${service.name} · ₵${fare} in game. Departure in ${Math.ceil((life.transit.startedAt-now)/1000)} seconds.`;return save();
+ }
  if(type==='ride-book'){
   const kind=input.kind==='taxi'?'taxi':input.kind==='trotro'?'trotro':null,lng=Number(input.lng),lat=Number(input.lat),from=[p.pos_lng??0,p.pos_lat??0];
   if(!kind||!Number.isFinite(lng)||!Number.isFinite(lat)||!inAccra(lng,lat))return fail('Choose a destination in Accra');
@@ -123,7 +140,7 @@ export async function handleLife(db:D1Database,p:LifePlayer,input:Record<string,
   next.money-=route.fare;const departure=Math.ceil((now+2000)/30000)*30000;life.transit={routeId:route.id,startedAt:departure,endsAt:departure+detailed.seconds*1000,coordinates:detailed.coordinates,progress:0,progressAt:departure};event='Ticket purchased. Boarded the tro-tro; departure within 30 seconds.';return save();
  }
  if(type==='bus-arrive'||type==='ride-exit'||type==='ride-skip'){
-  const trip=life.transit;if(type==='ride-skip'&&(!trip||input.rideId!==(trip.rideId||String(trip.startedAt))))return fail('This ride is no longer active');const route=transit.routes.find(r=>r.id===trip?.routeId);if(!trip||(!route&&!trip.coordinates)||type==='bus-arrive'&&(trip.progress===undefined?now<trip.endsAt:trip.progress<1))return fail('Your vehicle has not arrived');const to=route?transit.stops.find(s=>s.id===route.to)!:{id:'home',name:trip.name||'Your destination'},coords=trip.coordinates||route!.coordinates,point=type==='ride-exit'?routePoint(coords,trip.progress??Math.max(0,(now-trip.startedAt)/(trip.endsAt-trip.startedAt))).position:coords[coords.length-1];life.transit=null;
+  const trip=life.transit;if(type==='ride-skip'&&(!trip||input.rideId!==(trip.rideId||String(trip.startedAt))))return fail('This ride is no longer active');const route=transit.routes.find(r=>r.id===trip?.routeId);if(!trip||(!route&&!trip.coordinates)||type==='bus-arrive'&&(trip.progress===undefined?now<trip.endsAt:trip.progress<1))return fail('Your vehicle has not arrived');const to=route?transit.stops.find(s=>s.id===route.to)!:{id:trip.destinationId||'home',name:trip.name||'Your destination'},coords=trip.coordinates||route!.coordinates,point=type==='ride-exit'?routePoint(coords,trip.progress??Math.max(0,(now-trip.startedAt)/(trip.endsAt-trip.startedAt))).position:coords[coords.length-1];life.transit=null;
   const result=await db.prepare('UPDATE players SET life_json=?,pos_lng=?,pos_lat=?,place_id=?,driving=0,last_move_at=?,last_action_at=?,last_seen_at=?,revision=revision+1 WHERE id=? AND revision=?').bind(JSON.stringify(life),point[0],point[1],type==='ride-exit'?'home':to.id==='ridge'?'home':to.id,now,now,now,p.id,p.revision).run();if(!result.meta.changes)return fail('Please try again',409);const updated=await db.prepare('SELECT *, (SELECT username FROM accounts WHERE player_id=players.id) AS handle FROM players WHERE id=?').bind(p.id).first();return Response.json({self:view(updated),event:type==='ride-exit'?'You left the vehicle at the roadside':`Arrived at ${to.name}`});
  }
  const item=GOODS.find(g=>g.id===input.itemId);

@@ -1,9 +1,10 @@
+import {CORRIDOR_WIDTHS} from './airport-corridor-data.js';
 import {groundColour,unpavedRoad} from './surface-style.js';
 import {setOverheadPlacesMode} from './overhead-map.js';
 import {placeIconExpression} from './place-icons.js';
 export function cityMapStyle(){
  const root=window.ACCRALIFE_CONFIG.mapData,source='accralife-streets',layer=(id,type,name,paint,extra={})=>({id,type,source,'source-layer':name,paint,...extra}),font=['Noto Sans Regular'];
- const roadWidth=['match',['get','class'],'motorway',16,'trunk',14,'primary',11,'secondary',9,'tertiary',8,'service',5,7],width=extra=>['interpolate',['exponential',2],['zoom'],12,['*',['+',roadWidth,extra],.0263],16,['*',['+',roadWidth,extra],.42],20,['*',['+',roadWidth,extra],6.72],24,['*',['+',roadWidth,extra],107.52]];
+ const roadWidth=['match',['to-string',['id']],...Array.from(CORRIDOR_WIDTHS).flat(),['match',['get','class'],'motorway',16,'trunk',14,'primary',11,'secondary',9,'tertiary',8,'service',5,7]],width=extra=>['interpolate',['exponential',2],['zoom'],12,['*',['+',roadWidth,extra],.0263],16,['*',['+',roadWidth,extra],.42],20,['*',['+',roadWidth,extra],6.72],24,['*',['+',roadWidth,extra],107.52]];
  const landColor=groundColour;
  return {version:8,name:'Worldfolk · Accra OpenStreetMap',glyphs:location.origin+'/maps/fonts/{fontstack}/{range}.pbf',light:{anchor:'viewport',color:'#fff0d6',intensity:.4,position:[1.5,180,40]},sources:{[source]:{type:'vector',tiles:[new URL(root,location.origin).href+'/{z}/{x}/{y}.pbf'],minzoom:10,maxzoom:15,bounds:[-.40,5.40,.12,5.83],attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a> · <a href="/maps/README.html">Map data & licence</a>'}},layers:[
  {id:'worldfolk-background',type:'background',paint:{'background-color':'#aaa494'}},

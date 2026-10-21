@@ -1,0 +1,30 @@
+name: Feature or engineering task
+description: Propose a bounded improvement or claim a roadmap task.
+title: "[Task]: "
+body:
+  - type: input
+    id: backlog
+    attributes:
+      label: Roadmap ID or related issue
+      placeholder: WF-003, or a link to an existing discussion
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Problem and proposed outcome
+      description: Who benefits and what should work when complete?
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope and likely modules
+      description: Include what this task deliberately leaves for follow-up work.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance and verification
+      description: Tests, device/browser checks, performance evidence, schema/compatibility or asset-rights requirements.
+    validations:
+      required: true

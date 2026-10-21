@@ -6,6 +6,7 @@ import {casualOutfit} from './outfit-catalog.js';
 import {gaitPose} from './human-gait.js';
 import {civilianGeometry} from './human-garments.js';
 import {disposeScene} from './render-utils.js';
+import {getHumanLod,loadHumanLod} from './lod-assets.js';
 
 const templates=new Map(),loads=new Map();
 const shirts=[0x326854,0xc1aa83,0x3b617b,0x944d3e,0x636d48,0xd4cbb8];
@@ -70,6 +71,9 @@ export function createRiggedActor(template,icon='🧑🏾',identity=''){
  visual.traverse(o=>{if(o.isBone){bones.set(o.name,o);binds.set(o.name,{local:o.quaternion.clone(),parent:o.parent.getWorldQuaternion(new THREE.Quaternion())})}});
  const originals=new Map();visual.traverse(o=>{if(!o.isMesh)return;const copy=m=>{if(!originals.has(m)){const c=m.clone();c.userData={...m.userData};originals.set(m,c)}return originals.get(m)};o.material=Array.isArray(o.material)?o.material.map(copy):copy(o.material);o.frustumCulled=false});
  const byName=new Map([...originals.values()].map(m=>[m.name,m]));
+ const body=visual.getObjectsByProperty('isSkinnedMesh',true).find(o=>Array.isArray(o.material)),nearGeometry=body.geometry;let detail='near';
+ function setDetail(value){detail=value==='medium'?'medium':'near';const reduced=getHumanLod(gender(icon));body.geometry=detail==='medium'&&reduced?reduced:nearGeometry;group.userData.renderLod=body.geometry===nearGeometry?'near':'medium';}
+ loadHumanLod(gender(icon)).then(()=>{if(!group.userData.disposed)setDetail(detail)});
  function outfit(id){const clothes=casualOutfit(id,seed);for(const part of ['shirt','pants','shoes'])byName.get(part).color.setHex(clothes[part])}
  outfit(null);
  // The authored dark skin texture keeps facial detail; small tints add variety.
@@ -131,24 +135,25 @@ export function createRiggedActor(template,icon='🧑🏾',identity=''){
    leftArm.rotation.x=-.35*w;rightArm.rotation.x=(-.45+Math.sin(t*2)*.1)*w;elbows.forEach(e=>e.rotation.x=-1.1*w);
   }
  }
- group.userData.releaseResources=()=>{const seen=new Set();visual.traverse(o=>{if(o.skeleton&&!seen.has(o.skeleton)){seen.add(o.skeleton);o.skeleton.dispose()}})};
- return {group,leftArm,rightArm,leftLeg,rightLeg,knees,elbows,spine,head,rigged:true,animate,pose,outfit};
+ group.userData.releaseResources=()=>{group.userData.disposed=true;const seen=new Set();visual.traverse(o=>{if(o.skeleton&&!seen.has(o.skeleton)){seen.add(o.skeleton);o.skeleton.dispose()}})};
+ return {group,leftArm,rightArm,leftLeg,rightLeg,knees,elbows,spine,head,rigged:true,animate,pose,outfit,setDetail};
 }
 
-export function createActor(icon='🧑🏾',identity=''){
+export function createActor(icon='🧑🏾',identity='',{prepare}={}){
  const sex=gender(icon),template=templates.get(sex);
- if(template)return createRiggedActor(template,icon,identity);
+ if(template){const actor=createRiggedActor(template,icon,identity);if(prepare){actor.group.userData.gpuReady=false;actor.prepared=prepare(actor.group).then(ok=>{actor.group.userData.gpuReady=true;return ok});}return actor;}
  const actor=createFallbackActor(icon,identity),root=actor.group;root.userData.humanoid=true;root.traverse(o=>o.userData.dynamic=true);
  // This fallback is only used while the local model downloads or on load failure.
  // Preserve the root so existing city/interior references and world state survive.
  if(typeof window!=='undefined'){
-  let disposed=false,lastOutfit;const fallbackOutfit=actor.outfit;actor.outfit=id=>{lastOutfit=id;fallbackOutfit(id)};root.userData.releaseResources=()=>{disposed=true};
-  actor.ready=loadHumanTemplate(sex).then(template=>{
-   if(disposed)return false;
-   const upgraded=createRiggedActor(template,icon,identity),fresh=upgraded.group;upgraded.outfit(lastOutfit);
+  let disposed=false,lastOutfit,lastDetail='near';actor.setDetail=value=>{lastDetail=value};root.userData.gpuReady=!prepare;actor.prepared=prepare?prepare(root).then(ok=>{root.userData.gpuReady=true;return ok}):Promise.resolve(true);const fallbackOutfit=actor.outfit;actor.outfit=id=>{lastOutfit=id;fallbackOutfit(id)};root.userData.releaseResources=()=>{disposed=true;root.userData.disposed=true};
+  actor.ready=loadHumanTemplate(sex).then(async template=>{
+   await actor.prepared;if(disposed)return false;
+   const upgraded=createRiggedActor(template,icon,identity),fresh=upgraded.group;upgraded.outfit(lastOutfit);upgraded.setDetail(lastDetail);
+   if(prepare)await prepare(fresh);if(disposed){disposeScene(fresh);return false;}upgraded.outfit(lastOutfit);upgraded.setDetail(lastDetail);
    for(const child of [...root.children]){root.remove(child);disposeScene(child)}
    for(const child of [...fresh.children])root.add(child);
-   root.userData.releaseResources=fresh.userData.releaseResources;
+   root.userData.releaseResources=()=>{disposed=true;root.userData.disposed=true;fresh.userData.releaseResources()};root.userData.gpuReady=true;
    Object.assign(actor,upgraded,{group:root,animate(...args){upgraded.animate(...args);root.position.y=fresh.position.y},pose(...args){upgraded.pose(...args);root.position.y=fresh.position.y}});return true;
   }).catch(error=>{root.userData.assetError=error.message;console.warn('Worldfolk human asset unavailable:',error.message);return false});
  }

@@ -6,7 +6,7 @@
 
 Accra is the first playable city. The longer-term vision is to let people explore and experience more cities through their places, culture and everyday activities.
 
-**[Play the live demo →](https://worldfolk.world/game/)** · [Getting started](#getting-started) · [Technical overview](#how-it-works) · [Development setup](docs/development.md)
+**[Play Worldfolk →](https://worldfolk.world/game/)** · [Documentation](docs/README.md) · [Contribute](CONTRIBUTING.md) · [Roadmap](docs/roadmap.md) · [Local setup](docs/development.md)
 
 > **Project stage:** playable prototype under active development. Real map data supports the world; landmark models, characters, interiors and gameplay are being improved incrementally. This is not yet a photorealistic replica of all Accra.
 
@@ -54,7 +54,7 @@ Jobs, balances, purchases, property and MoMo activities are **fictional game sys
 
 - **Accra shapes the gameplay.** Neighbourhoods, landmarks, local transport and professions give the world a specific cultural setting.
 - **The map and game share geography.** Roads, building footprints, search, directions and the mini-map use the same self-hosted OpenStreetMap extract.
-- **Players choose where to begin.** The home screen is an explorable city map that leads into gameplay at a selected location.
+- **Players choose where to begin.** The game menu leads to a city map where a selected location becomes the starting point for exploration.
 - **Social play connects to everyday life.** Friends, conversations, work, home activities and transport sit within the same persistent player experience.
 - **It runs in the browser.** The client renders the 3D scene, while Cloudflare services handle accounts, saved state and multiplayer coordination.
 
@@ -67,6 +67,8 @@ Other locations have mapped geometry and/or themed game environments, with varyi
 **Kwame Nkrumah Memorial Park** now has a distinct mausoleum, statue, fountain walk, gardens and an interactive interpretive museum. See the [reference record and accuracy notes](docs/realism/nkrumah-park.md). **Accra Mall** has a mapped exterior, steel entrance tower, walkable shopping concourses, food court and upstairs cinema, with purchases and retail jobs connected to the game economy. See its [references and reconstruction limits](docs/realism/accra-mall.md). The wider roadmap includes Osu, Makola, the University of Ghana and Labadi, alongside better character animation, vehicles, lighting and device performance.
 
 See the [realism checklist](docs/realism/accra-realism-master-checklist.md), [place inventory](docs/realism/priority-places.csv) and [implementation progress](docs/realism/implementation-progress.md) for the detailed sequence and evidence.
+
+The [current visual reference register](docs/realism/current-reference-images.md) records image dates, credits and remaining capture gaps. [Reference coverage](docs/realism/reference-coverage.csv) tracks evidence for every planned location.
 
 ## Controls
 
@@ -118,10 +120,24 @@ In-game notifications watch new messages while the game is open; unread alert st
 git clone https://github.com/samuelaidoo45/worldfolk.git
 cd worldfolk
 npm run install:ci
+npm run doctor
 npm run build
+npm run db:setup
+npm run start -- --port 3001
 ```
 
-Continue with the [local database, preview and deployment guide](docs/development.md). The live demo above is the fastest way to try Worldfolk; cloning is optional.
+Open `http://127.0.0.1:3001/game/`. The database command is for **fresh local state** and refuses existing SQLite data. Continue with the [setup and troubleshooting guide](docs/development.md). The live demo above is the fastest way to try Worldfolk; cloning is optional.
+
+### Contribute
+
+Help with gameplay, recognizable Accra locations, original art/animation, multiplayer, testing or documentation. Start with [CONTRIBUTING.md](CONTRIBUTING.md), choose a bounded [roadmap task](docs/roadmap.md), and follow the [engineering standards](docs/contributing/standards.md). Issue and pull-request templates describe the evidence reviewers need.
+
+```sh
+npm run check       # contributor docs + offline smoke tests
+npm run test:unit   # broader offline suite
+```
+
+[Architecture](docs/architecture.md) explains the module boundaries. [Testing](docs/contributing/testing.md) covers local API fixtures and browser/device acceptance. CI runs smoke checks and a build without deploying. The [documentation hub](docs/README.md) links the detailed systems and location records.
 
 ### Repository guide
 
@@ -140,3 +156,8 @@ Continue with the [local database, preview and deployment guide](docs/developmen
 Map data is **© OpenStreetMap contributors**, provided under the ODbL. See the [map attribution and data licence](public/maps/README.html) and [map build documentation](scripts/maps/README.md).
 
 Third-party assets retain their notices: [character assets](public/game/assets/humans/LICENSE.txt), [Three.js](public/game/THREE-LICENSE.txt), [MapLibre](public/game/vendor/MAPLIBRE-LICENSE.txt), and [verified place-logo sources](public/game/logos/sources.json). Real place names and logos identify locations; they do not imply endorsement or partnership.
+
+
+## Project stewardship
+
+See the [code of conduct](CODE_OF_CONDUCT.md), [security reporting policy](SECURITY.md) and [release checklist](docs/contributing/releases.md). Original Worldfolk source and documentation are licensed under [Apache 2.0](LICENSE); see [NOTICE](NOTICE) and the [asset rules](docs/contributing/assets-and-licensing.md). Third-party map, engine, character and logo rights remain separate.

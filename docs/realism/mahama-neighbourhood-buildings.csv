@@ -1,0 +1,61 @@
+source_id,model_id,zone,geometry_source,wall_height_estimate_m,roof_rise_estimate_m,roof_form,reference_status,remaining_work
+888975158,existing authored exterior,existing,bundled OSM native polygon,see existing model,see existing model,see existing model,see earlier model reference record,current capture; measured dimensions; concealed facade/access
+888975160,existing authored exterior,existing,bundled OSM native polygon,see existing model,see existing model,see existing model,see earlier model reference record,current capture; measured dimensions; concealed facade/access
+888975162,existing authored exterior,existing,bundled OSM native polygon,see existing model,see existing model,see existing model,see earlier model reference record,current capture; measured dimensions; concealed facade/access
+888975164,existing authored exterior,existing,bundled OSM native polygon,see existing model,see existing model,see existing model,see earlier model reference record,current capture; measured dimensions; concealed facade/access
+888975166,existing authored exterior,existing,bundled OSM native polygon,see existing model,see existing model,see existing model,see earlier model reference record,current capture; measured dimensions; concealed facade/access
+888975168,existing authored exterior,existing,bundled OSM native polygon,see existing model,see existing model,see existing model,see earlier model reference record,current capture; measured dimensions; concealed facade/access
+888975172,existing authored exterior,existing,bundled OSM native polygon,see existing model,see existing model,see existing model,see earlier model reference record,current capture; measured dimensions; concealed facade/access
+888975174,existing authored exterior,existing,bundled OSM native polygon,see existing model,see existing model,see existing model,see earlier model reference record,current capture; measured dimensions; concealed facade/access
+1025799036,existing authored exterior,existing,bundled OSM native polygon,see existing model,see existing model,see existing model,see earlier model reference record,current capture; measured dimensions; concealed facade/access
+20332079,mahama-area:20332079,north,bundled OSM native polygon,6.8,2.8,courtyard,overhead + September 2024 facade,current capture; measured dimensions; concealed facade/access
+2175558972,mahama-area:2175558972,yard,bundled OSM native polygon,2.8,0.7,hip,overhead roof context; hidden elevations estimated,current capture; measured dimensions; concealed facade/access
+2175558974,mahama-area:2175558974,yard,bundled OSM native polygon,2.3,0.3,mono,overhead roof context; hidden elevations estimated,current capture; measured dimensions; concealed facade/access
+2175558976,mahama-area:2175558976,yard,bundled OSM native polygon,2.5,0.6,hip,overhead roof context; hidden elevations estimated,current capture; measured dimensions; concealed facade/access
+2175558978,mahama-area:2175558978,yard,bundled OSM native polygon,3.1,1.2,hip,overhead roof context; hidden elevations estimated,current capture; measured dimensions; concealed facade/access
+2266652078,mahama-area:2266652078,west,bundled OSM native polygon,5.8,2.2,hip,overhead roof context; hidden elevations estimated,current capture; measured dimensions; concealed facade/access
+2469962810,existing authored exterior,existing,bundled OSM native polygon,see existing model,see existing model,see existing model,see earlier model reference record,current capture; measured dimensions; concealed facade/access
+2469962812,mahama-area:2469962812,west,bundled OSM native polygon,3.0,1.2,hip,overhead roof context; hidden elevations estimated,current capture; measured dimensions; concealed facade/access
+2475835058,mahama-area:2475835058,west,bundled OSM native polygon,2.4,0.3,mono,overhead roof context; hidden elevations estimated,current capture; measured dimensions; concealed facade/access
+2475835060,existing authored exterior,existing,bundled OSM native polygon,see existing model,see existing model,see existing model,see earlier model reference record,current capture; measured dimensions; concealed facade/access
+2475835062,mahama-area:2475835062,west,bundled OSM native polygon,3.0,1.4,hip,overhead roof context; hidden elevations estimated,current capture; measured dimensions; concealed facade/access
+2475835066,mahama-area:2475835066,west,bundled OSM native polygon,2.2,0.25,mono,overhead roof context; hidden elevations estimated,current capture; measured dimensions; concealed facade/access
+2475835068,mahama-area:2475835068,west,bundled OSM native polygon,2.4,0.35,mono,overhead roof context; hidden elevations estimated,current capture; measured dimensions; concealed facade/access
+2475835070,mahama-area:2475835070,west,bundled OSM native polygon,2.8,0.7,hip,overhead roof context; hidden elevations estimated,current capture; measured dimensions; concealed facade/access
+2475835072,mahama-area:2475835072,west,bundled OSM native polygon,2.8,0.7,gable,overhead roof context; hidden elevations estimated,current capture; measured dimensions; concealed facade/access
+2475835988,mahama-area:2475835988,west,bundled OSM native polygon,3.1,1.3,hip,overhead roof context; hidden elevations estimated,current capture; measured dimensions; concealed facade/access
+2475838246,existing authored exterior,existing,bundled OSM native polygon,see existing model,see existing model,see existing model,see earlier model reference record,current capture; measured dimensions; concealed facade/access
+2475838248,existing authored exterior,existing,bundled OSM native polygon,see existing model,see existing model,see existing model,see earlier model reference record,current capture; measured dimensions; concealed facade/access
+2475838250,mahama-area:2475838250,west,bundled OSM native polygon,2.8,0.9,hip,overhead roof context; hidden elevations estimated,current capture; measured dimensions; concealed facade/access
+2475838252,mahama-area:2475838252,west,bundled OSM native polygon,2.7,0.8,gable,overhead roof context; hidden elevations estimated,current capture; measured dimensions; concealed facade/access
+2475838254,mahama-area:2475838254,west,bundled OSM native polygon,2.9,1.0,gable,overhead roof context; hidden elevations estimated,current capture; measured dimensions; concealed facade/access
+2475838256,mahama-area:2475838256,west,bundled OSM native polygon,2.6,0.7,hip,overhead roof context; hidden elevations estimated,current capture; measured dimensions; concealed facade/access
+2475838260,mahama-area:2475838260,west,bundled OSM native polygon,2.1,0.2,mono,overhead roof context; hidden elevations estimated,current capture; measured dimensions; concealed facade/access
+2475838262,mahama-area:2475838262,west,bundled OSM native polygon,2.7,0.6,gable,overhead roof context; hidden elevations estimated,current capture; measured dimensions; concealed facade/access
+2475838264,mahama-area:2475838264,west,bundled OSM native polygon,2.6,0.45,mono,overhead roof context; hidden elevations estimated,current capture; measured dimensions; concealed facade/access
+2475838266,mahama-area:2475838266,west,bundled OSM native polygon,2.6,0.55,gable,overhead roof context; hidden elevations estimated,current capture; measured dimensions; concealed facade/access
+2475838268,mahama-area:2475838268,west,bundled OSM native polygon,2.7,0.7,hip,overhead roof context; hidden elevations estimated,current capture; measured dimensions; concealed facade/access
+2475838270,mahama-area:2475838270,west,bundled OSM native polygon,2.7,0.8,hip,overhead roof context; hidden elevations estimated,current capture; measured dimensions; concealed facade/access
+2475838272,mahama-area:2475838272,west,bundled OSM native polygon,2.4,0.35,mono,overhead roof context; hidden elevations estimated,current capture; measured dimensions; concealed facade/access
+2475838274,mahama-area:2475838274,west,bundled OSM native polygon,2.6,0.6,gable,overhead roof context; hidden elevations estimated,current capture; measured dimensions; concealed facade/access
+2475838276,mahama-area:2475838276,west,bundled OSM native polygon,2.8,0.9,hip,overhead roof context; hidden elevations estimated,current capture; measured dimensions; concealed facade/access
+2475838278,mahama-area:2475838278,west,bundled OSM native polygon,2.5,0.4,mono,overhead roof context; hidden elevations estimated,current capture; measured dimensions; concealed facade/access
+2475838280,mahama-area:2475838280,west,bundled OSM native polygon,2.2,0.25,mono,overhead roof context; hidden elevations estimated,current capture; measured dimensions; concealed facade/access
+2475838282,mahama-area:2475838282,west,bundled OSM native polygon,2.6,0.55,gable,overhead roof context; hidden elevations estimated,current capture; measured dimensions; concealed facade/access
+2475838284,mahama-area:2475838284,west,bundled OSM native polygon,3.0,1.2,hip,overhead roof context; hidden elevations estimated,current capture; measured dimensions; concealed facade/access
+2475838286,mahama-area:2475838286,west,bundled OSM native polygon,2.8,0.9,hip,overhead roof context; hidden elevations estimated,current capture; measured dimensions; concealed facade/access
+2475838476,existing authored exterior,existing,bundled OSM native polygon,see existing model,see existing model,see existing model,see earlier model reference record,current capture; measured dimensions; concealed facade/access
+2475838888,mahama-area:2475838888,west,bundled OSM native polygon,2.8,1.0,hip,overhead roof context; hidden elevations estimated,current capture; measured dimensions; concealed facade/access
+2475838890,mahama-area:2475838890,west,bundled OSM native polygon,2.3,0.3,mono,overhead roof context; hidden elevations estimated,current capture; measured dimensions; concealed facade/access
+2475838892,mahama-area:2475838892,west,bundled OSM native polygon,2.5,0.4,mono,overhead roof context; hidden elevations estimated,current capture; measured dimensions; concealed facade/access
+2475838894,mahama-area:2475838894,west,bundled OSM native polygon,2.0,0.2,mono,overhead roof context; hidden elevations estimated,current capture; measured dimensions; concealed facade/access
+2475838896,mahama-area:2475838896,west,bundled OSM native polygon,2.1,0.2,mono,overhead roof context; hidden elevations estimated,current capture; measured dimensions; concealed facade/access
+2491216764,mahama-area:2491216764,court,bundled OSM native polygon,6.4,2.0,hip,overhead roof context; hidden elevations estimated,current capture; measured dimensions; concealed facade/access
+,court-north,court,manual-overhead-estimate,6.4,2,hip,visually reviewed overhead; capture date unknown,survey footprint/height and current facade; no private interior
+,court-west-north,court,manual-overhead-estimate,6.4,2,hip,visually reviewed overhead; capture date unknown,survey footprint/height and current facade; no private interior
+,court-west-middle,court,manual-overhead-estimate,6.4,2,hip,visually reviewed overhead; capture date unknown,survey footprint/height and current facade; no private interior
+,court-west-south,court,manual-overhead-estimate,6.4,2,hip,visually reviewed overhead; capture date unknown,survey footprint/height and current facade; no private interior
+,court-east-south,court,manual-overhead-estimate,6.4,2,hip,visually reviewed overhead; capture date unknown,survey footprint/height and current facade; no private interior
+,stable-west-red-shed,yard,manual-overhead-estimate,3.6,1.7,gable,visually reviewed overhead; capture date unknown,survey footprint/height and current facade; no private interior
+,north-unfinished-frame,north,manual-overhead-estimate,7.2,0,frame,visually reviewed overhead; capture date unknown,survey footprint/height and current facade; no private interior
+,court-central-service,court,manual-overhead-estimate,2.8,0.4,mono,visually reviewed overhead; capture date unknown,survey footprint/height and current facade; no private interior

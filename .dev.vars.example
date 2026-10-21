@@ -1,0 +1,5 @@
+# Optional local Worker secrets for relayed voice calls.
+# Copy to .dev.vars only if testing your own TURN provider resources.
+# Ordinary local gameplay needs no cloud login, Mapbox token, or TURN secret.
+# TURN_KEY_ID=your-own-turn-key-id
+# TURN_KEY_API_TOKEN=your-own-turn-api-token

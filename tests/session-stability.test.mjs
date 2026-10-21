@@ -5,7 +5,7 @@ import ts from 'typescript';
 import {movementFailure,correctedPosition,newestPlayer} from '../public/game/movement-sync.js';
 import {facadeLayout} from '../public/game/facade-layout.js';
 import {buildingDesign} from '../public/game/building-design.js';
-const compiled=ts.transpileModule(fs.readFileSync('server/world-room.ts','utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ESNext}}).outputText.replaceAll("'../public/game/map-region.js'",JSON.stringify(new URL('../public/game/map-region.js',import.meta.url).href)).replace("import { DurableObject } from 'cloudflare:workers';",'class DurableObject {constructor(ctx,env){this.ctx=ctx;this.env=env}}');
+const compiled=ts.transpileModule(fs.readFileSync('server/world-room.ts','utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ESNext}}).outputText.replaceAll("'../public/game/precinct-navigation.js'",JSON.stringify(new URL('../public/game/precinct-navigation.js',import.meta.url).href)).replaceAll("'../public/game/map-region.js'",JSON.stringify(new URL('../public/game/map-region.js',import.meta.url).href)).replace("import { DurableObject } from 'cloudflare:workers';",'class DurableObject {constructor(ctx,env){this.ctx=ctx;this.env=env}}');
 globalThis.WebSocketRequestResponsePair=class {};
 const {WorldRoom,validMove}=await import('data:text/javascript;base64,'+Buffer.from(compiled).toString('base64'));
 function fixture(){
@@ -16,7 +16,7 @@ function fixture(){
  const ctx={setWebSocketAutoResponse(){},getWebSockets:()=>[],blockConcurrencyWhile:fn=>fn()};
  const db={prepare(){return {bind(...args){return {
   first:async()=>structuredClone(row),
-  run:async()=>{const ok=args[7]===row.revision&&row.last_move_at<=args[8];if(ok)Object.assign(row,{pos_lng:args[0],pos_lat:args[1],heading:args[2],last_move_at:args[3]});return {meta:{changes:ok?1:0}}}
+  run:async()=>{const ok=args[8]===row.revision&&row.last_move_at<=args[9];if(ok)Object.assign(row,{pos_lng:args[0],pos_lat:args[1],heading:args[2],last_move_at:args[3]});return {meta:{changes:ok?1:0}}}
  }}}}};
  return {row,m,ws,sent,room:new WorldRoom(ctx,{DB:db})};
 }

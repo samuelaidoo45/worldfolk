@@ -1,3 +1,5 @@
+import {ANNEX_RING,ANNEX_GATES,annexPoint} from './airport-annex-data.js';
+import {T3_WORKS_RING} from './airport-access-data.js';
 import {placeLogoExpression} from './place-logos.js';
 import {placeCategory} from './place-icons.js';
 const knownCategories={home:'home',square:'museum',nkrumah:'park',jamestown:'museum',makola:'market',osu:'food',labadi:'beach',arts:'museum',theatre:'cinema',dubois:'museum',mall:'mall',airport:'office',eastlegon:'park',legon:'school',kaneshie:'market'};
@@ -6,6 +8,14 @@ export function setOverheadPlacesMode(map,enabled){mapModes.set(map,enabled);if(
 // Mapped roof colour wins; the fallback palette distinguishes building uses.
 export const overheadRoofColor=['to-color',['get','roof:colour'],['match',['get','class'],['commercial','office','retail'],'#91a6ab',['church','mosque','school','university'],'#c4aa7b',['industrial','warehouse'],'#a4acb1',['house','residential','apartments'],'#c29981','#b5aaa0']];
 export function installOverheadMap(map){
+ if(!map.getSource('worldfolk-airport-works'))map.addSource('worldfolk-airport-works',{type:'geojson',data:{type:'FeatureCollection',features:[{type:'Feature',properties:{name:'Former T3 car park · closed'},geometry:{type:'Polygon',coordinates:[T3_WORKS_RING]}}]}});
+ if(!map.getLayer('worldfolk-airport-works-fill'))map.addLayer({id:'worldfolk-airport-works-fill',source:'worldfolk-airport-works',type:'fill',paint:{'fill-color':'#b29565','fill-opacity':.8}});
+ if(!map.getLayer('worldfolk-airport-works-edge'))map.addLayer({id:'worldfolk-airport-works-edge',source:'worldfolk-airport-works',type:'line',paint:{'line-color':'#614d32','line-width':2,'line-dasharray':[3,2]}});
+
+ if(!map.getSource('worldfolk-airport-annex'))map.addSource('worldfolk-airport-annex',{type:'geojson',data:{type:'FeatureCollection',features:[{type:'Feature',properties:{name:'Terminal 3 parking annex'},geometry:{type:'Polygon',coordinates:[ANNEX_RING]}}]}});
+ if(!map.getLayer('worldfolk-airport-annex-fill'))map.addLayer({id:'worldfolk-airport-annex-fill',source:'worldfolk-airport-annex',type:'fill',paint:{'fill-color':'#626d70','fill-opacity':.95}});
+ if(!map.getSource('worldfolk-airport-annex-links'))map.addSource('worldfolk-airport-annex-links',{type:'geojson',data:{type:'FeatureCollection',features:ANNEX_GATES.map(g=>({type:'Feature',properties:{},geometry:{type:'LineString',coordinates:[annexPoint(g.x,g.z),g.connection]}}))}});
+ if(!map.getLayer('worldfolk-airport-annex-links'))map.addLayer({id:'worldfolk-airport-annex-links',source:'worldfolk-airport-annex-links',type:'line',paint:{'line-color':'#626d70','line-width':5}});
  const add=(layer,before)=>{if(!map.getLayer(layer.id))map.addLayer(layer,before)};
  add({id:'worldfolk-overhead-shadow',type:'fill',source,'source-layer':'building',minzoom:14,layout:{visibility:'none'},paint:{'fill-color':'#5d6867','fill-opacity':.2,'fill-translate':[2,3],'fill-translate-anchor':'viewport'}},'worldfolk-road-casing');
  add({id:'worldfolk-overhead-buildings',type:'fill',source,'source-layer':'building',minzoom:14,layout:{visibility:'none'},paint:{'fill-color':overheadRoofColor,'fill-outline-color':'#968f85','fill-opacity':1}},'worldfolk-road-casing');

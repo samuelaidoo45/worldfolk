@@ -1,4 +1,5 @@
 import * as THREE from './three.module.js';
+import {applyPbrSurface,reflectionSky} from './pbr-materials.js';
 
 // Small, deterministic textures are shared by every district and interior. They
 // add surface detail without network requests or one texture allocation per mesh.
@@ -38,6 +39,7 @@ export function enhanceMaterials(root){
    seen.add(material);material.userData.graphicsEnhanced=true;
    const kind=material.userData.surface||(material.roughness<.35?'smooth':material.metalness>.3?'metal':'plaster');
    material.envMapIntensity=kind==='glass'?1.15:kind==='paint'?.8:.35;
+   if(applyPbrSurface(material,kind))continue;
    // Keep authored signs, facade windows, floor patterns and foliage intact.
    if(!['glass','smooth','paint','foliage'].includes(kind)&&!material.bumpMap){material.bumpMap=surfaceTexture(kind);material.bumpScale=kind==='skin'?.0009:kind==='wood'?.018:kind==='fabric'?.006:.009;}
    if(!material.map&&['fabric','wood','stone','rubber','plaster'].includes(kind))material.map=surfaceTexture(kind);
@@ -47,7 +49,8 @@ export function enhanceMaterials(root){
  });return root;
 }
 const environments=new Map();let shadow;
-export function cityEnvironment(preset='day'){
+export function cityEnvironment(preset='day',{photographic=true}={}){
+ if(photographic&&preset==='day'&&reflectionSky())return reflectionSky();
  const key=preset==='night'?'night':['dawn','dusk'].includes(preset)?'golden':'day';if(environments.has(key))return environments.get(key);
  const w=256,h=128,data=new Uint8Array(w*h*4);
  for(let y=0;y<h;y++)for(let x=0;x<w;x++){

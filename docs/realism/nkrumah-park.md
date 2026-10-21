@@ -4,17 +4,15 @@
 
 The park replaces the earlier generic mausoleum model with a coordinated outdoor visit: marble monument, bronze statue, fountain approach, planted grounds and a walk-in museum gallery. It uses the existing OpenStreetMap world and original Three.js geometry. No Mapbox subscription, downloaded reference photographs or new runtime service is required.
 
-## Reference record
+## Active references — reviewed 15 October 2026
 
-References were inspected on 13 October 2026. Photographs are visual references, not textures or redistributed game assets.
+Use the [current reference register](current-reference-images.md) and its image-specific dates. Previous source lists are retained in [the historical archive](historical-references.md).
 
-| Component | Real reference | What informs the model |
-|---|---|---|
-| Mausoleum | [Official mausoleum description and photograph](https://knmp.gov.gh/new/mausoleum/) | Don Arthur's inverted-sword design, curved marble blades, tall openings, black star, open core and reflecting water. The page describes the marble tomb and skylight. |
-| Statue | [Graphic's monument photograph](https://www.graphic.com.gh/features/features/independent-monuments.html) | Raised pointing arm, draped bronze figure and dark pedestal on the central approach. The 2019 photograph predates the 2023 renovation. Facial detail is a simplified sculptural interpretation. |
-| Fountains | [Graphic approach photograph](https://www.graphic.com.gh/images/2019/sept/17/kwame_nkrumah_park.jpg), [official refurbishment account](https://knmp.gov.gh/new/president-akufo-addo-re-opens-refurbished-kwame-nkrumah-memorial-park/) | Paired elongated pools, horn-playing figures and arcing jets. The refurbishment account confirms upgraded fountain lighting/audio; the game currently implements animated jets, not the real show programme. |
-| Gardens and site arrangement | [Venue Tours park aerial](https://venuetoursgroup.com/thing-detail/Kwame-Nkrumah-Memorial-Park), [aerial photograph](https://venuetoursgroup.com/restaurant_image/67a230aa74efe1738682538.jpg) | Axial walk, parallel garden paths, lawns, mature canopy trees, pools and low museum behind the monument. The park boundary and monument anchor use the bundled OSM extract. |
-| Museum | [Official description](https://knmp.gov.gh/new/mausoleum/), [official virtual tour](https://knmp.gov.gh/new/virtual-tour/), [GNA renovation report](https://gna.org.gh/2023/07/refurbished-kwame-nkrumah-memorial-park-in-pictures/) | Low, visually subordinate museum mass; modern pale entrance finishes; documented collection categories such as books, garments and luggage. The linked virtual tour was inspected at the reception, not treated as a survey of every gallery. The game includes an explicitly labelled interpretive timeline/gallery. |
+- [Kwame Nkrumah -1.jpg](https://commons.wikimedia.org/wiki/File:Kwame_Nkrumah_-1.jpg) — **captured 2025-12-24**. Post-renovation marble silhouette, star, pools, jets, grey tiled paths and black approach railings.
+- [Original Statue of Kwame Nkrumah.jpg](https://commons.wikimedia.org/wiki/File:Original_Statue_of_Kwame_Nkrumah.jpg) — **captured 2025-09-07**. Museum remnant display; separate from the intact pointing statue on the fountain approach. Do not infer historical vehicle identity from nearby uploader captions.
+- [KNMP operator virtual tour](https://knmp.gov.gh/new/virtual-tour/) — **capture date unknown**. Official linked Matterport tour. Capture date unreported; individual rooms still require review.
+
+The dated mausoleum photograph is after the 2023 renovation and replaces pre-renovation photos for current paths, railings, pools and marble. The original damaged-statue exhibit is separate from the intact pointing statue. Obtain a dated approach-statue view and renovated museum/reception rooms; do not infer them from old aerials.
 
 ## Playable visit
 

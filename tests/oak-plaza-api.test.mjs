@@ -1,0 +1,17 @@
+// Disposable accounts and fixtures in the local preview database only.
+import test from 'node:test';import assert from 'node:assert/strict';import {spawnSync} from 'node:child_process';
+import {OAK_PLACE as GALLERIA_PLACE,OAK_ENTRY as GALLERIA_ARRIVAL} from '../public/game/oak-plaza-data.js';import {GOODS} from '../public/game/life-catalog.js';
+const base=process.env.GAME_TEST_URL||'http://127.0.0.1:3002';assert.match(base,/^http:\/\/127\.0\.0\.1:/);
+function sql(query,params){const script="import sqlite3,json,sys\nfrom pathlib import Path\np=next(x for x in Path('.wrangler/state/v3/d1/miniflare-D1DatabaseObject').glob('*.sqlite') if x.name!='metadata.sqlite')\nc=sqlite3.connect(p)\nr=c.execute(sys.argv[1],json.loads(sys.argv[2])).fetchall()\nc.commit()\nprint(json.dumps(r))";const r=spawnSync('python3',['-c',script,query,JSON.stringify(params)],{encoding:'utf8'});assert.equal(r.status,0,r.stderr);return JSON.parse(r.stdout);}
+function fixture(id,values){sql('UPDATE players SET '+Object.keys(values).map(k=>k+'=?').join(',')+' WHERE id=?',[...Object.values(values),id]);}
+async function client(){let cookie;const call=async(path,body)=>{const r=await fetch(base+path,{method:body?'POST':'GET',headers:{...(cookie?{cookie}:{}),'content-type':'application/json',origin:base},body:body?JSON.stringify(body):undefined});const data=await r.json();if(r.headers.get('set-cookie'))cookie=r.headers.get('set-cookie').split(';')[0];return {status:r.status,body:data};};const reg=await call('/api/auth',{action:'register',username:'oakqa_'+Date.now().toString(36),name:'Oak QA',password:crypto.randomUUID()+'Aa9!'});assert.equal(reg.status,201,JSON.stringify(reg.body));const p=(await call('/api/game')).body.self;return {id:p.id,life:p.life,call:body=>call('/api/game',body)};}
+function at(p,position,life=p.life,extras={}){fixture(p.id,{pos_lng:position[0],pos_lat:position[1],place_id:GALLERIA_PLACE.id,driving:0,money:500,energy:100,hunger:100,last_action_at:0,life_json:JSON.stringify({...life,health:100,lastVitalAt:Date.now(),explorationPending:false}),...extras});}
+test('Oak Plaza East Airport visit preserves identity/balance and entry and purchases require onsite presence',{timeout:45000},async()=>{
+ const p=await client();at(p,[-.22,5.59]);assert.equal((await p.call({type:'enter',placeId:GALLERIA_PLACE.id})).status,400);assert.equal((await p.call({type:'buy',itemId:'water'})).status,400);
+ const visit=await p.call({type:'explore-place',placeId:GALLERIA_PLACE.id});assert.equal(visit.status,200,JSON.stringify(visit.body));assert.equal(visit.body.self.id,p.id);assert.equal(visit.body.self.money,500);
+ at(p,[GALLERIA_ARRIVAL[0]+.00006,GALLERIA_ARRIVAL[1]]);assert.equal((await p.call({type:'enter',placeId:GALLERIA_PLACE.id})).status,400);
+ at(p,GALLERIA_ARRIVAL);const entered=await p.call({type:'enter',placeId:GALLERIA_PLACE.id});assert.equal(entered.status,200,JSON.stringify(entered.body));
+ for(const itemId of ['water','waakye']){const bought=await p.call({type:'buy',itemId,price:0});assert.equal(bought.status,200,JSON.stringify(bought.body));assert.ok(bought.body.self.life.inventory[itemId]>(p.life.inventory[itemId]||0));}
+ const saved=(await p.call()).body.self;assert.equal(saved.money,500-GOODS.filter(g=>['water','waakye'].includes(g.id)).reduce((n,g)=>n+g.price,0));assert.equal(saved.id,p.id);
+ assert.equal((await p.call({type:'buy',itemId:'sofa'})).status,400);at(p,GALLERIA_ARRIVAL,p.life,{driving:1});assert.equal((await p.call({type:'buy',itemId:'water'})).status,400);
+});

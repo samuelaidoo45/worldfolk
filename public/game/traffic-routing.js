@@ -1,11 +1,13 @@
+import {sameRoadLevel,ROAD_PROFILES} from './road-elevation.js';
+import {mallRoundaboutLimit} from './mall-roundabout-data.js';
 import {vehicleSpec} from './vehicle-catalog.js';
 import {driveWithContacts,bodyContact} from './vehicle-contacts.js';
 import {distanceMetres,bearingTo,offsetMetres,projectOnSegment} from './motion.js';
 export const angleDifference=(a,b)=>Math.abs(((a-b+540)%360)-180);
 // Forward corridor plus braking distance: cars in the opposite lane do not stop us.
-export function trafficSpeed(position,heading,speed,maximum,actors,id=''){
- let allowed=maximum;
- for(const other of actors){if(other.id===id)continue;const d=distanceMetres(position,other.position),a=(bearingTo(position,other.position)-heading)*Math.PI/180,forward=d*Math.cos(a),side=Math.abs(d*Math.sin(a));
+export function trafficSpeed(position,heading,speed,maximum,actors,id='',body=null){
+ let allowed=Math.min(maximum,mallRoundaboutLimit(position,heading,actors,id));
+ for(const other of actors){if(other.id===id||!sameRoadLevel(body||{position,heading,driving:true},other))continue;const d=distanceMetres(position,other.position),a=(bearingTo(position,other.position)-heading)*Math.PI/180,forward=d*Math.cos(a),side=Math.abs(d*Math.sin(a));
   const clearance=other.driving?(Math.max(6,vehicleSpec(other.vehicle).length/2+4)):3;
   if(forward<=0||side>(other.driving?2.15:1.5)||forward>Math.max(16,speed*2+12))continue;
   const gap=Math.max(0,forward-clearance),following=other.driving&&angleDifference(heading,other.heading)<45?Math.max(0,other.speed||0):0;
@@ -13,10 +15,11 @@ export function trafficSpeed(position,heading,speed,maximum,actors,id=''){
  }
  return Math.max(0,allowed);
 }
+function knownRoadLayerJoin(npc,road,endpoint){return ROAD_PROFILES.some(r=>String(r.id)===String(npc.roadId))&&ROAD_PROFILES.some(r=>String(r.id)===String(road.roadId))&&[road.line[0],road.line.at(-1)].some(p=>distanceMetres(p,endpoint)<.2);}
 // Connect to real road vertices, including a T junction that meets another line mid-segment.
 export function roadContinuation(npc,roads){
  const endpoint=npc.line[npc.index],candidates=[];
- for(const road of roads){if(road.walkOnly||road.layer!==(npc.layer||0)||(['bicycle','tricycle'].includes(npc.vehicle)&&road.highway)||(['truck','minibus','bus'].includes(npc.vehicle)&&road.width<8))continue;
+ for(const road of roads){if(road.walkOnly||road.layer!==(npc.layer||0)&&!knownRoadLayerJoin(npc,road,endpoint)||(['bicycle','tricycle'].includes(npc.vehicle)&&road.highway)||(['truck','minibus','bus'].includes(npc.vehicle)&&road.width<vehicleSpec(npc.vehicle).width*2+1))continue;
   for(let i=0;i<road.line.length-1;i++){
    const projection=projectOnSegment(endpoint,road.line[i],road.line[i+1]);if(projection.distance>2)continue;
    for(const direction of [1,-1]){if(road.oneway===1&&direction<0||road.oneway===-1&&direction>0)continue;
@@ -44,7 +47,7 @@ export function makeRoadPath(coordinates,lane=0){
 export function advanceRoad(path,distance,speed,dt,physics,actors=[],kind='bus',speedLimit=Infinity,recovery=null){
  let current=path.at(distance),allowed=Math.min(speedLimit,trafficSpeed(current.position,current.heading,speed,22,actors)),ahead=path.at(distance+Math.max(8,speed*2));
  path.waiting=recovery&&speed<.4&&allowed<.4&&speedLimit>0?(path.waiting||0)+dt:(speedLimit<=0?0:Math.max(0,(path.waiting||0)-dt*.05));
- if(recovery&&path.waiting>2)allowed=Math.min(speedLimit,2.4);
+ if(recovery&&path.waiting>2)allowed=Math.min(speedLimit,2.4,mallRoundaboutLimit(current.position,current.heading,actors));
  if(angleDifference(current.heading,ahead.heading)>25)allowed=Math.min(allowed,4);
  let nextSpeed=Math.max(0,speed+Math.max(-6*dt,Math.min(3.2*dt,allowed-speed))),left=nextSpeed*dt,blocked=false;
  while(left>1e-7&&distance<path.total){current=path.at(distance);const step=Math.min(left,.25,current.remaining>1e-6?current.remaining+.000001:.25,path.total-distance),next=path.at(distance+step);

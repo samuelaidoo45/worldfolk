@@ -1,0 +1,22 @@
+Worldfolk
+Copyright 2026 Worldfolk contributors
+
+Original Worldfolk source code and documentation are licensed under the
+Apache License, Version 2.0. See LICENSE.
+
+Third-party code, map data, models, textures, logos and reference materials
+retain their own licences and notices. This source licence does not relicense
+them or grant rights to trademarks, private player content or research imagery.
+
+Map data: © OpenStreetMap contributors, ODbL.
+See public/maps/README.html and scripts/maps/README.md.
+
+Bundled notices include:
+- public/game/THREE-LICENSE.txt
+- public/game/vendor/MAPLIBRE-LICENSE.txt
+- public/game/assets/humans/LICENSE.txt
+- public/game/assets/materials/README.md
+- public/game/logos/sources.json
+
+See docs/contributing/assets-and-licensing.md for the attribution workflow
+and the distinction between research references and distributable assets.

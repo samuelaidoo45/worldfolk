@@ -1,3 +1,4 @@
+import {FRONTAGE_PLACE,atFrontageCounter} from './mall-frontage-data.js';
 import {CASUAL_OUTFITS} from './outfit-catalog.js';
 import {vehicleName} from './vehicle-catalog.js';
 import {EXPERIENCES,workStep,workReady,jobPay} from './work-catalog.js';
@@ -14,7 +15,7 @@ export function createLifeUI({state,action,navigate,enterHome,places}){
  function show(section=tab,context={}){if(!state.self)return;shopContext=context;if(context.jobId&&JOBS.some(j=>j.id===context.jobId)){selectedJob=context.jobId;arrivalPending=false;saveSelection()}tab=section;open=true;state.keys.clear();state.joystick={x:0,y:0};panel.classList.remove('hidden');render()}
  function close(){open=false;panel.classList.add('hidden')}
  launch.onclick=()=>open?close():show();panel.querySelector('header button').onclick=close;
- const near=p=>state.position&&distanceMetres(state.position,[p.lng,p.lat])<85;
+ const near=p=>p?.id===FRONTAGE_PLACE.id?atFrontageCounter({pos_lng:state.position?.[0],pos_lat:state.position?.[1],driving:state.self?.driving}):state.position&&distanceMetres(state.position,[p.lng,p.lat])<85;
  const place=id=>places.find(p=>p.id===id);
  function route(p){close();navigate(p)}
  function saveSelection(){try{sessionStorage.setItem(`worldfolk_work_${state.self.id}`,JSON.stringify({jobId:selectedJob,arrivalPending}))}catch{}}
@@ -62,10 +63,10 @@ export function createLifeUI({state,action,navigate,enterHome,places}){
  if(tab==='shops'){
   heading('City shops','Walk or drive to the shop, park, then purchase with your earned cedis.');
   const indoor=state.mode==='indoor'?state.indoorPlace:null;
-  const nearby=places.filter(q=>['makola','kaneshie','osu','mall','airport'].includes(q.id)&&near(q));
+  const nearby=places.filter(q=>['makola','kaneshie','osu','mall','airport',FRONTAGE_PLACE.id].includes(q.id)&&near(q));
   if(indoor)heading(shopContext.title||indoor.name,'Purchases use your game money and are saved in your bag.');
   if(!nearby.length&&!indoor){for(const id of ['makola','mall','osu','kaneshie']){const q=place(id),b=row(q.name,q.area);button(b,'Set route',()=>route(q))}}
-  for(const item of GOODS.filter(g=>!shopContext.kinds||shopContext.kinds.includes(g.kind)).filter(g=>indoor?sellsAtVenue(g,indoor)||g.shops.some(id=>nearby.some(q=>q.id===id)):!nearby.length||g.shops.some(id=>nearby.some(q=>q.id===id)))){const available=!!indoor&&sellsAtVenue(item,indoor)||item.shops.some(id=>nearby.some(q=>q.id===id)),owned=item.kind==='vehicle'&&life.vehicles.includes(item.id);const b=row(`${item.icon} ${item.name}`,`₵${item.price} · ${item.shops.map(id=>place(id)?.name).join(' / ')}`);button(b,owned?'Owned':available?'Buy':'Visit shop to buy',()=>transact({type:'buy',itemId:item.id}),owned||!available||p.driving||p.money<item.price)}
+  for(const item of GOODS.filter(g=>!shopContext.itemIds||shopContext.itemIds.includes(g.id)).filter(g=>!shopContext.kinds||shopContext.kinds.includes(g.kind)).filter(g=>indoor?sellsAtVenue(g,indoor)||g.shops.some(id=>nearby.some(q=>q.id===id)):!nearby.length||g.shops.some(id=>nearby.some(q=>q.id===id)))){const available=!!indoor&&sellsAtVenue(item,indoor)||item.shops.some(id=>nearby.some(q=>q.id===id)),owned=item.kind==='vehicle'&&life.vehicles.includes(item.id);const b=row(`${item.icon} ${item.name}`,`₵${item.price} · ${item.shops.map(id=>place(id)?.name).join(' / ')}`);button(b,owned?'Owned':available?'Buy':'Visit shop to buy',()=>transact({type:'buy',itemId:item.id}),owned||!available||p.driving||p.money<item.price)}
  }
  if(tab==='work'){
   heading('Find work','Select a job below, travel to its workplace and start your shift on arrival. Driving shifts include a work vehicle. Five completed shifts increase your pay; earnings buy goods, homes, services and experiences.');

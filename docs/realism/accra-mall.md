@@ -2,17 +2,13 @@
 
 Updated 13 October 2026. This milestone replaces the generic mall model and room with a dedicated exterior and interior. It is a stylized reconstruction with estimated dimensions; it is not photogrammetry or a surveyed replica.
 
-## Image reference set
+## Active references — reviewed 15 October 2026
 
-| Reference | What it establishes | How it is used |
-|---|---|---|
-| [Entrance panorama, Nkansahrexford, 2015](https://commons.wikimedia.org/wiki/File:Accra_Mall_Entrance_Panorama_2.jpg) · [view image](https://thumb.wikimedia.org/wikipedia/commons/thumb/4/40/Accra_Mall_Entrance_Panorama_2.jpg/960px-Accra_Mall_Entrance_Panorama_2.jpg) | Cream low facade, brick piers, exposed steel tower, horizontal members, flared metal canopy, glazed entrance and forecourt bollards | Original geometry at the mapped north entrance; dimensions estimated from photographs |
-| [Interior panorama, jbdodane, 2013](https://commons.wikimedia.org/wiki/File:Accra_Mall_(Interior)_Panorama.jpg) · [view image](https://thumb.wikimedia.org/wikipedia/commons/thumb/c/ce/Accra_Mall_%28Interior%29_Panorama.jpg/960px-Accra_Mall_%28Interior%29_Panorama.jpg) | Glass shopfronts, light tiled corridors, darker floor bands and recessed ceiling lights | Materials, shop glazing and concourse details |
-| [Official store directory](https://www.accramall.com/accra-mall-stores) | Tenant names and unit numbers | Woodin 52, Ashfoam 39, Compu-Ghana 22, Shoprite G46, Decathlon 1B, Melcom 01A, Vida e Caffè 69/70 and Silverbird FF1/FF2 |
-| [Official floor map](https://cdn.prod.website-files.com/651590ace3ae5c8295a6ce8f/65238402e331313328703587_AccraMall_Map23.png) | Ground-floor shopping arms, open central court, anchor shops and separate first-floor cinema area | A compressed two-floor playable arrangement, not exact tenant positions or a tracing of the full plan |
-| [Silverbird photo listing](https://mindtrip.ai/attraction/accra-greater/silverbird-cinemas-accra-mall/at-DbZueoGT) | Secondary visual reference for auditorium seating and wall colours | Red/dark seating and blue interior palette; auditorium dimensions remain interpreted |
+Use the [current reference register](current-reference-images.md) and its image-specific dates. Previous source lists are retained in [the historical archive](historical-references.md).
 
-The Wikimedia exterior photograph is CC BY-SA 4.0; the interior photograph is CC BY 2.0. Refer to their file pages for full attribution and licensing. Photographs and the official floor-map image are linked as references, not bundled as game textures. Geometry, signs, merchandise displays and the animated cinema short are authored in code. Tenant names identify real locations; game goods/prices are fictional and do not imply tenant endorsement.
+- [Accra mall.jpg](https://commons.wikimedia.org/wiki/File:Accra_mall.jpg) — **captured 2026-09-12**. ENTRANCE 2 only: grey steel frame and sign, stacked horizontal members, stone side pier and glazed doors. Do not apply this entrance number to every mall entrance.
+
+The dated photo establishes entrance 2. Obtain a recent full frontage, each entrance and concourse/tenant views before accepting their current layouts. The old 2013 interior panorama and 2015 entrance panorama no longer establish current finishes. The [live operator site](https://www.accramall.com/) and [store directory](https://www.accramall.com/accra-mall-stores) remain operational cross-checks; the previously used Map23 plan is historical, not a 2026 survey.
 
 ## Implemented components
 
@@ -26,6 +22,8 @@ The Wikimedia exterior photograph is CC BY-SA 4.0; the interior photograph is CC
 - Shared arrival constants connect the city map, backend entry checks and shop/job proximity checks.
 
 ## Accuracy boundaries and next refinement
+
+The requested district expansion has a separate [visual reference register](accra-mall-surroundings-references.md) covering The Signature, Villaggio Vista, The Gallery, Spanner footbridge, the roundabout/interchange, Ghud Park, transport stops and outside shops. It records which images have been reviewed and where current reference photographs are still missing. The register does not mark those surroundings as implemented.
 
 The rendered interior is 70 × 84 game metres with a compact upstairs auditorium. These are gameplay dimensions. It does not reproduce every tenant, corridor angle, cinema foyer, parking space or service passage. The exterior retains the map footprint but still simplifies some roof sections and facades. References span different years; the live directory is not proof that all historical photos depict the current layout.
 

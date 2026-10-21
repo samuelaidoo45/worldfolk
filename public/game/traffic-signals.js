@@ -1,3 +1,5 @@
+import {inAirportCorridor} from './airport-corridor-data.js';
+import {MALL_ROUNDABOUT} from './mall-roundabout-data.js';
 import {distanceMetres,bearingTo,offsetMetres} from './motion.js';
 import {roadWidth} from './street-safety.js';
 import {stableHash} from './districts.js';
@@ -25,6 +27,8 @@ export function junctionSignals(features,position){
  const junctions=[...nodes.values()].filter(n=>n.major&&n.arms.length>=3&&n.arms.length<=5).sort((a,b)=>Math.max(...b.arms.map(a=>a.width))-Math.max(...a.arms.map(a=>a.width))||a.key.localeCompare(b.key));
  const selected=[],signals=[];
  for(const node of junctions){
+  // This photographed roundabout uses yielding traffic, not simulated signal poles.
+  if(distanceMetres(node.point,MALL_ROUNDABOUT.position)<65||inAirportCorridor(node.point))continue;
   if(selected.some(n=>distanceMetres(n.point,node.point)<85))continue;
   selected.push(node);const offset=stableHash(node.key)%44;
   const setback=Math.max(9,...node.arms.map(a=>a.width/2+3));

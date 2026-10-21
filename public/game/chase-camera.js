@@ -7,12 +7,16 @@ export function chaseCamera({position,heading,physics,driving=false,scenic=false
  // Keep an adult readable in the lower centre of the frame. Overview remains
  // available, but ordinary play should not look like a distant map camera.
  const wanted=(cabin?0:scenic?17:street?(driving?9:4.8):driving?10+velocity*.10:6.8)*scale;
- let clearance=wanted;
- for(let d=.3;d<=wanted+.3;d+=.3){if(physics?.collision(offsetMetres(position,back[0]*Math.min(d,wanted),back[1]*Math.min(d,wanted)),.3)){clearance=Math.max(.3,d-.45);break}}
- const distance=previousDistance===undefined||clearance<previousDistance?clearance:damp(previousDistance,clearance,3.5,dt);
+ const targetAltitude=cabin?1.6:scenic?1.5:driving?1.25:1.15;
+ const heightAt=d=>cabin?1.65:scenic?3+d*.32:street?1.85+d*.09:driving?2.4+d*.14:2.25+d*.12;
+ const blocked=d=>physics?.collision(offsetMetres(position,back[0]*d,back[1]*d),.3,targetAltitude+(heightAt(wanted)-targetAltitude)*d/Math.max(.001,wanted));
+ let clearance=wanted,safeLimit=wanted;
+ for(let d=.3;d<=wanted+.3;d+=.3){const sample=Math.min(d,wanted);if(blocked(sample)){let lo=Math.max(0,sample-.3),hi=sample;for(let i=0;i<6;i++){const mid=(lo+hi)/2;if(blocked(mid))hi=mid;else lo=mid;}clearance=Math.max(.3,lo-.45);safeLimit=Math.max(.3,lo-.12);break}}
+ const distance=previousDistance===undefined?clearance:Math.min(safeLimit,damp(previousDistance,clearance,clearance<previousDistance?16:3.5,dt));
  const ahead=cabin?9:scenic?3:driving?3+velocity*.05:1.2;
  const from=offsetMetres(position,back[0]*distance,back[1]*distance),to=offsetMetres(position,-back[0]*ahead,-back[1]*ahead);
- const close=distance<2.5&&!scenic;
- const altitude=cabin?1.65:close?1.9:scenic?3+distance*.32:street?1.85+distance*.09:driving?2.4+distance*.14:2.25+distance*.12;
- return {from,to,altitude,targetAltitude:cabin?1.6:scenic?1.5:driving?1.25:1.15,distance};
+ // Blend close-camera height continuously instead of jumping at 2.5 metres.
+ const blend=Math.max(0,Math.min(1,(distance-1.5)/2)),smooth=blend*blend*(3-2*blend);
+ const altitude=cabin?1.65:scenic?heightAt(distance):1.9+(heightAt(distance)-1.9)*smooth;
+ return {from,to,altitude,targetAltitude,distance};
 }

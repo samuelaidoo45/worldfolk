@@ -1,4 +1,14 @@
+import {CIVIC_VISITS} from '../../../public/game/independence-neighbourhood-data.js';
+import {REGUS_PLACE,REGUS_ENTRY} from '../../../public/game/airport-residential-data.js';
+import {OAK_PLACE,OAK_ENTRY} from '../../../public/game/oak-plaza-data.js';
+import {VILLA_PLACE,VILLA_ENTRY} from '../../../public/game/villa-monticello-data.js';
+import {LANCASTER_PLACE,LANCASTER_ENTRY} from '../../../public/game/lancaster-data.js';
+import {HOTEL_PLACE,HOTEL_ENTRY} from '../../../public/game/airport-view-data.js';
+import {MARINA_PLACE,MARINA_ENTRY} from '../../../public/game/airport-city-data.js';
+import {roadHeight} from '../../../public/game/road-elevation.js';
+import {GALLERIA_PLACE,GALLERIA_ENTRY} from '../../../public/game/city-galleria-data.js';
 import {MALL_ARRIVAL} from '../../../public/game/accra-mall-data.js';
+import {APARTMENT_ENTRANCES} from '../../../public/game/apartment-data.js';
 import {validatedElevation} from '../../../public/game/precinct-navigation.js';
 import {ACCRA_BOUNDS} from '../../../public/game/map-region.js';
 import {landmarkArrival} from '../../../public/game/landmark-arrival.js';
@@ -25,6 +35,15 @@ type Player = {
 };
 
 const PLACE_COORDS: Record<string, [number, number]> = {
+  ...Object.fromEntries(CIVIC_VISITS.map(v=>[v.id,[...v.position] as [number,number]])),
+  [REGUS_PLACE.id]:[REGUS_ENTRY[0],REGUS_ENTRY[1]],
+  [OAK_PLACE.id]:[OAK_ENTRY[0],OAK_ENTRY[1]],
+  [VILLA_PLACE.id]:[VILLA_ENTRY[0],VILLA_ENTRY[1]],
+  [LANCASTER_PLACE.id]:[LANCASTER_ENTRY[0],LANCASTER_ENTRY[1]],
+  [HOTEL_PLACE.id]:[HOTEL_ENTRY[0],HOTEL_ENTRY[1]],
+  [MARINA_PLACE.id]:[MARINA_ENTRY[0],MARINA_ENTRY[1]],
+  [GALLERIA_PLACE.id]: [GALLERIA_ENTRY[0],GALLERIA_ENTRY[1]],
+  ...Object.fromEntries(APARTMENT_ENTRANCES.map(e=>[e.place.id,e.position as [number,number]])),
   home: [-0.1949, 5.5682], square: [-0.19256, 5.54742], nkrumah: [-0.2024, 5.5446],
   jamestown: [-0.21213, 5.53309], makola: [-0.2069324, 5.548074], osu: [-0.1819, 5.5598],
   labadi: [-0.140846, 5.561955], arts: [-0.2033, 5.5464], theatre: [-0.2005931, 5.5536671],
@@ -110,7 +129,7 @@ export async function GET(request: Request) {
     const safeChannel=channel==="city"?"city":self?.place_id||"city";
     const messages=self?.handle?await db.prepare("SELECT m.id,m.channel,m.body,m.created_at,p.id AS player_id,p.name,p.avatar,(SELECT username FROM accounts WHERE player_id=p.id) AS handle FROM messages m JOIN players p ON p.id=m.player_id WHERE m.channel=? ORDER BY m.created_at DESC LIMIT 40").bind(safeChannel).all():{results:[]};
     if(messagesOnly)return json({messages:messages.results.reverse(),channel:safeChannel},200,sessionHeaders);
-    return json({self:self?view(self):null,onlineCount:presence?.total||0,players:online.results.map((p)=>{const life=readLife(p as Player),trip=life.transit,route=transit.routes.find(r=>r.id===trip?.routeId),ride=trip&&(trip.coordinates||route)?routePoint(trip.coordinates||route!.coordinates,trip.progress??(now-trip.startedAt)/(trip.endsAt-trip.startedAt)):null,[lng,lat]=ride?.position||playerPosition(p as Player);return {id:p.id,name:p.name,handle:p.handle,avatar:p.avatar,placeId:p.place_id,lng,lat,heading:ride?.heading??p.heading,driving:!!p.driving||!!ride,vehicle:ride?(trip?.kind==='taxi'?'car':'bus'):life.vehicle,health:life.health,outfit:life.outfit,elevation:life.elevation||0}}),messages:messages.results.reverse(),channel:safeChannel,residences:await residences(db,self?.id),accessAllowed:!self?.place_id.startsWith("p_")||await canEnter(db,self!,self!.place_id)},200,sessionHeaders);
+    return json({self:self?view(self):null,onlineCount:presence?.total||0,players:online.results.map((p)=>{const life=readLife(p as Player),trip=life.transit,route=transit.routes.find(r=>r.id===trip?.routeId),ride=trip&&(trip.coordinates||route)?routePoint(trip.coordinates||route!.coordinates,trip.progress??(now-trip.startedAt)/(trip.endsAt-trip.startedAt)):null,[lng,lat]=ride?.position||playerPosition(p as Player);return {id:p.id,name:p.name,handle:p.handle,avatar:p.avatar,placeId:p.place_id,lng,lat,heading:ride?.heading??p.heading,driving:!!p.driving||!!ride,vehicle:ride?(trip?.vehicle||(trip?.kind==='taxi'?'car':'bus')):life.vehicle,health:life.health,outfit:life.outfit,elevation:life.elevation||0}}),messages:messages.results.reverse(),channel:safeChannel,residences:await residences(db,self?.id),accessAllowed:!self?.place_id.startsWith("p_")||await canEnter(db,self!,self!.place_id)},200,sessionHeaders);
   } catch(error){console.error("world GET",error);return json({error:"Could not load the city"},500)}
 }
 
@@ -192,6 +211,7 @@ export async function POST(request: Request) {
     }
     if(type==="vehicle"){
       const entering=input.enter===true;const lng=Number(input.lng),lat=Number(input.lat);
+      if(!entering&&roadHeight(playerPosition(p),p.heading)>.5)return json({error:'Park at ground level before getting out'},400);
       if(entering&&!canUseVehicle(life))return json({error:"Buy a vehicle first, or request public transport"},400);
       if(entering&&p.driving||!entering&&!p.driving)return json({error:entering?"You are already driving":"You are already on foot"},400);
       if(!Number.isFinite(lng)||!Number.isFinite(lat)||lng<ACCRA_BOUNDS.west||lng>ACCRA_BOUNDS.east||lat<ACCRA_BOUNDS.south||lat>ACCRA_BOUNDS.north)return json({error:"Choose a spot in Accra"},400);
@@ -207,7 +227,8 @@ export async function POST(request: Request) {
       if(place.startsWith('p_')&&!await canEnter(db,p,place))return json({error:"Private home. Ask its owner for an invitation pass.",requiresPass:true},403);
       const coords=property?.coords||placeCoords(place);
       if(place.startsWith('g_')&&coords&&HOMES.some(h=>Math.hypot((coords[0]-h.lng)*111000*Math.cos(coords[1]*Math.PI/180),(coords[1]-h.lat)*111000)<35))return json({error:'Private residential address. Choose its owner’s home and use a guest pass.',requiresPass:true},403);
-      if(!coords||distanceKm(playerPosition(p),coords)>0.085)return json({error:"Move closer to interact here"},400);
+      const entryRadius=[GALLERIA_PLACE.id,MARINA_PLACE.id,HOTEL_PLACE.id,LANCASTER_PLACE.id,VILLA_PLACE.id,OAK_PLACE.id,REGUS_PLACE.id].includes(place)?0.004:APARTMENT_ENTRANCES.some(e=>e.place.id===place)?0.005:0.085;
+      if(!coords||distanceKm(playerPosition(p),coords)>entryRadius)return json({error:"Move closer to interact here"},400);
       if(place!==p.place_id)await db.prepare("UPDATE players SET place_id=?,visits=visits+1,last_seen_at=? WHERE id=?").bind(place,now,p.id).run();
       const updated=await db.prepare("SELECT *, (SELECT username FROM accounts WHERE player_id=players.id) AS handle FROM players WHERE id=?").bind(p.id).first<Player>();
       return json({self:view(updated!)});

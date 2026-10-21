@@ -1,3 +1,11 @@
+import {REGUS_PLACE,REGUS_STOCK} from './airport-residential-data.js';
+import {OAK_PLACE,OAK_STOCK} from './oak-plaza-data.js';
+import {VILLA_PLACE,VILLA_STOCK} from './villa-monticello-data.js';
+import {LANCASTER_PLACE,LANCASTER_STOCK} from './lancaster-data.js';
+import {HOTEL_PLACE,HOTEL_STOCK} from './airport-view-data.js';
+import {MARINA_PLACE} from './airport-city-data.js';
+import {GALLERIA_PLACE,GALLERIA_STOCK} from './city-galleria-data.js';
+import {FRONTAGE_PLACE,FRONTAGE_STOCK} from './mall-frontage-data.js';
 import {VEHICLE_MODELS} from './vehicle-catalog.js';
 import {EXTRA_JOBS,prepareJobs} from './work-catalog.js';
 import {HOME_LOCATIONS} from './home-locations.js';
@@ -26,8 +34,16 @@ export const GOODS=[
  {id:'motorcycle',name:'City motorcycle',icon:'🏍️',price:550,shops:['mall','airport'],kind:'vehicle'},
  {id:'car',name:'City compact car',icon:'🚗',price:1500,shops:['mall','airport'],kind:'vehicle'}
 ];
+for(const item of GOODS)if(REGUS_STOCK.includes(item.id))item.shops.push(REGUS_PLACE.id);
+for(const item of GOODS)if(OAK_STOCK.includes(item.id))item.shops.push(OAK_PLACE.id);
+for(const item of GOODS)if(VILLA_STOCK.includes(item.id))item.shops.push(VILLA_PLACE.id);
+for(const item of GOODS)if(LANCASTER_STOCK.includes(item.id))item.shops.push(LANCASTER_PLACE.id);
+for(const item of GOODS)if(HOTEL_STOCK.includes(item.id))item.shops.push(HOTEL_PLACE.id);
+for(const item of GOODS)if(['food','groceries','clothing','device'].includes(item.kind))item.shops.push(MARINA_PLACE.id);
+for(const item of GOODS)if(GALLERIA_STOCK.includes(item.id))item.shops.push(GALLERIA_PLACE.id);
+for(const item of GOODS)if(FRONTAGE_STOCK.includes(item.id))item.shops.push(FRONTAGE_PLACE.id);
 const BASE_JOBS=[
-{"id": "restaurant-crew", "name": "Restaurant crew", "place": "g_-1679_55876", "wage": 95, "seconds": 55, "energy": 12, "task": "Serve visitors and complete your shift at Home Touch"},{"id": "school-assistant", "name": "School assistant", "place": "g_-1596_55885", "wage": 135, "seconds": 70, "energy": 12, "task": "Serve visitors and complete your shift at Garrison Basic School"},{"id": "mall-stock", "name": "Mall stock assistant", "place": "g_-1762_56031", "wage": 110, "seconds": 60, "energy": 12, "task": "Serve visitors and complete your shift at Marina Mall"},{"id": "bank-clerk", "name": "Bank service assistant", "place": "g_-1812_55643", "wage": 155, "seconds": 80, "energy": 12, "task": "Serve visitors and complete your shift at Absa"},{"id": "stadium-steward", "name": "Stadium steward", "place": "g_-1735_56163", "wage": 100, "seconds": 55, "energy": 12, "task": "Serve visitors and complete your shift at Polo Club"},{"id": "market-vendor", "name": "Market vendor", "place": "g_-2564_56081", "wage": 85, "seconds": 50, "energy": 12, "task": "Serve visitors and complete your shift at Chantan New Market"},
+{"id": "restaurant-crew", "name": "Restaurant crew", "place": "g_-1679_55876", "wage": 95, "seconds": 55, "energy": 12, "task": "Serve visitors and complete your shift at Home Touch"},{"id": "school-assistant", "name": "School assistant", "place": "g_-1596_55885", "wage": 135, "seconds": 70, "energy": 12, "task": "Serve visitors and complete your shift at Garrison Basic School"},{"id": "mall-stock", "name": "Mall stock assistant", "place": MARINA_PLACE.id, "wage": 110, "seconds": 60, "energy": 12, "task": "Serve visitors and complete your shift at Marina Mall"},{"id": "bank-clerk", "name": "Bank service assistant", "place": "g_-1812_55643", "wage": 155, "seconds": 80, "energy": 12, "task": "Serve visitors and complete your shift at Absa"},{"id": "stadium-steward", "name": "Stadium steward", "place": "g_-1735_56163", "wage": 100, "seconds": 55, "energy": 12, "task": "Serve visitors and complete your shift at Polo Club"},{"id": "market-vendor", "name": "Market vendor", "place": "g_-2564_56081", "wage": 85, "seconds": 50, "energy": 12, "task": "Serve visitors and complete your shift at Chantan New Market"},
  {id:'trader',name:'Market assistant',place:'makola',wage:75,seconds:45,energy:10,task:'Sort produce and serve customers'},
  {id:'cafe',name:'Café crew',place:'osu',wage:90,seconds:55,energy:12,task:'Prepare orders and serve the counter'},
  {id:'retail',name:'Retail assistant',place:'mall',wage:105,seconds:60,energy:12,task:'Restock shelves and assist shoppers'},

@@ -1,10 +1,11 @@
+import {roadHeight} from './road-elevation.js';
 import {projectOnSegment,distanceMetres} from './motion.js';
 // Keep the whole pedestrian footprint outside every nearby vehicle carriageway,
 // including cross streets. Existing road overlaps may move toward safety.
 export function roadIntrusion(position,roads,radius=.4){
  let depth=0;
  for(const road of roads){if(road.walkOnly||['path','pedestrian','steps','cycleway'].includes(road.roadClass))continue;
-  for(let i=1;i<road.line.length;i++)depth=Math.max(depth,road.width/2+radius-projectOnSegment(position,road.line[i-1],road.line[i]).distance);
+  for(let i=1;i<road.line.length;i++){const a=road.line[i-1],b=road.line[i],q=projectOnSegment(position,a,b),heading=Math.atan2(b[0]-a[0],b[1]-a[1])*180/Math.PI;if(roadHeight(q.position,heading,road.roadId??null)>2.2)continue;depth=Math.max(depth,road.width/2+radius-q.distance);}
  }return depth;
 }
 export function sidewalkMove(from,to,physics,roads){

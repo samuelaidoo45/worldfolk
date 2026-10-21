@@ -12,7 +12,15 @@
     "cloudflare:prepare": "node scripts/prepare-cloudflare.mjs",
     "start": "node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js dev --config dist/server/wrangler.json --local --persist-to .wrangler/state --ip 127.0.0.1 --inspector-port 0",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
-    "db:generate": "drizzle-kit generate"
+    "db:generate": "drizzle-kit generate",
+    "assets:lods": "node scripts/assets/build-render-lods.mjs",
+    "doctor": "node scripts/contributors/doctor.mjs",
+    "db:setup": "node scripts/contributors/init-local-db.mjs",
+    "test": "node scripts/contributors/test.mjs smoke",
+    "test:unit": "node scripts/contributors/test.mjs unit",
+    "test:api": "node scripts/contributors/test.mjs api",
+    "docs:check": "node scripts/contributors/check-docs.mjs",
+    "check": "npm run docs:check && npm test"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
@@ -57,6 +65,8 @@
     "geojson-vt": "4.0.2",
     "json-rpc-2.0": "1.7.1",
     "maplibre-gl": "5.6.0",
+    "meshoptimizer": "1.1.1",
+    "polygon-clipping": "^0.15.7",
     "raw-body": "3.0.2",
     "react-server-dom-webpack": "19.2.6",
     "tailwindcss": "4.2.1",
@@ -73,5 +83,15 @@
     "miniflare": {
       "sharp": "0.35.4"
     }
-  }
+  },
+  "description": "Worldfolk \u2014 a browser multiplayer life simulation set in Accra, Ghana.",
+  "homepage": "https://worldfolk.world/game/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/samuelaidoo45/worldfolk.git"
+  },
+  "bugs": {
+    "url": "https://github.com/samuelaidoo45/worldfolk/issues"
+  },
+  "license": "Apache-2.0"
 }

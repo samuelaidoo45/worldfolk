@@ -1,0 +1,28 @@
+<!doctype html><html><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Airport Terminal 3 review</title><style>body{margin:0;font:14px system-ui;background:#8eafb7}canvas{display:block;width:100vw;height:100vh}header,nav{position:fixed;z-index:2;background:#163830ed;color:#fff;padding:12px;border-radius:10px;left:12px}header{top:12px;max-width:85%}h1{margin:0;font-size:18px}nav{bottom:12px;display:flex;gap:8px;flex-wrap:wrap;max-width:90%}button{border:0;border-radius:8px;padding:10px;cursor:pointer}output{display:block;margin-top:5px}</style><canvas></canvas><header><h1>Accra International Airport · Terminal 3</h1><output>Native outlines and roads · photo-estimated heights · public arrivals approach</output></header><nav><button id="overview">Overview</button><button id="forecourt">Forecourt</button><button id="arrivals">Arrivals waiting</button><button id="departure">Departures</button><button id="drive">Drive departure loop · 4×</button><button id="night">Day / night</button></nav><script type="module">
+import * as T from '/public/game/three.module.js';
+import {createAirportT3} from '/public/game/airport-t3.js';
+import {AIRPORT_T3,T3_ARRIVAL,airportT3People} from '/public/game/airport-t3-data.js';
+import {t3Point,t3World} from '/public/game/airport-t3-space.js';
+import {T3_ROAD_PROFILES} from '/public/game/airport-t3-roads.js';
+import {roadHeight} from '/public/game/road-elevation.js';
+import {makeRoadPath} from '/public/game/traffic-routing.js';
+import {createVehicle} from '/public/game/accra-vehicles.js';
+import {createActor} from '/public/game/human-character.js';
+import {cityEnvironment} from '/public/game/graphics-materials.js';
+const origin=AIRPORT_T3,scene=new T.Scene();scene.background=new T.Color('#adc4c9');scene.environment=cityEnvironment();scene.fog=new T.Fog('#adc4c9',600,1300);
+const renderer=new T.WebGLRenderer({canvas:document.querySelector('canvas'),antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;
+const ambient=new T.HemisphereLight('#e7f2fc','#81745c',2),sun=new T.DirectionalLight('#ffe7c8',3);sun.position.set(-150,180,80);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-350,right:350,top:300,bottom:-300,near:1,far:900});sun.shadow.bias=-.0001;scene.add(ambient,sun);
+const ground=new T.Mesh(new T.PlaneGeometry(1800,1800),new T.MeshStandardMaterial({color:'#81816a',roughness:1}));ground.rotation.x=-Math.PI/2;ground.position.y=-.04;ground.receiveShadow=true;scene.add(ground);
+const terminal=createAirportT3();scene.add(terminal.group);
+const camera=new T.PerspectiveCamera(48,1,.15,2000);let night=false,driving=false,travel=0,last=0;
+const van=createVehicle('van',0xaab8b8);scene.add(van.group);van.group.visible=false;
+const roads=[626883873,626883875,626883872].map(id=>T3_ROAD_PROFILES.find(r=>r.id===id)),path=makeRoadPath(roads.flatMap((r,i)=>i?r.coordinates.slice(1):r.coordinates));
+function setView(from,target){const a=t3World(t3Point(from[0],from[2])),b=t3World(t3Point(target[0],target[2]));camera.position.set(a[0],from[1],a[1]);camera.lookAt(b[0],target[1],b[1]);}
+function view(name){driving=false;van.group.visible=false;if(name==='overview')setView([-220,180,-290],[0,7,-18]);if(name==='forecourt')setView([-97,3,-154],[5,9,-12]);if(name==='arrivals')setView([7,2.1,-59],[5,2,-33]);if(name==='departure')setView([-25,8.5,-84],[20,11,-54]);if(name==='drive'){driving=true;travel=0;van.group.visible=true;}document.querySelector('output').textContent=name==='drive'?'Mapped elevated road · 4× drive preview':name;}
+for(const id of ['overview','forecourt','arrivals','departure','drive'])document.getElementById(id).onclick=()=>view(id);
+document.getElementById('night').onclick=()=>{night=!night;scene.environment=cityEnvironment(night?'night':'day');scene.background.set(night?'#152738':'#adc4c9');ambient.intensity=night?.55:2;sun.intensity=night?.3:3;};view('overview');const people=new Map();
+function frame(ms){const dt=Math.min(.1,(ms-last)/1000);last=ms;
+for(const d of airportT3People(ms/1000,T3_ARRIVAL)){let a=people.get(d.id);if(!a){a=createActor(d.avatar,d.id);people.set(d.id,a);scene.add(a.group);}const p=t3World(d.position);a.group.position.set(p[0],d.poseOffset||0,p[1]);a.group.rotation.y=-d.heading*Math.PI/180;a.animate(ms/1000,d.moving,{speed:d.speed,action:d.action});}
+if(driving){travel=Math.min(path.total,travel+dt*32);const at=path.at(travel),p=t3World(at.position),angle=at.heading*Math.PI/180,y=roadHeight(at.position,at.heading);van.group.position.set(p[0],y,p[1]);van.group.rotation.y=-angle;camera.position.set(p[0]-Math.sin(angle)*11,y+5,p[1]+Math.cos(angle)*11);camera.lookAt(p[0]+Math.sin(angle)*6,y+1.5,p[1]-Math.cos(angle)*6);document.querySelector('output').textContent=`4× drive preview · ${Math.round(travel)} / ${Math.round(path.total)} m · elevation ${y.toFixed(1)} m`;if(travel===path.total)driving=false;}
+renderer.setSize(innerWidth,innerHeight,false);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.render(scene,camera);requestAnimationFrame(frame);}requestAnimationFrame(frame);
+</script></html>

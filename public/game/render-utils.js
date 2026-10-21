@@ -1,15 +1,19 @@
 import * as THREE from './three.module.js';
 import {enhanceMaterials} from './graphics-materials.js';
+import {projectSurfaceUV} from './pbr-materials.js';
 // Combine static meshes that share a material into a single draw call.
 // Call before adding animated actors. This preserves each vertex's world transform.
 export function batchStaticMeshes(root){
  enhanceMaterials(root);root.updateMatrixWorld(true);const groups=new Map();
  root.traverse(o=>{if(!o.isMesh||o.isSkinnedMesh||o.isInstancedMesh||o.userData.dynamic||Array.isArray(o.material)||!o.visible)return;const key=`${o.material.uuid}:${o.castShadow}:${o.receiveShadow}`;if(!groups.has(key))groups.set(key,[]);groups.get(key).push(o)});
  let before=0,after=0;const inverse=root.matrixWorld.clone().invert();
- for(const meshes of groups.values()){const material=meshes[0].material;before+=meshes.length;after++;if(meshes.length<2)continue;const arrays={position:[],normal:[],uv:[]};
-  for(const mesh of meshes){let geometry=mesh.geometry.index?mesh.geometry.toNonIndexed():mesh.geometry.clone();geometry.applyMatrix4(inverse.clone().multiply(mesh.matrixWorld));for(const key of Object.keys(arrays)){const attr=geometry.getAttribute(key);if(attr)arrays[key].push(...attr.array)}geometry.dispose();mesh.removeFromParent()}
-  const geometry=new THREE.BufferGeometry();for(const [key,values] of Object.entries(arrays))if(values.length)geometry.setAttribute(key,new THREE.Float32BufferAttribute(values,key==='uv'?2:3));const combined=new THREE.Mesh(geometry,material);combined.castShadow=meshes.some(m=>m.castShadow);combined.receiveShadow=meshes.some(m=>m.receiveShadow);root.add(combined);
-  for(const geo of new Set(meshes.map(m=>m.geometry)))geo.dispose();
+ for(const meshes of groups.values()){const material=meshes[0].material;before+=meshes.length;after++;if(meshes.length<2){
+   const mesh=meshes[0],metres=material.userData.textureMetres;
+   if(metres&&!mesh.userData.metricUV){const old=mesh.geometry,geometry=old.index?old.toNonIndexed():old.clone(),projected=geometry.clone().applyMatrix4(inverse.clone().multiply(mesh.matrixWorld));projectSurfaceUV(projected,metres);geometry.setAttribute('uv',projected.getAttribute('uv'));projected.dispose();mesh.geometry=geometry;mesh.userData.metricUV=true;if(!old.userData.shared)old.dispose();}continue;
+  }const arrays={position:[],normal:[],uv:[]};if(material.vertexColors)arrays.color=[];
+  for(const mesh of meshes){let geometry=mesh.geometry.index?mesh.geometry.toNonIndexed():mesh.geometry.clone();geometry.applyMatrix4(inverse.clone().multiply(mesh.matrixWorld));projectSurfaceUV(geometry,material.userData.textureMetres);for(const key of Object.keys(arrays)){const attr=geometry.getAttribute(key);if(attr)arrays[key].push(...attr.array);else if(key==='color')arrays.color.push(...new Array(geometry.getAttribute('position').count*3).fill(1))}geometry.dispose();mesh.removeFromParent()}
+  const geometry=new THREE.BufferGeometry();for(const [key,values] of Object.entries(arrays))if(values.length)geometry.setAttribute(key,new THREE.Float32BufferAttribute(values,key==='uv'?2:3));const combined=new THREE.Mesh(geometry,material);combined.userData.metricUV=!!material.userData.textureMetres;combined.castShadow=meshes.some(m=>m.castShadow);combined.receiveShadow=meshes.some(m=>m.receiveShadow);root.add(combined);
+  for(const geo of new Set(meshes.map(m=>m.geometry)))if(!geo.userData.shared)geo.dispose();
  }
  root.userData.batching={before,after};return {before,after};
 }
@@ -20,7 +24,7 @@ export function interiorRenderer(canvas){const r=new THREE.WebGLRenderer({canvas
 export function instanceAnimatedModels(models){
  // Skinned characters need their individual skeletons. Flattening them into
  // rigid instances freezes the bind pose and breaks asynchronous model swaps.
- if(models.some(m=>m.userData.humanoid)){const group=new THREE.Group();models.forEach(m=>group.add(m));return {group,update(){group.updateMatrixWorld(true)},get drawCalls(){let n=0;group.traverse(o=>{if(o.isMesh)n+=Array.isArray(o.material)?o.geometry.groups.length:1});return n}}}
+ if(models.some(m=>m.userData.humanoid)){const group=new THREE.Group();models.forEach(m=>group.add(m));return {group,update(){group.updateMatrixWorld(true)},get drawCalls(){let n=0;group.traverse(o=>{if(o.isMesh&&o.visible)n+=Array.isArray(o.material)?o.geometry.groups.filter(g=>g.count>0&&o.material[g.materialIndex]?.visible!==false).length:1});return n}}}
  const group=new THREE.Group(),parts=models.map(model=>{const nodes=[];model.traverse(o=>{if(o.isMesh)nodes.push(o)});return nodes});
  if(!parts.length)return {group,update(){},drawCalls:0};
  if(parts.some(p=>p.length!==parts[0].length))throw new Error('Instanced rigs must have the same mesh layout');

@@ -1,0 +1,26 @@
+import {CORRIDOR_ROADS} from './airport-corridor-map.js';
+import {distanceMetres,projectOnSegment,offsetMetres,bearingTo} from './motion.js';
+function anchor(mappedPosition,roadId){const r=CORRIDOR_ROADS.find(r=>r.id===roadId);let best=null;for(let i=1;i<r.coordinates.length;i++){const q=projectOnSegment(mappedPosition,r.coordinates[i-1],r.coordinates[i]);if(!best||q.distance<best.distance)best={...q,heading:bearingTo(r.coordinates[i-1],r.coordinates[i])};}const a=best.heading*Math.PI/180;return {position:offsetMetres(best.position,Math.cos(a)*7.7,-Math.sin(a)*7.7),heading:best.heading};}
+// GTFS stop coordinates independently checked in Street View. These are NOT the
+// similarly named OSM node 4984741723 farther north. Physical board positions and
+// dimensions are photo estimates; neither reference establishes a covered shelter.
+export const AIRPORT_STOPS=[
+ {id:'airport-first-stop',name:'Airport First · northbound',mappedPosition:[-.1774,5.606385],roadId:515063424,feedStop:'2683082450403719627',direction:'Towards Madina',aliases:['Airport First','Airport First bus stop','Airport 1st'],pano:'4kFe8EQilJuyHmynC5J0LQ'},
+ {id:'airport-second-stop',name:'Airport Second · southbound',mappedPosition:[-.178043,5.604578],roadId:419694823,feedStop:'11243152980546474348',direction:'Towards central Accra',aliases:['Airport Second','Airport Second bus stop','Airport 2nd'],pano:'Ldl0MVXHC80joSZeCwy8Lw'},
+].map(s=>({...s,...anchor(s.mappedPosition,s.roadId),width:24,depth:18,height:3.7,rotation:0,shelter:false}));
+export function airportStopPoint(s,along=0,out=0){const a=s.heading*Math.PI/180;return offsetMetres(s.position,Math.sin(a)*along+Math.cos(a)*out,Math.cos(a)*along-Math.sin(a)*out);}
+export const AIRPORT_JUNCTION={id:'airport-road-junction',name:'Airport Road / Liberation Road junction',position:[-.17724,5.6053],width:1,depth:1,height:0,rotation:0,arrival:[-.17724,5.6053],target:[-.17765,5.60548]};
+export const AIRPORT_STOP_PLACES=[...AIRPORT_STOPS.map(s=>({id:s.id,name:s.name,aliases:s.aliases,lng:airportStopPoint(s,-2,-.35)[0],lat:airportStopPoint(s,-2,-.35)[1],type:'bus stop',category:'transport',area:'Airport City · Liberation Road',emoji:'🚏',description:'Explore the open paved waiting area. '+s.direction+'. Wait until you choose to leave, or request a tro-tro or taxi to your destination.',activities:['connect','stroll']})),{id:AIRPORT_JUNCTION.id,name:AIRPORT_JUNCTION.name,lng:AIRPORT_JUNCTION.arrival[0],lat:AIRPORT_JUNCTION.arrival[1],type:'junction',category:'transport',area:'Airport City',emoji:'🛣️',description:'Explore the divided Airport Road approach, turning lanes and pedestrian link beside Marriott. Choose transport to continue through Airport City.',activities:['explore','stroll']}];
+const norm=v=>String(v||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+export function airportStopForPlace(p){return AIRPORT_STOPS.find(s=>p?.id===s.id||[s.name,...s.aliases].some(n=>norm(n)===norm(typeof p==='string'?p:p?.name))&&(typeof p==='string'||Number.isFinite(p?.lng)&&Number.isFinite(p?.lat)&&distanceMetres([p.lng,p.lat],s.mappedPosition)<95));}
+export function airportStopArrival(p){const s=airportStopForPlace(p);if(s)return {position:airportStopPoint(s,-2,-.35),target:airportStopPoint(s,1,.6),cameraPitch:18,hint:s.name+' · use E to wait or walk to the pickup point to choose a destination. This is an open roadside waiting area.'};if(p?.id===AIRPORT_JUNCTION.id)return {position:[...AIRPORT_JUNCTION.arrival],target:AIRPORT_JUNCTION.target,cameraPitch:18,hint:'Follow the paved pedestrian link beside Marriott. Use the public road approaches; choose a destination before requesting transport.'};return null;}
+export const AIRPORT_STOP_ACTIVITIES=AIRPORT_STOPS.flatMap(s=>[
+ {id:'airport-stop:'+s.id+':wait',stopId:s.id,kind:'watch',label:'Wait at '+s.name,position:airportStopPoint(s,-2,-.35),target:airportStopPoint(s,-2,-10),heading:(s.heading+270)%360,elevation:0},
+ {id:'airport-stop:'+s.id+':ride',stopId:s.id,kind:'bus-stop-ride',label:'Choose transport · '+s.direction,position:airportStopPoint(s,2.7,-.35),heading:s.heading,elevation:0},
+]).concat([{id:'airport-stop:junction-guide',kind:'watch',label:'Read the Airport Road junction guide',position:AIRPORT_JUNCTION.arrival,target:AIRPORT_JUNCTION.target,heading:285,elevation:0,text:'Airport Road connects Liberation Road with the airport approaches. Follow the mapped paving beside Marriott, keep out of turning lanes while waiting and choose a destination when requesting a ride.'}]);
+export const nearbyAirportStop=p=>AIRPORT_STOPS.find(s=>distanceMetres(p,s.position)<32)||null;
+export function airportStopPeople(s,t){const phase=t*.55%8,forward=phase<4,along=forward?phase:8-phase;return [
+ {id:s.id+':waiting',name:s.id==='airport-first-stop'?'Abena':'Kojo',avatar:'👩🏾',position:airportStopPoint(s,-5,.05),heading:(s.heading+270)%360,elevation:0,moving:false,speed:0,action:'watch'},
+ {id:s.id+':walking',name:'Yaw',avatar:'👨🏾',position:airportStopPoint(s,-.5+along,.25),heading:(s.heading+(forward?0:180))%360,elevation:0,moving:true,speed:.55},
+ ];}
+export function airportStopColliders(s){return [{id:s.id+':board',rings:[[[-.65,-.16],[.65,-.16],[.65,.16],[-.65,.16],[-.65,-.16]].map(([x,z])=>airportStopPoint(s,x+.8,z+.85))],height:3.5,minHeight:0,noDoor:true}];}

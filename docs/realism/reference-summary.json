@@ -1,0 +1,18 @@
+{
+  "as_of": "2026-10-21",
+  "source_records": 193,
+  "source_kinds": {
+    "recent_photo": 14,
+    "dated_publication": 27,
+    "current_gallery": 54,
+    "historical_context": 98
+  },
+  "inventory_items": 292,
+  "reference_status": {
+    "Recent dated capture available": 8,
+    "Current photo required": 28,
+    "Not yet researched": 214,
+    "Dated publication; capture date pending": 15,
+    "Current source; capture date pending": 27
+  }
+}

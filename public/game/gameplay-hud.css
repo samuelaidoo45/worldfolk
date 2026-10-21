@@ -225,3 +225,8 @@ body.touch-device.roam-mode.mobile-paused .life-shift.work-assignment{visibility
 .game-notification.is-compact{width:210px}.is-compact .notification-preview,.is-compact .notification-reply,.is-compact .notification-dismiss{display:none}.is-compact .notification-open{padding:12px}
 @media(orientation:portrait) and (max-width:600px){.friend-call[popover],.game-notification[popover]{top:max(70px,calc(env(safe-area-inset-top) + 60px))}}
 @media(orientation:landscape) and (max-height:500px){.game-notification{width:270px}.notification-preview{-webkit-line-clamp:1}.notification-open{padding-top:9px;padding-bottom:9px}.friend-call{font-size:12px}}
+
+/* A paused session must offer recovery without hiding or restarting the world. */
+.connection-status button{font:inherit;font-weight:700;min-height:36px;padding:6px 12px;border:1px solid #91b9a7;border-radius:8px;background:#f1ce77;color:#142d29;cursor:pointer}
+body[data-connection="Active in another tab"] .connection-status,body[data-connection="Session ended"] .connection-status{pointer-events:auto}
+body[data-session-paused="true"] .connection-status{display:block!important;position:fixed;z-index:180;top:max(12px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);max-width:calc(100vw - 32px);padding:10px 16px;border-radius:12px;background:#183c36ee;color:#fff;font-size:12px;text-align:center;pointer-events:auto}

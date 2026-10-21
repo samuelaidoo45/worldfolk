@@ -1,0 +1,5 @@
+source_id,layer,name,structure,status,evidence,notes
+187792807,railway,Eastern Railway Line,yes,Local Partial,tests/fixtures/mahama-rail-source.json; docs/realism/mahama-bypass.md,Bounded OSM supplement; roads/rail remain separate. West approach clipped in model; no train operation claimed.
+187792808,railway,Eastern Railway Line,yes,Local Partial,tests/fixtures/mahama-rail-source.json; docs/realism/mahama-bypass.md,Bounded OSM supplement; roads/rail remain separate. West approach clipped in model; no train operation claimed.
+187792809,railway,Eastern Railway Line,none,Local Partial,tests/fixtures/mahama-rail-source.json; docs/realism/mahama-bypass.md,Bounded OSM supplement; roads/rail remain separate. West approach clipped in model; no train operation claimed.
+187792806,railway,Tema Branch Line,none,Local Partial,tests/fixtures/mahama-rail-source.json; docs/realism/mahama-bypass.md,Bounded OSM supplement; roads/rail remain separate. West approach clipped in model; no train operation claimed.

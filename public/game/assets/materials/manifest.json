@@ -1,0 +1,182 @@
+{
+  "license": "CC0-1.0",
+  "licenseUrl": "https://polyhaven.com/license",
+  "built": "2026-10-20",
+  "resolution": 512,
+  "notes": "Generic scanned material detail and reflection-only sky; these are not captures of Accra. Authored surface colours and mapped surface masks are retained.",
+  "assets": [
+    {
+      "family": "plaster",
+      "id": "plastered_wall_05",
+      "source": "https://polyhaven.com/a/plastered_wall_05",
+      "authors": {
+        "Charlotte Baglioni": "All"
+      },
+      "tileMetres": 2,
+      "inputs": [
+        {
+          "channel": "Diffuse",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/plastered_wall_05/plastered_wall_05_diff_1k.jpg",
+          "md5": "b3802ea845531b87adaa61ae23a0ed27",
+          "size": 557082
+        },
+        {
+          "channel": "nor_gl",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/plastered_wall_05/plastered_wall_05_nor_gl_1k.jpg",
+          "md5": "0aa2e198b82e3b0d5705f39a510f1041",
+          "size": 1051165
+        },
+        {
+          "channel": "arm",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/plastered_wall_05/plastered_wall_05_arm_1k.jpg",
+          "md5": "349a4744ea13e909f46e20b00b70ffbd",
+          "size": 638749
+        }
+      ],
+      "outputs": [
+        {
+          "file": "plaster-color.webp",
+          "bytes": 1048,
+          "sha256": "ad851b70fe8505a82c011a2020bd9bed0e6cece8ef513ca2533ce9f1d893683d",
+          "colorSpace": "srgb"
+        },
+        {
+          "file": "plaster-normal.webp",
+          "bytes": 72454,
+          "sha256": "00f61db52a9bb9119f7b07582b893408db2de1ef5a893ff6dacbfdeed507c06e",
+          "colorSpace": "linear"
+        },
+        {
+          "file": "plaster-orm.webp",
+          "bytes": 13846,
+          "sha256": "4c833492ed4579c6925e43c7dd167d47beca21461a12339dcc2528ba7e44b250",
+          "colorSpace": "linear"
+        }
+      ]
+    },
+    {
+      "family": "concrete",
+      "id": "concrete_floor_02",
+      "source": "https://polyhaven.com/a/concrete_floor_02",
+      "authors": {
+        "Rob Tuytel": "All"
+      },
+      "tileMetres": 2,
+      "inputs": [
+        {
+          "channel": "Diffuse",
+          "size": 776097,
+          "md5": "1cfee53d2f82fa59726ab7ae6a2e8c09",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/concrete_floor_02/concrete_floor_02_diff_1k.jpg"
+        },
+        {
+          "channel": "nor_gl",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/concrete_floor_02/concrete_floor_02_nor_gl_1k.jpg",
+          "size": 192757,
+          "md5": "c2065fd81f571f4e39163ea5661128fb"
+        },
+        {
+          "channel": "arm",
+          "size": 146483,
+          "md5": "5995ee8efda4e7966a277b3d9049eb2b",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/concrete_floor_02/concrete_floor_02_arm_1k.jpg"
+        }
+      ],
+      "outputs": [
+        {
+          "file": "concrete-color.webp",
+          "bytes": 78680,
+          "sha256": "6cde0b5242c53cb5a8e4f0e3667e0d4bf53fcdb1df7584644326d163aac5e376",
+          "colorSpace": "srgb"
+        },
+        {
+          "file": "concrete-normal.webp",
+          "bytes": 36666,
+          "sha256": "df82eac6b58927d6f0bb9e4571b21ea0de4df823088bc2d49f1eb28deb3748f8",
+          "colorSpace": "linear"
+        },
+        {
+          "file": "concrete-orm.webp",
+          "bytes": 31906,
+          "sha256": "3bcf98c166c800438d010ef49aecf51bae10f8e0e23eeaf85b2e086375cb3cac",
+          "colorSpace": "linear"
+        }
+      ]
+    },
+    {
+      "family": "asphalt",
+      "id": "asphalt_02",
+      "source": "https://polyhaven.com/a/asphalt_02",
+      "authors": {
+        "Rob Tuytel": "All"
+      },
+      "tileMetres": 3,
+      "inputs": [
+        {
+          "channel": "Diffuse",
+          "size": 731707,
+          "md5": "fa19772d4817754c3efab708c651f5a8",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/asphalt_02/asphalt_02_diff_1k.jpg"
+        },
+        {
+          "channel": "nor_gl",
+          "size": 1240122,
+          "md5": "338da8de636ea36133170578cac82e8e",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/asphalt_02/asphalt_02_nor_gl_1k.jpg"
+        },
+        {
+          "channel": "arm",
+          "size": 296770,
+          "md5": "33820445f43af5e5ee484674b6939271",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/asphalt_02/asphalt_02_arm_1k.jpg"
+        }
+      ],
+      "outputs": [
+        {
+          "file": "asphalt-color.webp",
+          "bytes": 77560,
+          "sha256": "51944b3aa45538d10caaafad93d45b48aa9ec444bf841338acdd500365cc58a3",
+          "colorSpace": "srgb"
+        },
+        {
+          "file": "asphalt-normal.webp",
+          "bytes": 99134,
+          "sha256": "c64751cd3daddef914641d6021de15de1f892a641c259c7668db7f3d5b1f9faa",
+          "colorSpace": "linear"
+        },
+        {
+          "file": "asphalt-orm.webp",
+          "bytes": 98180,
+          "sha256": "f8921f534ec27790372c29bfedb37d523d010deb18d362db987bf336d71fa0f1",
+          "colorSpace": "linear"
+        }
+      ]
+    },
+    {
+      "family": "reflection-sky",
+      "id": "kloofendal_48d_partly_cloudy_puresky",
+      "source": "https://polyhaven.com/a/kloofendal_48d_partly_cloudy_puresky",
+      "authors": {
+        "Greg Zaal": "Original",
+        "Jarod Guest": "Sky edits"
+      },
+      "usage": "Reflections only, never geographic background",
+      "inputs": [
+        {
+          "size": 1435119,
+          "url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/kloofendal_48d_partly_cloudy_puresky_1k.hdr",
+          "md5": "c69498687e876bf68d2a8b8a62234eb9"
+        }
+      ],
+      "outputs": [
+        {
+          "file": "day-sky.hdr",
+          "bytes": 1435119,
+          "sha256": "fd94c84997b8a3c353b62c2125a9b44e19509956986a126e472684432a02d798",
+          "colorSpace": "linear-hdr"
+        }
+      ]
+    }
+  ],
+  "totalBytes": 1944593
+}

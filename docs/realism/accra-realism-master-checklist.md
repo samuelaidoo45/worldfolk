@@ -1,6 +1,8 @@
 # Accra realism master checklist
 
-Worldfolk production backlog • 11 October 2026
+Worldfolk production backlog • updated 13 October 2026
+
+**Current working index:** [Accra coverage and update tracker](accra-coverage-tracker.md). It adds neighbourhood surveys, everyday streets and services, shared objects, and an assessed progress queue. Use [coverage-work-items.csv](coverage-work-items.csv) for current per-item stages; the tables below retain the original named-place scope.
 
 ## Purpose and coverage
 
@@ -19,11 +21,11 @@ The current extract covers longitude −0.40 to 0.12 and latitude 5.40 to 5.83. 
 - [Every bundled street-search record](mapped-streets.csv): street names and representative coordinates. These are search records, not complete road geometry.
 - [Existing landmark reference notes](../landmark-references.md): earlier reference work. Existing procedural models still require visual acceptance against this checklist.
 
-**Status convention:** every row starts at “Needs current reference pack” or “Not assessed”. No row is marked realistic merely because the game already draws it. Curated names are survey candidates; exact branches, current names, access, activities and interior layouts must be confirmed before authoring. Activities below are proposed game experiences, not claims about real services offered.
+**Status convention:** the original priority CSV now mirrors the current work queue. Six packages have partial implementation passes, ten have reference work, and none has full location acceptance recorded. No row is marked realistic merely because the game already draws it. Curated names are survey candidates; exact branches, current names, access, activities and interior layouts must be confirmed before authoring. Activities below are proposed game experiences, not claims about real services offered.
 
 ## Build order
 
-**Progress as of 11 October 2026:** first human/camera and vehicle passes are deployed. Work packages 1 and 2 remain in progress; no location has been newly accepted by these releases. Independence precinct now has a verified exterior reconstruction pass; its full visit acceptance remains open. See [implementation progress](implementation-progress.md) for release IDs, verification and remaining work.
+**Progress as of 13 October 2026:** humans/camera, vehicles, Independence precinct, Nkrumah Park and Accra Mall have implementation passes recorded. Full location acceptance remains open. Mall surroundings are in research. See [implementation progress](implementation-progress.md) for verification and remaining work, and the [coverage tracker](accra-coverage-tracker.md) for the current queue.
 
 | Order | Work package | Acceptance result |
 |---|---|---|
@@ -393,7 +395,7 @@ The table entries describe what to research and build. A category template is a 
 
 ## Humans and character animation
 
-The current simple character must be replaced by a skinned, articulated human model. Adding face textures to the existing thin body will not solve its proportions or motion.
+The first skinned, articulated human models and revised locomotion are implemented. The following requirements remain the full acceptance target; their presence here does not mean each is still unimplemented. See the shared-system tracker and release notes for assessed progress.
 
 | Component | Required result | Acceptance check |
 |---|---|---|
@@ -511,7 +513,7 @@ Suggested performance targets, to measure on named test devices: stable 30 fps o
 
 ## Reference sources and current-name checks
 
-These sources seed reference packs; they do not verify every row above or license copying their images as game textures.
+Use the [active image register](current-reference-images.md) for reconstruction imagery and the [per-item reference queue](reference-coverage.csv) for current-photo gaps. Capture dates must be recorded separately from upload, publication and review dates. Older photographs and concepts are [archived](historical-references.md). The operator and institutional links below are current-name and operational context; they do not establish the capture date of their photos or verify every row above.
 
 - [Ghana Tourism Authority on Independence Square](https://visitghana.com/independence-square/): distinguishes the square, Independence Arch and Black Star Gate; use separate models and correctly positioned components.
 - [Ghana Tourism Authority Greater Accra overview](https://visitghana.com/greater-accra-region/): heritage, markets, coast and regional context.

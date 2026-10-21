@@ -1,0 +1,42 @@
+id,chapter,neighbourhoods,priority,status,next_action,updated
+ZONE-001,Central heritage,Independence precinct; Victoriaborg; ministries; Nkrumah Park,P1,In progress,"Active priority: complete Independence Square surrounding road-facing buildings, stadium/park, western offices and coastal/eastern/northern approaches before further Osu expansion; Partial local pass.",2026-10-20
+ZONE-002,Central trading,Makola; Okaishie; Tudu; Kantamanto; Salaga; Tema Station,P1,Queued,"Define bounded blocks and connect individual place, road and building IDs.",2026-10-13
+ZONE-003,Historic coast,Jamestown; Usshertown; Korle Wokon; fishing harbour,P1,Queued,"Define bounded blocks and connect individual place, road and building IDs.",2026-10-13
+ZONE-004,Central residential,Adabraka; Asylum Down; West Ridge; North Ridge,P2,Queued,"Define bounded blocks and connect individual place, road and building IDs.",2026-10-13
+ZONE-005,Osu,Oxford Street; Osu side streets; Osu Night Market; coastal approaches,P1,In progress,Existing first Oxford Street block retained. Further Osu follows Independence Square surroundings; then extend connected roadside addresses before interiors.,2026-10-20
+ZONE-006,Diplomatic and residential east,Cantonments; Labone; Ringway Estates,P2,Queued,"Define bounded blocks and connect individual place, road and building IDs.",2026-10-13
+ZONE-007,La coast,La; South La; Labadi; beach access and fishing streets,P1,Queued,"Define bounded blocks and connect individual place, road and building IDs.",2026-10-13
+ZONE-008,Teshie,Teshie old town; Nungua-facing road; estates; beach,P2,Queued,"Define bounded blocks and connect individual place, road and building IDs.",2026-10-13
+ZONE-009,Nungua,Nungua old town; market; Junction Mall approaches; coast,P2,Queued,"Define bounded blocks and connect individual place, road and building IDs.",2026-10-13
+ZONE-010,Airport City,Terminal approaches; offices; hotels; public transport,P2,Queued,"Define bounded blocks and connect individual place, road and building IDs.",2026-10-13
+ZONE-011,Airport Residential,Residential streets; Dzorwulu edges; businesses,P1,Queued,"Active focus: bound Airport Residential blocks and verified Shangri-La/Opeibea connections; attach current photos, native addresses and road IDs before implementation.",2026-10-18
+ZONE-012,Mall district,Accra Mall; Spanner; Signature; Villaggio; Gallery; Ghud Park; interchange,P1,Mall / Signature / Villaggio passes; surroundings research,"Active focus: complete connected mall-area buildings, interiors, frontage, stops and walking/traffic acceptance; follow airport-mall-focus.md.",2026-10-18
+ZONE-013,Dzorwulu and Abelemkpe,Homes; schools; neighbourhood businesses; roads,P2,Queued,"Define bounded blocks and connect individual place, road and building IDs.",2026-10-13
+ZONE-014,Roman Ridge and Kanda,Residential blocks; institutions; Jubilee House public frontage,P2,Queued,"Define bounded blocks and connect individual place, road and building IDs.",2026-10-13
+ZONE-015,Nima and Maamobi,Markets; compound homes; religious spaces; paths,P1,Queued,"Define bounded blocks and connect individual place, road and building IDs.",2026-10-13
+ZONE-016,New Town and Kokomlemle,Retail; housing; workshops; media offices; streets,P2,Queued,"Define bounded blocks and connect individual place, road and building IDs.",2026-10-13
+ZONE-017,Circle corridor,Interchange; terminals; shops; pedestrian routes,P2,Queued,"Define bounded blocks and connect individual place, road and building IDs.",2026-10-13
+ZONE-018,Achimota and Tesano,School; forest edge; retail; terminals; homes,P2,Queued,"Define bounded blocks and connect individual place, road and building IDs.",2026-10-13
+ZONE-019,North Kaneshie and Bubuashie,Residential blocks; schools; markets; workshops,P2,Queued,"Define bounded blocks and connect individual place, road and building IDs.",2026-10-13
+ZONE-020,Kaneshie and Abossey Okai,Market; terminal; spare parts; repair streets,P1,Queued,"Define bounded blocks and connect individual place, road and building IDs.",2026-10-13
+ZONE-021,Dansoman and Mataheko,Estate housing; local commerce; schools; leisure,P2,Queued,"Define bounded blocks and connect individual place, road and building IDs.",2026-10-13
+ZONE-022,Korle Bu and Korle Gonno,Hospital public areas; homes; trading streets; beach,P2,Queued,"Define bounded blocks and connect individual place, road and building IDs.",2026-10-13
+ZONE-023,Chorkor and Mamprobi,Fishing communities; homes; markets; service streets,P2,Queued,"Define bounded blocks and connect individual place, road and building IDs.",2026-10-13
+ZONE-024,Odorkor and Darkuman,Transport; stores; workshops; housing,P2,Queued,"Define bounded blocks and connect individual place, road and building IDs.",2026-10-13
+ZONE-025,Kwashieman and Awoshie,Junctions; retail; housing; schools,P2,Queued,"Define bounded blocks and connect individual place, road and building IDs.",2026-10-13
+ZONE-026,Santa Maria and Anyaa,Residential streets; local services; transport,P3,Queued,"Define bounded blocks and connect individual place, road and building IDs.",2026-10-13
+ZONE-027,Lapaz and Abeka,Terminal approaches; high street; homes; shops,P2,Queued,"Define bounded blocks and connect individual place, road and building IDs.",2026-10-13
+ZONE-028,Dome and Taifa,Markets; homes; repair businesses; roads,P2,Queued,"Define bounded blocks and connect individual place, road and building IDs.",2026-10-13
+ZONE-029,Haatso and Agbogba,Homes; campus links; shops; local transport,P2,Queued,"Define bounded blocks and connect individual place, road and building IDs.",2026-10-13
+ZONE-030,Legon,University blocks; halls; libraries; gardens; pedestrian routes,P1,Queued,"Define bounded blocks and connect individual place, road and building IDs.",2026-10-13
+ZONE-031,Madina,Market; Zongo Junction; housing; schools; worship,P1,Queued,"Define bounded blocks and connect individual place, road and building IDs.",2026-10-13
+ZONE-032,Adenta and Frafraha,Residential neighbourhoods; transport; local services,P3,Boundary review,"Define bounded blocks and connect individual place, road and building IDs.",2026-10-13
+ZONE-033,East Legon and Okponglo,Homes; local businesses; campuses; street network,P2,Queued,"Define bounded blocks and connect individual place, road and building IDs.",2026-10-13
+ZONE-034,Adjiringanor and East Legon Hills,Housing; retail; access roads; services,P3,Boundary review,"Define bounded blocks and connect individual place, road and building IDs.",2026-10-13
+ZONE-035,Spintex and Baatsona,Commercial frontage; industry; housing; connecting roads,P2,Queued,"Define bounded blocks and connect individual place, road and building IDs.",2026-10-13
+ZONE-036,Sowutuom and Gbawe,Housing; education; markets; roads,P3,Queued,"Define bounded blocks and connect individual place, road and building IDs.",2026-10-13
+ZONE-037,Mallam and McCarthy Hill,Interchange; neighbourhood roads; housing,P3,Boundary review,"Define bounded blocks and connect individual place, road and building IDs.",2026-10-13
+ZONE-038,Pokuase and Amasaman,Interchange; terminals; markets; homes,P3,Boundary review,"Define bounded blocks and connect individual place, road and building IDs.",2026-10-13
+ZONE-039,Weija and coastal west,Weija; Tetegu; Bortianor; Kokrobite; reservoirs and coast,P3,Boundary review,"Define bounded blocks and connect individual place, road and building IDs.",2026-10-13
+ZONE-040,Tema metropolitan extension,Community neighbourhoods; port public edge; markets; offices,P3,Expansion,"Define bounded blocks and connect individual place, road and building IDs.",2026-10-13
+ZONE-041,Ashaiman metropolitan extension,Markets; terminals; housing; workshops,P3,Expansion,"Define bounded blocks and connect individual place, road and building IDs.",2026-10-13

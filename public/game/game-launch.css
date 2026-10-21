@@ -1,0 +1,105 @@
+/* Game menu: one vertical hierarchy, with the city browser as a separate view. */
+.city-launch #map{visibility:hidden}
+.city-launch .maplibregl-control-container,.city-launch .mapboxgl-control-container{visibility:hidden}
+.city-welcome{--launch-gold:#ffd36b;--launch-ink:#07121b;position:fixed;inset:0;z-index:30;overflow:auto;overscroll-behavior:contain;color:#fff7e5;background:var(--launch-ink);pointer-events:auto;font-family:Outfit,system-ui,sans-serif}
+.city-welcome [hidden]{display:none!important}
+.city-welcome button{font:inherit;cursor:pointer;color:inherit;transition:color .15s,background .15s,transform .15s}
+.city-welcome button:disabled{cursor:wait;opacity:.6}
+.city-welcome button:focus-visible,.city-welcome input:focus-visible{outline:2px solid var(--launch-gold);outline-offset:5px}
+.launch-art,.launch-shade{position:fixed;inset:0;pointer-events:none}
+.launch-art{background:url('./assets/launch/accra-key-art.jpg') center/cover no-repeat}
+.launch-shade{background:linear-gradient(90deg,#030910e8 0%,#030910a3 25%,#03091018 62%,transparent 82%),linear-gradient(0deg,#030910bf,transparent 35%,#03091020)}
+.city-welcome .city-welcome-bar{position:absolute;top:max(22px,env(safe-area-inset-top));right:max(32px,env(safe-area-inset-right));left:auto;transform:none;margin:0;padding:0;display:flex;align-items:center;gap:18px;width:auto;max-width:calc(100% - 32px);min-height:0;border:0;border-radius:0;box-shadow:none;background:transparent;backdrop-filter:none;z-index:2}
+.city-welcome .city-welcome-online{display:flex;align-items:center;gap:5px;font-size:11px;color:#e5e4d6;margin:0;text-shadow:0 1px 8px #000}
+.city-welcome-online i{width:6px;height:6px;border-radius:50%;background:#7de0a4;box-shadow:0 0 10px #7de0a470;margin-right:3px}
+.city-welcome-online b{font-weight:600}
+.city-welcome .city-signup{display:flex;align-items:center;gap:10px;background:#07101bbf;border:1px solid #fff3;border-radius:32px;padding:6px 18px 6px 6px;text-align:left;box-shadow:0 4px 20px #0002;min-height:46px;max-width:260px}
+.launch-avatar{display:grid;place-items:center;flex:none;width:35px;height:35px;border:1px solid var(--launch-gold);border-radius:50%;font-size:22px;background:#b78a3933}
+.city-signup>span:last-child{min-width:0}.city-signup strong{display:block;font-size:12px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.city-signup small{display:block;font-size:8px;letter-spacing:1.2px;color:#c1b8a3;margin-top:2px}
+.city-welcome .city-login,.city-welcome .launch-play{min-height:44px;padding:8px 0;border:0;border-radius:0;background:transparent;font-size:12px;color:#eee3cd}
+.launch-content{position:relative;display:flex;flex-direction:column;box-sizing:border-box;padding:clamp(62px,9vh,110px) 0 max(24px,env(safe-area-inset-bottom)) max(7.2vw,env(safe-area-inset-left));width:min(630px,52vw);min-height:100svh}
+.launch-wordmark{margin-bottom:22px}.launch-edition{font-size:9px;letter-spacing:3px;font-weight:500;color:#e3d2ac;margin:0 0 9px}.launch-wordmark h1{font-family:'Barlow Condensed',Impact,'Arial Narrow',sans-serif;font-weight:800;font-size:clamp(68px,7.3vw,126px);letter-spacing:-1.7px;line-height:.95;margin:0;color:var(--launch-gold);text-shadow:0 3px 0 #a55b1d,0 6px 30px #0005}.launch-subtitle{display:flex;align-items:center;gap:13px;letter-spacing:9px;font-size:12px;font-weight:600;color:#fff3d2;margin:18px 0 0}.launch-subtitle span{height:1px;width:32px;background:#ffd36b88}
+.launch-menu{display:flex;flex-direction:column;align-items:stretch;margin-left:-19px;max-width:465px}
+.city-welcome .launch-menu>button{position:relative;display:block;text-align:left;border:0;border-radius:0;background:transparent;padding:3px 22px;min-height:47px;color:#c3bfb6;font:700 clamp(27px,2.5vw,41px)/1.16 'Barlow Condensed',Impact,'Arial Narrow',sans-serif;text-transform:uppercase;letter-spacing:.15px;white-space:nowrap;text-shadow:0 2px 10px #0007}
+.city-welcome .launch-menu>button::before{content:'';position:absolute;left:0;top:15%;height:70%;width:3px;background:transparent;transition:background .15s,box-shadow .15s}
+.city-welcome .launch-menu>button.is-selected{color:#fff9e9;background:linear-gradient(90deg,#f6bb442b,transparent 92%)}
+.city-welcome .launch-menu>button.is-selected::before{background:var(--launch-gold);box-shadow:0 0 15px #ffd36b88}
+.city-welcome .launch-menu>button:hover{color:#fff9e9}.city-welcome .launch-menu>button:active{transform:translateX(3px)}
+.launch-menu-hint{color:#d3caba;font-size:12px;line-height:1.5;max-width:340px;min-height:36px;margin:17px 0 20px}
+.launch-location{display:flex;align-items:center;gap:12px;max-width:370px;padding-top:15px;border-top:1px solid #e8d3a630;margin-top:auto;margin-bottom:20px}
+.launch-location-icon{color:var(--launch-gold);font-size:26px}.launch-location div{min-width:0}.launch-location small{display:block;font-size:8px;letter-spacing:1.8px;color:#b7b3a7;margin-bottom:5px}.launch-location strong{display:block;font-size:13px;font-weight:500;color:#f3ecd9}.city-welcome .launch-browse{border:0;border-radius:0;padding:10px 0 10px 14px;min-height:44px;background:none;color:var(--launch-gold);font-size:10px;margin-left:auto;white-space:nowrap}.launch-browse span{margin-left:5px}
+.launch-footer{display:flex;flex-wrap:wrap;gap:13px;font-size:8px;letter-spacing:1.3px;color:#a29d92;align-items:center}.launch-footer>span:first-child{display:flex;align-items:center;gap:6px}.launch-footer kbd{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 3px;border:1px solid #fff4;border-radius:3px;font:10px system-ui;color:#d7d1c4}.launch-footer kbd:nth-of-type(3){margin-left:9px}.launch-art-label{font-size:8px;letter-spacing:0;color:#938f85}
+.launch-scene-caption{position:absolute;right:4vw;bottom:30px;text-align:right;text-shadow:0 2px 10px #000}.launch-scene-caption span,.launch-scene-caption small{display:block;font-size:8px;font-weight:500;letter-spacing:2px;color:#e6d9bd}.launch-scene-caption strong{display:block;font:700 20px 'Barlow Condensed',Impact,sans-serif;letter-spacing:2px;margin:7px 0;color:#fff0d0}
+.launch-status{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.city-welcome .launch-settings-dialog{background:#101c26f5;border:1px solid #d8bc7466;color:#f9eed6;border-radius:6px;width:min(420px,calc(100vw - 32px));max-height:calc(100svh - 32px);overflow:auto;padding:34px;box-sizing:border-box;box-shadow:0 25px 90px #0009}
+.launch-settings-dialog::backdrop{background:#030810a8;backdrop-filter:blur(8px)}.launch-settings-dialog h2{font:700 48px 'Barlow Condensed',Impact,sans-serif;text-transform:uppercase;margin:12px 0 24px}.city-welcome .launch-settings-close{position:absolute;right:10px;top:8px;padding:0;background:none;border:0;font-size:28px;width:44px;height:44px}.city-welcome .launch-sound,.city-welcome .launch-fullscreen{display:flex;align-items:center;justify-content:space-between;gap:20px;width:100%;min-height:54px;border:0;border-bottom:1px solid #fff2;border-radius:0;padding:12px 0;background:none;font-size:14px}.launch-settings-dialog strong{color:var(--launch-gold);font-size:11px}.launch-settings-note{font-size:12px;color:#bfc2bf;line-height:1.6;margin:22px 0}.city-welcome .launch-settings-done{background:var(--launch-gold);color:#17212a;border:0;border-radius:3px;width:100%;min-height:46px;font-size:13px}
+@media(min-height:850px) and (min-width:1000px){.launch-wordmark{margin-bottom:35px}.city-welcome .launch-menu>button{min-height:55px}.launch-menu-hint{margin-top:24px;margin-bottom:32px}.launch-location{margin-top:10px}.launch-footer{margin-top:auto}}
+@media(max-width:900px){.launch-content{padding-left:5vw;width:60vw}.launch-wordmark h1{font-size:clamp(68px,10vw,90px)}.launch-edition{font-size:8px;letter-spacing:2px}.city-welcome .launch-menu>button{font-size:32px}.launch-scene-caption{display:none}.city-welcome .city-welcome-bar{right:20px;gap:12px}.launch-art{background-position:58% center}}
+@media(max-width:600px) and (orientation:portrait){.launch-art{background-position:65% center}.launch-shade{background:linear-gradient(90deg,#040c14ec,#040c1480 62%,#040c1430),linear-gradient(0deg,#040c14cf,transparent 60%)}.city-welcome .city-welcome-bar{top:max(14px,env(safe-area-inset-top));right:max(18px,env(safe-area-inset-right));left:20px;gap:12px}.city-welcome .city-welcome-online{margin-right:auto;font-size:9px}.city-welcome .city-signup{max-width:195px;padding-right:12px;gap:7px}.launch-avatar{width:29px;height:29px;font-size:20px}.city-signup strong{font-size:11px;max-width:125px}.city-signup small{font-size:7px;letter-spacing:.7px}.city-welcome .city-login{font-size:11px}.launch-content{width:100%;padding:112px 27px max(25px,env(safe-area-inset-bottom));min-height:100svh}.launch-wordmark{margin-bottom:27px}.launch-wordmark h1{font-size:clamp(65px,18vw,103px);letter-spacing:-1px}.launch-subtitle{font-size:10px;letter-spacing:7px;margin-top:15px}.launch-edition{font-size:7px;letter-spacing:2px}.launch-menu{max-width:335px;margin-left:-12px}.city-welcome .launch-menu>button{font-size:32px;min-height:48px;padding-left:15px}.launch-menu-hint{max-width:280px;font-size:11px;min-height:34px;margin:16px 0 22px}.launch-location{max-width:330px;margin-bottom:18px}.launch-location strong{font-size:12px}.launch-footer>span:first-child{display:none}.launch-footer{font-size:7px}}
+@media(max-height:560px) and (orientation:landscape){.launch-content{padding:27px 0 max(16px,env(safe-area-inset-bottom)) max(6vw,env(safe-area-inset-left));width:55vw;min-height:100svh}.launch-edition{font-size:6px;letter-spacing:1.8px;margin-bottom:6px}.launch-wordmark{margin-bottom:13px}.launch-wordmark h1{font-size:57px}.launch-subtitle{font-size:8px;letter-spacing:6px;margin-top:9px}.launch-subtitle span{width:20px}.city-welcome .launch-menu>button{font-size:24px;min-height:33px;padding-top:1px;padding-bottom:1px}.launch-menu-hint{font-size:10px;min-height:28px;margin:10px 0}.launch-location{margin-top:0;margin-bottom:12px;padding-top:8px;max-width:300px}.launch-location small{font-size:6px}.launch-location strong{font-size:10px}.launch-location-icon{font-size:20px}.city-welcome .launch-browse{font-size:9px;min-height:35px}.launch-footer{font-size:6px;gap:6px}.launch-art-label{font-size:6px}.launch-footer>span:first-child{display:none}.city-welcome .city-welcome-bar{top:12px;right:max(18px,env(safe-area-inset-right));gap:10px}.city-welcome .city-welcome-online{font-size:9px}.city-welcome .city-signup{min-height:37px}.launch-avatar{width:27px;height:27px;font-size:18px}.city-signup strong{font-size:10px}.city-signup small{font-size:6px}.city-welcome .city-login{font-size:10px}.launch-scene-caption{display:none}}
+@media(prefers-reduced-motion:reduce){.city-welcome button,.city-welcome .launch-menu>button::before{transition:none}}
+/* Interactive city browser remains available as a deliberate menu destination. */
+.city-welcome.map-open{background:transparent;pointer-events:none;overflow:hidden}
+.map-open .launch-art{display:none}
+.map-open .launch-shade{background:linear-gradient(180deg,#06121bc9,transparent 25%,transparent 70%,#06121b80)}
+.map-open .city-welcome-bar{background:#0d1a24ed}
+.city-welcome .city-discovery{top:116px;max-width:620px;width:calc(100% - 40px);pointer-events:auto}
+.city-welcome .city-discovery label{background:#101f2df5;border:1px solid #ffffff38;border-radius:6px;color:#e4edf0;box-shadow:0 10px 30px #0003}
+.city-welcome .city-discovery input{color:#fff;background:transparent;font:inherit;font-size:15px}
+.city-welcome .city-discovery input::placeholder{color:#a9bac6}
+.city-welcome .city-district-chips button{background:#132533ed;color:#e2e9ed;border:1px solid #ffffff2b;border-radius:4px;font-size:11px}
+.city-welcome .city-discovery-results{background:#11212ff8;color:#e2e9ed;border:1px solid #ffffff30;border-radius:6px}
+.city-welcome .city-discovery-results .place-result{background:transparent;color:#f4f7f8;border-bottom:1px solid #ffffff12;border-radius:0}
+.city-welcome .city-discovery-results button:hover{background:#2c4252}
+.city-welcome .city-discovery-results small,.city-welcome .city-search-status{color:#aebdc8}
+.city-welcome .city-start-card{background:#10222ff5;color:#eaf0f1;border:1px solid #ffffff35;border-radius:8px;box-shadow:0 15px 40px #0003;bottom:36px;padding:22px;max-width:600px;width:calc(100% - 40px);grid-template-columns:54px 1fr;gap:16px;pointer-events:auto}
+.city-welcome .city-start-icon{height:54px;width:54px;background:#ffffff13;border-radius:8px;font-size:32px}
+.city-welcome .city-start-copy small{font-size:9px;color:#f8ca69;letter-spacing:1.4px}
+.city-welcome .city-start-copy h2{font-size:25px;letter-spacing:-.5px;margin:5px 0 6px;color:#fff;line-height:1.1}
+.city-welcome .city-start-copy p{font-size:12px;line-height:1.5;color:#aebfc9;margin:0}
+.city-welcome .city-start-actions{gap:10px;margin-top:0}
+.city-welcome .city-start-actions button{border-radius:4px;border:1px solid #ffffff30;font-size:13px;background:transparent;color:#dae3e8;padding:13px}
+.city-welcome .city-start-actions .city-explore{background:#f8ca69;color:#102028;border-color:#f8ca69;font-weight:700}
+.city-welcome .city-map-hint{font-size:10px;bottom:5px;right:20px;border-radius:4px;background:#10222fcc;color:#d3dce1}
+/* Boot/title screen paints before the game module and uses actual readiness signals. */
+.game-boot{position:fixed;inset:0;z-index:1000;overflow:auto;background:#09131d;color:#fff;font-family:Outfit,system-ui,sans-serif;display:flex;flex-direction:column;justify-content:space-between;align-items:center;text-align:center;padding:6svh 24px 22px;box-sizing:border-box}
+.game-boot[hidden],.game-boot [hidden]{display:none!important}
+.boot-art,.boot-vignette{position:absolute;inset:0;pointer-events:none}
+.boot-art{background:url('./assets/launch/accra-key-art.jpg') 60% center/cover no-repeat;animation:boot-reveal 1.2s ease-out both}
+.boot-vignette{background:linear-gradient(180deg,#07121aaa 0%,#07121a26 40%,#07121ad9 77%,#07121a 100%)}
+.boot-title,.boot-bottom{position:relative;width:100%}
+.boot-title{filter:drop-shadow(0 4px 15px #0007)}
+.boot-emblem{font-size:46px;color:#f8ca69;line-height:1}
+.boot-title p{font-size:10px;letter-spacing:4px;color:#e9ddbf;margin:16px 0 10px}
+.boot-title h1{font-size:clamp(44px,10vw,145px);font-weight:800;line-height:.95;letter-spacing:-4px;margin:0;color:#fff3d8}
+.boot-subtitle{display:flex;align-items:center;justify-content:center;gap:20px;font-size:17px;letter-spacing:12px;margin:20px 0;color:#f8ca69;padding-left:12px}
+.boot-subtitle span{width:40px;height:1px;background:#f8ca6970}
+.boot-bottom{max-width:640px;margin-top:100px}
+.boot-loading{width:min(420px,100%);margin:auto}
+.boot-progress-label{display:flex;justify-content:space-between;text-align:left;gap:20px;font-size:12px;color:#e6ded2;margin-bottom:12px}
+#bootCount{white-space:nowrap;color:#f8ca69;font-size:11px}
+#bootProgress{display:block;appearance:none;width:100%;height:3px;border:0;background:#ffffff25;color:#f8ca69;border-radius:4px;overflow:hidden}
+#bootProgress::-webkit-progress-bar{background:#ffffff25}#bootProgress::-webkit-progress-value{background:#f8ca69;transition:width .2s}#bootProgress::-moz-progress-bar{background:#f8ca69}
+.boot-tip{font-size:11px;line-height:1.5;color:#aab6c0;margin:17px 0 26px}
+#bootStart{font:750 27px Outfit,system-ui,sans-serif;letter-spacing:5px;background:transparent;border:1px solid #f8ca6960;color:#ffdda0;border-radius:4px;padding:18px 30px;cursor:pointer;min-width:300px;box-shadow:0 0 40px #f8ca6908;transition:background .2s,box-shadow .2s}
+#bootStart span{font-weight:400;margin-left:15px;font-size:24px}
+#bootStart:hover{background:#f8ca6915;box-shadow:0 0 40px #f8ca6920}
+#bootStart:focus-visible,#bootRetry:focus-visible{outline:2px solid #f8ca69;outline-offset:6px}
+.boot-input-hint{font-size:9px;letter-spacing:2px;color:#c0c8cb;margin:18px 0 30px}
+#bootRetry{font:600 13px Outfit,system-ui,sans-serif;color:#11212b;background:#f8ca69;border:0;padding:12px 22px;border-radius:4px;cursor:pointer;margin-bottom:20px}
+.boot-credit{font-size:9px;letter-spacing:3px;color:#e1d1ae;margin-top:28px}.boot-credit span{display:block;margin-top:12px;letter-spacing:.3px;font-size:9px;color:#90a1ad}
+.boot-active .city-welcome{visibility:hidden}
+@keyframes boot-reveal{from{opacity:0}to{opacity:1}}
+@media(max-width:650px){.game-boot{padding:9svh 20px 26px}.boot-art{background-position:65% center}.boot-title h1{font-size:clamp(40px,12vw,76px);letter-spacing:-2px}.boot-title p{font-size:8px;letter-spacing:2px}.boot-emblem{font-size:34px}.boot-subtitle{font-size:12px;letter-spacing:8px;gap:15px}.boot-vignette{background:linear-gradient(180deg,#07121abf,#07121a25 45%,#07121af2 85%)}#bootStart{font-size:22px;min-width:260px;letter-spacing:3px}.boot-bottom{margin-top:80px}}
+@media(max-height:500px){.game-boot{padding:18px 20px 12px}.boot-emblem{display:none}.boot-title p{margin:0 0 7px;font-size:8px}.boot-title h1{font-size:64px;letter-spacing:-2px}.boot-subtitle{font-size:11px;margin:12px 0}.boot-bottom{margin-top:36px}#bootStart{font-size:18px;padding:12px 24px;min-width:250px}.boot-input-hint{margin:12px 0}.boot-credit{margin-top:12px;font-size:8px}.boot-credit span{margin-top:6px;font-size:8px}}
+@media(prefers-reduced-motion:reduce){.boot-art{animation:none}#bootProgress::-webkit-progress-value,#bootStart{transition:none}}
+/* City browser inherits the compact player badge, with an explicit return action. */
+.city-welcome.map-open .city-welcome-bar{position:absolute;left:20px;right:20px;top:max(14px,env(safe-area-inset-top));padding:8px 16px;background:#0d1a24ed;border:1px solid #fff2;border-radius:5px}.map-open .city-welcome-online{margin-left:auto}.city-welcome.map-open .city-discovery{top:95px}.map-open .city-start-card h2{font-family:Outfit,system-ui,sans-serif}
+@media(max-width:600px){.city-welcome.map-open .city-welcome-bar{left:12px;right:12px;padding:5px 10px;gap:10px}.map-open .city-welcome-online{display:none}.map-open .city-signup{margin-left:auto}.city-welcome .city-discovery{width:calc(100% - 28px)}.city-welcome .city-start-card{width:calc(100% - 28px);bottom:24px;padding:16px;grid-template-columns:40px 1fr;gap:12px}.city-welcome .city-start-icon{width:40px;height:40px;font-size:26px}.city-welcome .city-start-copy h2{font-size:21px}.city-welcome .city-start-copy p{font-size:11px}.city-welcome .city-start-actions button{font-size:12px;padding:12px}.city-welcome .city-map-hint{display:none}}
+@media(max-height:560px) and (orientation:landscape){.city-welcome.map-open .city-welcome-bar{left:16px;right:16px;top:8px;padding:4px 12px}.city-welcome.map-open .city-discovery{top:74px;left:16px;transform:none;width:42%}.city-welcome .city-district-chips{display:none}.city-welcome .city-discovery-results{max-height:55svh}.city-welcome .city-start-card{left:auto;right:16px;transform:none;width:42%;bottom:16px;padding:14px;gap:10px}.city-welcome .city-start-copy h2{font-size:19px}.city-welcome .city-start-copy p{font-size:10px}.city-welcome .city-start-actions button{font-size:11px;padding:10px}.city-welcome .city-map-hint{display:none}}
+@media(min-width:901px) and (min-height:561px) and (max-height:800px){.launch-content{padding-top:52px;padding-bottom:18px}.launch-wordmark{margin-bottom:19px}.launch-wordmark h1{font-size:85px}.launch-subtitle{margin-top:13px}.city-welcome .launch-menu>button{font-size:32px;min-height:43px}.launch-menu-hint{margin:13px 0 14px;min-height:30px;font-size:11px}.launch-location{padding-top:10px;margin-bottom:13px}.launch-footer{gap:9px}}
+/* A saved character's restart prompt belongs in gameplay, not over the main menu. */
+.city-home .death-screen{display:none!important}
+@media(max-height:560px) and (orientation:landscape){.launch-content{padding-top:20px;padding-bottom:10px}.launch-menu-hint{margin:8px 0 0;min-height:0;max-width:320px}.launch-location{position:fixed;right:max(5vw,env(safe-area-inset-right));bottom:max(34px,env(safe-area-inset-bottom));width:30vw;max-width:300px;margin:0;padding-top:12px}.launch-footer{position:fixed;right:max(5vw,env(safe-area-inset-right));bottom:max(16px,env(safe-area-inset-bottom));margin:0}.launch-footer .launch-art-label{color:#ddd0b8}}
+@media(max-width:375px) and (orientation:portrait){.city-welcome .launch-menu>button{font-size:28px}}
+.city-welcome .launch-menu>button:focus-visible{outline:1px solid #ffd36b66;outline-offset:-2px}

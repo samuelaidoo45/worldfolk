@@ -1,5 +1,35 @@
+import {CIVIC_PLACES} from './independence-neighbourhood-data.js';
+import {OSU_PLACES} from './osu-oxford-data.js';
+import {SKY_PLACES} from './senchi-skyline-data.js';
+import {BOUND_PLACES} from './airport-bound-data.js';
+import {AREA_PLACES} from './mahama-neighbourhood-data.js';
+import {MAHAMA_PLACES} from './mahama-bypass-data.js';
+import {POLO_PLACES} from './polo-senchi-data.js';
+import {REGENT_ROADSIDE_PLACE} from './regent-roadside-data.js';
+import {SHANGRI_PLACES} from './shangri-la-data.js';
+import {REGUS_PLACE} from './airport-residential-data.js';
+import {OAK_PLACE} from './oak-plaza-data.js';
+import {VILLA_PLACE} from './villa-monticello-data.js';
+import {LANCASTER_PLACE} from './lancaster-data.js';
+import {HOTEL_PLACE} from './airport-view-data.js';
+import {ANNEX_PLACE} from './airport-annex-data.js';
+import {T3_WORKS_PLACE} from './airport-access-data.js';
+import {AIRPORT_ISLAND_PLACES} from './airport-junction-data.js';
+import {AIRPORT_STOP_PLACES} from './airport-stops-data.js';
+import {BUSINESS_PLACES} from './airport-business-data.js';
+import {AIRPORT_CITY_PLACES} from './airport-city-data.js';
+import {T2_PLACE} from './airport-t2-data.js';
+import {T3_PLACE} from './airport-t3-data.js';
+import {KOFI_PLACES} from './kofi-annan-data.js';
+import {NEIGHBOUR_PLACES} from './villaggio-neighbours-data.js';
+import {INTERCHANGE_PLACE} from './interchange-data.js';
+import {GALLERIA_PLACE} from './city-galleria-data.js';
+import {GHUD_PLACE} from './ghud-park-data.js';
+import {FRONTAGE_PLACE} from './mall-frontage-data.js';
+import {BUS_STOP_PLACES} from './mall-bus-stops-data.js';
+import {TERMINAL_PLACE} from './mall-terminal-data.js';
 // Named destinations from the bundled OpenStreetMap extract. Jobs are fictional game roles.
-export const CITY_DESTINATIONS=[
+export const CITY_DESTINATIONS=[...CIVIC_PLACES,...OSU_PLACES,...SKY_PLACES,...BOUND_PLACES,...AREA_PLACES,...MAHAMA_PLACES,...POLO_PLACES,REGENT_ROADSIDE_PLACE,...SHANGRI_PLACES,REGUS_PLACE,OAK_PLACE,VILLA_PLACE,LANCASTER_PLACE,HOTEL_PLACE,ANNEX_PLACE,T3_WORKS_PLACE,...AIRPORT_ISLAND_PLACES,...AIRPORT_STOP_PLACES,...BUSINESS_PLACES,...AIRPORT_CITY_PLACES,T2_PLACE,T3_PLACE,...KOFI_PLACES,...NEIGHBOUR_PLACES,INTERCHANGE_PLACE,GALLERIA_PLACE,GHUD_PLACE,FRONTAGE_PLACE,...BUS_STOP_PLACES,TERMINAL_PLACE,
  {
   "id": "g_-1679_55876",
   "name": "Home Touch",
@@ -20,21 +50,6 @@ export const CITY_DESTINATIONS=[
   "name": "Palace Chinese Restaurant",
   "lng": -0.1965,
   "lat": 5.6132,
-  "type": "restaurant",
-  "category": "restaurant",
-  "emoji": "🍽️",
-  "area": "Accra",
-  "description": "Mapped Accra destination. Explore, meet residents and use the available game activities.",
-  "activities": [
-   "meal",
-   "connect"
-  ]
- },
- {
-  "id": "g_-1821_55612",
-  "name": "Frankie's",
-  "lng": -0.1821,
-  "lat": 5.5612,
   "type": "restaurant",
   "category": "restaurant",
   "emoji": "🍽️",
@@ -237,21 +252,6 @@ export const CITY_DESTINATIONS=[
   "description": "Mapped Accra destination. Explore, meet residents and use the available game activities.",
   "activities": [
    "explore",
-   "connect"
-  ]
- },
- {
-  "id": "g_-1762_56031",
-  "name": "Marina Mall",
-  "lng": -0.1762,
-  "lat": 5.6031,
-  "type": "mall",
-  "category": "mall",
-  "emoji": "🛍️",
-  "area": "Accra",
-  "description": "Mapped Accra destination. Explore, meet residents and use the available game activities.",
-  "activities": [
-   "shopping",
    "connect"
   ]
  },
@@ -465,4 +465,4 @@ export const CITY_DESTINATIONS=[
    "connect"
   ]
  }
-];
+].filter((p,i,all)=>all.findIndex(other=>other.id===p.id)===i);

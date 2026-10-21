@@ -43,7 +43,7 @@ export function vehicleKit(color){
 }
 const signs=new Map();
 function signTexture(text,bg,fg){if(typeof document==='undefined')return null;const key=text+bg+fg;if(signs.has(key))return signs.get(key);const c=document.createElement('canvas');c.width=512;c.height=128;const ctx=c.getContext('2d');if(!ctx)return null;ctx.fillStyle=bg;ctx.fillRect(0,0,512,128);ctx.fillStyle=fg;ctx.font='bold 60px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(text,256,69,490);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.userData.shared=true;signs.set(key,t);return t}
-export function createCar(color=0x174c89,kind='car'){
+export function createCar(color=0x174c89,kind='car',{taxiLivery=false}={}){
  const k=vehicleKit(color),{paint,glass,rubber,chrome,headlight,tail,box,profile,add,wheel,plate,seat,steeringWheel,cabin,rounded,label,panel}=k;
  const tall=['suv','van','pickup'].includes(kind),van=kind==='van',pickup=kind==='pickup',hatch=kind==='hatchback',roofY=van?1.85:tall?1.7:1.46;
  glass.color.setHex(0x314e5c);glass.opacity=.76;
@@ -85,7 +85,7 @@ export function createCar(color=0x174c89,kind='car'){
  if(tall)for(const s of [-1,1])box(chrome,.04,.06,1.76,s*.55,roofY+.12,.22);
  if(van){box(paint,1.38,.61,1.48,0,1.38,.74);for(const s of [-1,1])box(rubber,.02,.55,.015,s*.83,1.17,.22)}
  // Separate wing paint follows the wheel opening; it is not a floating stripe.
- if(kind==='taxi'){const orange=new THREE.MeshPhysicalMaterial({color:0xee8f20,metalness:.16,roughness:.34,clearcoat:1});for(const s of [-1,1])for(const z of [-1.17,1.17]){const sh=new THREE.Shape();sh.moveTo(z-.53,.72);sh.lineTo(z-.53,.85);sh.lineTo(z+.53,.85);sh.lineTo(z+.53,.72);sh.absarc(z,.39,.43,.85,Math.PI-.85,false);sh.closePath();const m=add(new THREE.ShapeGeometry(sh),orange,s*.873,0,0);m.rotation.y=-Math.PI/2;orange.side=THREE.DoubleSide;}rounded(orange,.43,.14,.2,0,roofY+.13,-.3,.025);label('TAXI',.35,.09,0,roofY+.14,-.408,Math.PI,'#f2be36','#152625')}
+ if(kind==='taxi'||taxiLivery){const orange=new THREE.MeshPhysicalMaterial({color:0xee8f20,metalness:.16,roughness:.34,clearcoat:1});for(const s of [-1,1])for(const z of [-1.17,1.17]){const sh=new THREE.Shape();sh.moveTo(z-.53,.72);sh.lineTo(z-.53,.85);sh.lineTo(z+.53,.85);sh.lineTo(z+.53,.72);sh.absarc(z,.39,.43,.85,Math.PI-.85,false);sh.closePath();const m=add(new THREE.ShapeGeometry(sh),orange,s*.873,0,0);m.rotation.y=-Math.PI/2;orange.side=THREE.DoubleSide;}rounded(orange,.43,.14,.2,0,roofY+.13,-.3,.025);label('TAXI',.35,.09,0,roofY+.14,-.408,Math.PI,'#f2be36','#152625')}
  if(!van&&!pickup){const rear=box(chrome,1.02,.014,.017,0,.87,1.49);rear.rotation.x=.04;box(rubber,.052,.052,.19,-.57,.38,1.73)}
  if(pickup){for(let n=0;n<7;n++)box(chrome,.018,.015,.8,-.52+n*.17,.999,1.24);box(chrome,1.1,.026,.022,0,1.17,1.75)}
  const spec=vehicleSpec(kind);k.group.userData.vehicleKind=kind;return k.finish(2.1,3.9,{scale:[spec.width/1.78,kind==='taxi'?1:spec.height/(roofY+.13),spec.length/3.78]});

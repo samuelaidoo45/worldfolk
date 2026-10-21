@@ -6,12 +6,13 @@ import {createFallbackActor} from '../public/game/actor-fallback.js';
 import {createPalm} from '../public/game/scenery-models.js';
 import {enhanceMaterials,surfaceTexture,cityEnvironment,contactShadow,tagSurface} from '../public/game/graphics-materials.js';
 import {disposeScene,instanceAnimatedModels,batchStaticMeshes} from '../public/game/render-utils.js';
+import {vehicleSpec} from '../public/game/vehicle-catalog.js';
 import {unpavedRoad} from '../public/game/surface-style.js';
 import {installGroundDetail} from '../public/game/ground-detail.js';
 
 const measure=group=>{let calls=0,vertices=0;group.traverse(o=>{if(o.isMesh){calls++;vertices+=o.geometry.attributes.position.count}});return {calls,vertices,bounds:new THREE.Box3().setFromObject(group)}};
 test('all vehicles retain physics dimensions and bus has a proper full-height cabin',()=>{
- for(const kind of ['car','suv','van','pickup','taxi','hatchback']){const {group}=createCar(0x235eab,kind),stats=measure(group);assert.ok(stats.calls<18);assert.ok(stats.bounds.max.x<=1.08);assert.ok(stats.bounds.min.x>=-1.08);assert.ok(stats.bounds.max.z<2);assert.ok(stats.bounds.min.z> -2);disposeScene(group)}
+ for(const kind of ['car','suv','van','pickup','taxi','hatchback']){const {group}=createCar(0x235eab,kind),stats=measure(group);assert.ok(stats.calls<18);const spec=vehicleSpec(kind);assert.ok(stats.bounds.max.x<=spec.width/2+.22);assert.ok(stats.bounds.min.x>=-spec.width/2-.22);assert.ok(stats.bounds.max.z<spec.length/2+.06);assert.ok(stats.bounds.min.z> -spec.length/2-.06);disposeScene(group)}
  const {group}=createBus(),stats=measure(group);assert.ok(stats.calls<=14);assert.ok(stats.bounds.max.x<=1.31);assert.ok(stats.bounds.max.z<=3.56);assert.ok(stats.bounds.min.z>=-3.56);assert.ok(stats.bounds.max.y>2.8&&stats.bounds.max.y<3.2);assert.deepEqual(group.scale.toArray(),[1,1,1]);disposeScene(group);
 });
 test('loading fallback retains bounded crowd topology and life-size proportions',()=>{

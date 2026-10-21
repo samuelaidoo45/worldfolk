@@ -1,0 +1,32 @@
+name: Place reconstruction or reference research
+description: Build a recognizable, playable Accra place or connected block.
+title: "[Place]: "
+body:
+  - type: input
+    id: inventory
+    attributes:
+      label: Inventory ID and location
+      placeholder: ACC-009, Osu Castle exterior / public approach
+    validations:
+      required: true
+  - type: textarea
+    id: sources
+    attributes:
+      label: Reference evidence
+      description: URLs, creator/rights, actual capture date versus publication date, visible identity and remaining gaps.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Bounded implementation
+      description: Native footprint/IDs, facade/roof, ground/roads, arrivals, activities and collision/elevation. Label unverified interiors and access.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Verification and rendering budget
+      description: Public approach/exit, start-stop interaction, source hashes/LOD, geometry/draws/bytes, comparable screenshots and device checks.
+    validations:
+      required: true

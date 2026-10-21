@@ -1,0 +1,37 @@
+{
+  "as_of": "2026-10-21",
+  "items": 292,
+  "areas": 443,
+  "zones": 41,
+  "components": 72,
+  "places": 12038,
+  "streets": 6209,
+  "status_counts": {
+    "In progress": 65,
+    "Queued": 220,
+    "Expansion": 6,
+    "Research": 1
+  },
+  "geometry": {
+    "building": {
+      "records": 664218,
+      "named": 2821
+    },
+    "road": {
+      "records": 99969,
+      "named": 11810
+    },
+    "landuse": {
+      "records": 2744,
+      "named": 549
+    },
+    "water": {
+      "records": 682,
+      "named": 9
+    },
+    "waterway": {
+      "records": 2638,
+      "named": 46
+    }
+  }
+}
