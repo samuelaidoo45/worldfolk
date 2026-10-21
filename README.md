@@ -6,9 +6,15 @@
 
 Accra is the first playable city. The longer-term vision is to let people explore and experience more cities through their places, culture and everyday activities.
 
-**[Play Worldfolk →](https://worldfolk.world/game/)** · [Documentation](docs/README.md) · [Contribute](CONTRIBUTING.md) · [Roadmap](docs/roadmap.md) · [Local setup](docs/development.md)
+**[Play Worldfolk →](https://worldfolk.world/)** · [Documentation](docs/README.md) · [Contribute](CONTRIBUTING.md) · [Roadmap](docs/roadmap.md) · [Local setup](docs/development.md)
 
 > **Project stage:** playable prototype under active development. Real map data supports the world; landmark models, characters, interiors and gameplay are being improved incrementally. This is not yet a photorealistic replica of all Accra.
+
+## Version and project status
+
+**Current source release: [v0.1.0-alpha.1](https://github.com/samuelaidoo45/worldfolk/releases/tag/v0.1.0-alpha.1)** — an early, playable alpha. See the [changelog](CHANGELOG.md) for release scope and known limits, and the [versioning policy](docs/contributing/versioning.md) for how releases are numbered.
+
+The live site is [worldfolk.world](https://worldfolk.world/); gameplay is at [/game/](https://worldfolk.world/game/). A GitHub release identifies a source snapshot. It does not automatically deploy that revision or certify city-wide realism, smooth phone performance or large-scale capacity.
 
 ## Why Worldfolk exists
 
@@ -24,7 +30,7 @@ The central loop is simple:
 
 A desktop or laptop with a modern WebGL-capable browser is recommended for your first visit. Mobile touch controls support portrait and landscape. No game installation or Mapbox key is needed.
 
-1. **Open [Worldfolk](https://worldfolk.world/game/).** Browse the city map, search a location, or select **Independence Square**. Registration is required before entering gameplay.
+1. **Open [Worldfolk](https://worldfolk.world/).** Browse the city map, search a location, or select **Independence Square**. Registration is required before entering gameplay.
 2. **Create your player.** Choose an `@handle` and a memorable password or passphrase of at least 8 characters. Save the recovery code shown during registration. New players start with **₵100,000 in fictional game money** and a virtual home; the selected map location determines where exploration begins.
 3. **Explore Independence Square.** Look for the distinctive monuments and grandstands. Walk through the precinct, use its stairs and platforms, and approach a seat or photo marker. Press **E** or tap **Interact** to start an activity, then use the same control to stop it.
 4. **Try the life and travel loop.** Open the game menu → **Work**, select a profession and travel to its workplace. Complete its task steps to collect wages. Try **Public transport** for a taxi or tro-tro journey; accelerated travel and **Skip ride** are available. Use **My life** to browse shops, home options and leisure activities.

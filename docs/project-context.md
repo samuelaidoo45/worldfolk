@@ -52,7 +52,7 @@ Use these sources instead of guessing a sequence from conversation fragments:
 
 The contributor foundation includes setup/architecture/standards, task templates, CI, licensing and secret scanning. On **21 October 2026**, the owner authorized removal of a historical Mapbox client token from Git history. The sanitized history and safeguards were pushed. Existing clones should be replaced with a clean canonical clone; never merge old refs or publish recovery backups. The [security audit](security-audit.md) records the scope, scan evidence and the fact that provider revocation is not confirmed.
 
-**Release handoff, 21 October 2026:** deployment was previously paused; the maintainer subsequently requested staging, committing and deploying the current agent-guide update. That request authorizes this release only. Source pushed to GitHub is not proof that the same work is live; verify the provider result and live assets before reporting deployment. Read the current user instruction and [release checklist](contributing/releases.md) for later releases; do not revive old OAuth/device codes or assume credentials remain valid.
+**Release handoff, 21 October 2026:** the maintainer confirmed [worldfolk.world](https://worldfolk.world/) as the live site and requested GitHub project details and versioning. The first versioned source snapshot is **v0.1.0-alpha.1**; see the [changelog](../CHANGELOG.md) and [versioning policy](contributing/versioning.md). This records the source release baseline, not a verified production Worker revision. Deployment remains a separate action requiring a current request and provider/live verification. Do not revive old OAuth/device codes or assume credentials remain valid.
 
 ## How another agent should resume
 

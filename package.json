@@ -1,6 +1,6 @@
 {
   "name": "site-creator-vinext-starter",
-  "version": "0.1.0",
+  "version": "0.1.0-alpha.1",
   "private": true,
   "engines": {
     "node": ">=22.13.0"
@@ -87,8 +87,8 @@
       "sharp": "0.35.4"
     }
   },
-  "description": "Worldfolk \u2014 a browser multiplayer life simulation set in Accra, Ghana.",
-  "homepage": "https://worldfolk.world/game/",
+  "description": "Worldfolk — a browser multiplayer life simulation set in Accra, Ghana.",
+  "homepage": "https://worldfolk.world/",
   "repository": {
     "type": "git",
     "url": "https://github.com/samuelaidoo45/worldfolk.git"

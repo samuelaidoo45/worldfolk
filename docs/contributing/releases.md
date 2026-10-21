@@ -2,6 +2,8 @@
 
 Contributor PRs and CI do not deploy. Production credentials and release authority stay with maintainers. A successful local build is not proof the same revision is live.
 
+Read the [versioning policy](versioning.md) for source versions and GitHub prereleases. Publishing source and deploying production are separate maintainer actions. Documentation-only source releases need documentation/safety checks; runtime releases also need the build and behavioral checks below.
+
 ## Before a release
 
 - Identify the exact reviewed revision and intended release scope. Exclude unrelated dirty/untracked work.
@@ -13,7 +15,7 @@ Contributor PRs and CI do not deploy. Production credentials and release authori
 
 ## Cloudflare configuration
 
-The public deployment is [worldfolk.world](https://worldfolk.world/game/). `scripts/prepare-cloudflare.mjs` reads build output and explicitly targets that domain, Worker, D1 database name and R2 media bucket. For a fork, change to resources/domain you control; do not reuse Worldfolk production resources. Preserve Durable Object migration tags and bindings.
+The public deployment is [worldfolk.world](https://worldfolk.world/). `scripts/prepare-cloudflare.mjs` reads build output and explicitly targets that domain, Worker, D1 database name and R2 media bucket. For a fork, change to resources/domain you control; do not reuse Worldfolk production resources. Preserve Durable Object migration tags and bindings.
 
 With the correct account and existing resources:
 

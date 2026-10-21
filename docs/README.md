@@ -15,6 +15,7 @@ Worldfolk combines real Accra geography, authored game spaces and persistent mul
 | [Places workflow](contributing/places.md) | Research and implement a recognizable, playable city block. |
 | [Assets and licensing](contributing/assets-and-licensing.md) | Attribution, redistribution and source licence status. |
 | [Roadmap and task backlog](roadmap.md) | Priorities, acceptance criteria and good first tasks. |
+| [Versioning policy](contributing/versioning.md) | Source versions, alpha releases, tags and release notes. |
 | [Release checklist](contributing/releases.md) | Maintainer verification, database safety and rollback preparation. |
 
 ## Agent-assisted contributions
@@ -23,7 +24,7 @@ Worldfolk combines real Accra geography, authored game spaces and persistent mul
 
 ## Reusable templates
 
-Copy the [place implementation brief](templates/place-brief.md) for a new location, or the [engineering proposal](templates/engineering-proposal.md) for a substantial architecture change. GitHub issue and PR forms cover ordinary bounded tasks. See [CHANGELOG](../CHANGELOG.md) for notable unreleased changes.
+Copy the [place implementation brief](templates/place-brief.md) for a new location, or the [engineering proposal](templates/engineering-proposal.md) for a substantial architecture change. GitHub issue and PR forms cover ordinary bounded tasks. See [CHANGELOG](../CHANGELOG.md) for release notes and unreleased changes.
 
 ## Publication safety
 
