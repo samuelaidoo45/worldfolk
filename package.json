@@ -15,6 +15,9 @@
     "db:generate": "drizzle-kit generate",
     "assets:lods": "node scripts/assets/build-render-lods.mjs",
     "benchmark:simulation": "node scripts/benchmarks/simulation.mjs",
+    "benchmark:camera": "node scripts/benchmarks/camera-collision.mjs",
+    "benchmark:facades": "node scripts/benchmarks/facade-selection.mjs",
+    "benchmark:minimap": "node scripts/benchmarks/minimap.mjs",
     "doctor": "node scripts/contributors/doctor.mjs",
     "db:setup": "node scripts/contributors/init-local-db.mjs",
     "test": "node scripts/contributors/test.mjs smoke",
@@ -24,7 +27,8 @@
     "check": "npm run security:files && npm run docs:check && npm test",
     "security:files": "node scripts/security/repository-files.mjs",
     "security:check": "npm run security:files && node scripts/security/scan.mjs files",
-    "security:history": "node scripts/security/scan.mjs history"
+    "security:history": "node scripts/security/scan.mjs history",
+    "benchmark:physics": "node scripts/benchmarks/physics-hotpaths.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
@@ -88,7 +92,7 @@
       "sharp": "0.35.4"
     }
   },
-  "description": "Worldfolk — a browser multiplayer life simulation set in Accra, Ghana.",
+  "description": "Worldfolk \u2014 a browser multiplayer life simulation set in Accra, Ghana.",
   "homepage": "https://worldfolk.world/",
   "repository": {
     "type": "git",

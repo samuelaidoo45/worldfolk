@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Worldfolk static construction benchmark</title>
+<style>body{font:16px system-ui;max-width:1050px;margin:32px auto;padding:16px;color:#15312b;background:#f0f3ed}button{font:inherit;padding:12px;margin:8px 8px 8px 0}pre{white-space:pre-wrap;background:white;padding:20px}table{border-collapse:collapse;font-size:14px;width:100%;margin:20px 0}th,td{text-align:left;padding:8px;border-bottom:1px solid #becac3}#heartbeat{width:24px;height:24px;background:#189a73;border-radius:50%;transform:translateX(0)}</style>
+<h1>Static landmark construction</h1>
+<p>This isolated fixture compares full authored model construction with a dedicated worker. It creates no WebGL canvas, player account or network mutation. It does not measure gameplay FPS or GPU costs. Keep this tab and browser focused throughout each run; any visibility interruption marks the entire run invalid.</p>
+<p><a href="static-landmark-visual.html">Open optional one-canvas visual comparison</a></p>
+<div id="heartbeat" aria-label="Main thread animation heartbeat"></div>
+<button id="worker">Run worker construction</button><button id="main">Run main thread comparison</button>
+<p id="status" role="status">Ready. Test both paths on the same device.</p>
+<table><caption>Construction results, milliseconds. Frame intervals include interruptions.</caption><thead><tr><th>Run</th><th>Validity</th><th>Model</th><th>Total</th><th>Build</th><th>Pack</th><th>Hydrate</th><th>Animation frames</th><th>Max frame interval</th></tr></thead><tbody id="summary"></tbody></table>
+<details><summary>Full results and interruption reasons</summary><pre id="report"></pre></details>
+<script type="module">
+import {createStaticLandmarkLoader} from '../static-landmark-loader.js';
+import {CITY_LANDMARKS,createCityLandmark} from '../city-landmarks.js';
+import {disposeScene} from '../render-utils.js';
+import * as T from '../three.module.js';
+const ids=['villaggio-vista','senchi-skyline-mirage','polo-heights-frontage'];
+const report=document.querySelector('#report'),summary=document.querySelector('#summary'),status=document.querySelector('#status'),buttons=[...document.querySelectorAll('button')];
+let phase=null,last=0,ticks=0;const results=[];
+function frame(now){ticks++;document.querySelector('#heartbeat').style.transform=`translateX(${(Math.sin(now*.003)+1)*70}px)`;if(phase&&last){phase.frames++;phase.maxFrameIntervalMs=Math.max(phase.maxFrameIntervalMs,now-last);}last=now;requestAnimationFrame(frame);}requestAnimationFrame(frame);
+const nextFrame=()=>new Promise(resolve=>requestAnimationFrame(resolve));
+function interruption(reason){if(phase){phase.valid=false;phase.interruptions.push({reason,elapsedMs:Math.round(performance.now()-phase.startedAt)});}}
+document.addEventListener('visibilitychange',()=>interruption('visibility:'+document.visibilityState));
+window.addEventListener('blur',()=>interruption('browser lost focus'));
+window.addEventListener('pagehide',()=>interruption('page hidden'));
+const rounded=value=>Number(value||0).toFixed(2);
+function drawResults(){
+  const all=phase?[...results,phase]:results;summary.replaceChildren();
+  all.forEach((run,index)=>run.models.forEach(model=>{
+    const row=document.createElement('tr'),values=[`${index+1}: ${run.path}`,run.valid?'Valid':'INVALID: interrupted',model.id,rounded(model.elapsedMs),rounded(model.construction?.lastBuildMs??model.elapsedMs),rounded(model.construction?.lastPackMs),rounded(model.construction?.lastHydrateMs),model.mainThreadAnimationTicks,rounded(run.maxFrameIntervalMs)];
+    values.forEach(value=>{const cell=document.createElement('td');cell.textContent=value;row.append(cell);});summary.append(row);
+  }));report.textContent=JSON.stringify(all,null,2);
+}
+async function run(useWorker){
+  buttons.forEach(button=>button.disabled=true);const loader=createStaticLandmarkLoader();
+  if(useWorker&&!loader.canLoad(ids[0])){status.textContent='Module workers and OffscreenCanvas are unavailable in this browser.';buttons.forEach(button=>button.disabled=false);return;}
+  const result={path:useWorker?'worker':'main',models:[],frames:0,maxFrameIntervalMs:0,startedAt:performance.now(),valid:true,interruptions:[]};phase=result;last=0;
+  if(document.hidden||!document.hasFocus())interruption('run started without a visible focused page');
+  status.textContent='Running '+result.path+' construction…';
+  try{
+    await nextFrame();
+    for(const id of ids){
+      const before=performance.now(),startTicks=ticks;
+      const model=useWorker?await loader.load(id):createCityLandmark(CITY_LANDMARKS.find(site=>site.id===id));
+      const elapsed=performance.now()-before,box=new T.Box3().setFromObject(model.group);let signs=0,meshes=0;
+      model.group.traverse(object=>{if(object.isMesh){meshes++;const maps=Array.isArray(object.material)?object.material:[object.material];for(const material of maps)if(material.map&&!material.map.name)signs++;}});
+      result.models.push({id,elapsedMs:+elapsed.toFixed(2),mainThreadAnimationTicks:ticks-startTicks,meshes,signTextures:signs,bounds:[box.min.toArray(),box.max.toArray()],...(useWorker?{construction:loader.snapshot()}:{} )});
+      disposeScene(model.group);drawResults();await nextFrame();await nextFrame();
+    }
+    phase=null;result.maxFrameIntervalMs=+result.maxFrameIntervalMs.toFixed(2);results.push(result);drawResults();status.textContent=`${result.valid?'VALID':'INVALID — visibility interrupted'} ${result.path} run: ${result.models.length} exact near models. Main animation frames: ${result.frames}; maximum frame interval ${result.maxFrameIntervalMs} ms.${result.valid?'':' Rerun while keeping this browser tab focused.'}`;
+  }catch(error){phase=null;result.valid=false;result.error=error.message;results.push(result);drawResults();status.textContent='Failed: '+error.message;}
+  finally{loader.close();buttons.forEach(button=>button.disabled=false);}
+}
+document.querySelector('#worker').onclick=()=>run(true);document.querySelector('#main').onclick=()=>run(false);
+</script>
+</html>

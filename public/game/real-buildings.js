@@ -1,6 +1,7 @@
 import {buildingDesign,buildingDistance} from './building-design.js';
 import {createRoadGeometry} from './road-geometry.js';
 import {distanceMetres} from './motion.js';
+import {lineMayBeNear} from './road-proximity.js';
 export const BUILDING_LAYER='accralife-real-buildings';
 export function installRealBuildings(map){
  if(!map.getSource('accralife-streets'))throw new Error('OpenStreetMap tiles are not configured');
@@ -14,4 +15,41 @@ export function installRealBuildings(map){
  return roadGeometry;
 }
 // Facade detailing is procedural; footprints and available heights come from the self-hosted OpenStreetMap extract.
-export function createArchitecture(map,getPlaces=()=>[]){let details=[],last=0,origin=null,dirty=true;map.on?.('sourcedata',e=>{if(e.sourceId==='accralife-streets')dirty=true});return {get details(){return details},update(position){if(Date.now()-last<1500||!dirty&&origin&&distanceMetres(origin,position)<25&&details.length)return;last=Date.now();dirty=false;origin=[...position];let features;try{features=map.querySourceFeatures('accralife-streets',{sourceLayer:'building'})}catch{return}const found=new Map(),places=getPlaces();for(const f of features){if(Number(f.properties?.min_height)>0||String(f.properties?.extrude)==='false')continue;const polygons=f.geometry.type==='Polygon'?[f.geometry.coordinates]:f.geometry.type==='MultiPolygon'?f.geometry.coordinates:[];for(const rings of polygons){const ring=rings[0];if(!ring||ring.length<4)continue;const center=ring.slice(0,-1).reduce((a,p)=>[a[0]+p[0]/(ring.length-1),a[1]+p[1]/(ring.length-1)],[0,0]);const distance=buildingDistance(position,{rings});if(distance>650)continue;const height=Math.max(3,Number(f.properties?.height)||5),id=ring.map(p=>p.map(v=>v.toFixed(6)).join(',')).join(';');if(found.has(id))continue;let seed=0;for(const c of id)seed=(seed*31+c.charCodeAt(0))>>>0;const design=buildingDesign({id:f.id,geometry:{type:'Polygon',coordinates:rings},properties:f.properties},places);found.set(id,{id,sourceId:f.id,position:center,rings,height:design.height,seed:design.seed,distance,style:design.style,design});}}details=[...found.values()].sort((a,b)=>a.distance-b.distance).slice(0,matchMedia('(pointer:coarse)').matches?100:190)}}}
+export function createArchitecture(map, getPlaces = () => []) {
+  let details = [], last = 0, origin = null, dirty = true;
+  map.on?.('sourcedata', event => { if (event.sourceId === 'accralife-streets') dirty = true; });
+  return {
+    get details() { return details; },
+    update(position) {
+      if (Date.now() - last < 1500 || !dirty && origin && distanceMetres(origin, position) < 25 && details.length) return;
+      last = Date.now(); dirty = false; origin = [...position];
+      let features;
+      try { features = map.querySourceFeatures('accralife-streets', {sourceLayer: 'building'}); }
+      catch { return; }
+      const found = new Map(), places = getPlaces();
+      for (const feature of features) {
+        if (Number(feature.properties?.min_height) > 0 || String(feature.properties?.extrude) === 'false') continue;
+        const polygons = feature.geometry.type === 'Polygon' ? [feature.geometry.coordinates] : feature.geometry.type === 'MultiPolygon' ? feature.geometry.coordinates : [];
+        for (const rings of polygons) {
+          const ring = rings[0];
+          if (!ring || ring.length < 4 || !rings.some(r => lineMayBeNear(position, r, 650))) continue;
+          const distance = buildingDistance(position, {rings});
+          if (distance > 650) continue;
+          const id = ring.map(p => p.map(v => v.toFixed(6)).join(',')).join(';');
+          if (found.has(id)) continue;
+          found.set(id, {id, sourceId: feature.id, rings, distance, feature});
+        }
+      }
+      // Match the existing closest-footprint selection before spending time on
+      // place matching/material design. Discarded buildings keep their map shell.
+      details = [...found.values()].sort((a, b) => a.distance - b.distance)
+        .slice(0, matchMedia('(pointer:coarse)').matches ? 100 : 190)
+        .map(({id, sourceId, rings, distance, feature}) => {
+          const ring = rings[0];
+          const center = ring.slice(0, -1).reduce((a, p) => [a[0] + p[0] / (ring.length - 1), a[1] + p[1] / (ring.length - 1)], [0, 0]);
+          const design = buildingDesign({id: feature.id, geometry: {type: 'Polygon', coordinates: rings}, properties: feature.properties}, places);
+          return {id, sourceId, position: center, rings, height: design.height, seed: design.seed, distance, style: design.style, design};
+        });
+    },
+  };
+}

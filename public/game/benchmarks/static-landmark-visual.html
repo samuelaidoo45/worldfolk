@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Worldfolk exact landmark visual comparison</title>
+<style>body{font:16px system-ui;max-width:1100px;margin:24px auto;padding:16px;background:#eef2ee;color:#173a31}button{font:inherit;padding:12px;margin:5px}canvas{display:block;width:100%;height:520px}.labels{display:flex;justify-content:space-around;font-weight:bold}#views{background:#dce6ed}pre{white-space:pre-wrap}</style>
+<h1>Full Villaggio model comparison</h1>
+<p>Opt-in visual check using one WebGL canvas. Left: reconstructed worker model. Right: original main-thread model. Both use identical camera, lighting, materials and full geometry. This is a visual check, not a frame-rate benchmark.</p>
+<button id="build">Build comparison</button><button id="rotate" disabled>Rotate view</button><button id="close" disabled>Release comparison</button>
+<p id="status" role="status">No WebGL context has been created.</p>
+<div class="labels"><span>Worker reconstruction</span><span>Original model</span></div><div id="views"></div><pre id="summary"></pre>
+<script type="module">
+import * as T from '../three.module.js';
+import {CITY_LANDMARKS,createCityLandmark} from '../city-landmarks.js';
+import {createStaticLandmarkLoader} from '../static-landmark-loader.js';
+import {disposeScene} from '../render-utils.js';
+import {onPbrReady} from '../pbr-materials.js';
+const build=document.querySelector('#build'),rotate=document.querySelector('#rotate'),close=document.querySelector('#close'),status=document.querySelector('#status'),views=document.querySelector('#views'),summary=document.querySelector('#summary');
+let renderer=null,scene=null,camera=null,left=null,right=null,angle=.65,box=null,loader=null;
+const offPbr=onPbrReady(()=>{if(renderer)render();});
+function render(){
+  if(!renderer||!left||!right)return;
+  const width=Math.max(2,views.clientWidth),height=Math.min(520,Math.max(300,width*.5));renderer.setSize(width,height,false);
+  const half=Math.floor(width/2),center=box.getCenter(new T.Vector3()),size=box.getSize(new T.Vector3()),radius=Math.max(size.x,size.y,size.z)*1.65;
+  camera.aspect=half/height;camera.position.set(center.x+Math.sin(angle)*radius,center.y+radius*.48,center.z+Math.cos(angle)*radius);camera.lookAt(center);camera.updateProjectionMatrix();
+  renderer.setScissorTest(true);
+  left.group.visible=true;right.group.visible=false;renderer.setViewport(0,0,half,height);renderer.setScissor(0,0,half,height);renderer.render(scene,camera);
+  left.group.visible=false;right.group.visible=true;renderer.setViewport(half,0,width-half,height);renderer.setScissor(half,0,width-half,height);renderer.render(scene,camera);
+}
+function dispose(){loader?.close();loader=null;if(left)disposeScene(left.group);if(right)disposeScene(right.group);left=right=null;if(renderer){renderer.dispose();renderer.forceContextLoss();renderer.domElement.remove();}renderer=scene=camera=null;rotate.disabled=close.disabled=true;build.disabled=false;}
+build.onclick=async()=>{
+  build.disabled=true;status.textContent='Building full models…';loader=createStaticLandmarkLoader();
+  try{
+    if(!loader.canLoad('villaggio-vista'))throw Error('Module workers with OffscreenCanvas are unavailable');
+    left=await loader.load('villaggio-vista');right=createCityLandmark(CITY_LANDMARKS.find(site=>site.id==='villaggio-vista'));
+    renderer=new T.WebGLRenderer({antialias:true});renderer.setPixelRatio(1);renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;views.append(renderer.domElement);
+    scene=new T.Scene();scene.background=new T.Color('#dce6ed');scene.add(new T.HemisphereLight(0xc5dff6,0x786853,2));const sun=new T.DirectionalLight(0xffedcb,2.2);sun.position.set(-60,100,50);scene.add(sun,left.group,right.group);
+    camera=new T.PerspectiveCamera(42,1,.1,5000);box=new T.Box3().setFromObject(left.group);const other=new T.Box3().setFromObject(right.group);
+    const details=model=>{let meshes=0,vertices=0,signs=0;model.group.traverse(object=>{if(object.isMesh){meshes++;vertices+=object.geometry.attributes.position.count;for(const material of Array.isArray(object.material)?object.material:[object.material])if(material.map&&!material.map.name)signs++;}});return {meshes,vertices,signs};};
+    summary.textContent=JSON.stringify({worker:details(left),original:details(right),matchingBounds:box.equals(other),workerTiming:loader.snapshot()},null,2);
+    rotate.disabled=close.disabled=false;render();status.textContent='Ready: one canvas, two identical views. Compare silhouettes, windows, roofs and sign lettering; rotate to inspect every side.';
+  }catch(error){dispose();status.textContent='Failed: '+error.message;}
+};
+rotate.onclick=()=>{angle+=Math.PI/2;render();};close.onclick=()=>{dispose();status.textContent='Models and WebGL context released.';};window.addEventListener('resize',render);window.addEventListener('pagehide',()=>{dispose();offPbr();});
+</script>
+</html>

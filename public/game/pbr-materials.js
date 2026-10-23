@@ -19,7 +19,7 @@ function sharedTexture(family,channel){
  texture.wrapS=texture.wrapT=THREE.RepeatWrapping;texture.magFilter=THREE.LinearFilter;texture.minFilter=THREE.LinearMipmapLinearFilter;texture.generateMipmaps=true;texture.anisotropy=4;
  texture.colorSpace=channel==='color'?THREE.SRGBColorSpace:THREE.NoColorSpace;texture.userData.shared=true;texture.needsUpdate=true;textures.set(key,texture);
  // Node geometry tests can use the same materials without a DOM or requests.
- if(typeof document!=='undefined'){
+ if(typeof document!=='undefined'&&(typeof WorkerGlobalScope==='undefined'||!(globalThis instanceof WorkerGlobalScope))){
   const job=new THREE.ImageLoader().loadAsync(new URL(`./assets/materials/${key}.webp`,import.meta.url).href).then(image=>{
    const canvas=document.createElement('canvas');canvas.width=image.width;canvas.height=image.height;const context=canvas.getContext('2d');context.drawImage(image,0,0);
    texture.image={data:new Uint8Array(context.getImageData(0,0,image.width,image.height).data),width:image.width,height:image.height};texture.flipY=true;texture.needsUpdate=true;changed();

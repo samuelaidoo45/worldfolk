@@ -4,9 +4,11 @@ Status: harness prepared. **No physical-phone results yet.** Browser viewport em
 
 For an offline CPU regression check, see [simulation tuning and its repeatable fixture](simulation-performance.md). Its timings exclude rendering and cannot replace this protocol.
 
+The [main-thread performance record](browser-main-thread-performance.md) adds camera/facade/minimap fixtures and a real-browser worker-construction comparison. Its 34 ms animation intervals come from an isolated construction test, not the full game or a phone.
+
 ## Open and record
 
-1. Open the updated game with `?benchmark=1&graphicsStats=1`. Locally: <http://127.0.0.1:3002/game/?benchmark=1&graphicsStats=1>. Use the deployed HTTPS build on a phone after this update is released; this work has not been deployed.
+1. Open the updated game with `?benchmark=1&graphicsStats=1`. Locally: <http://127.0.0.1:3002/game/?benchmark=1&graphicsStats=1>. The schema-1 recorder is deployed; schema-3 diagnostics described below are local changes awaiting release. Record the exact build being tested.
 2. Sign in to a test profile and enter the world. Expand **Performance benchmark**. Select the actual test device class and enter its model/browser. Default is **Unverified browser / desktop**, never an inferred physical phone.
 3. Start the 60-second test. The first ten seconds and remaining fifty seconds are reported separately. For a cold-entry test, start on the launcher, then immediately enter the world; for a settled comparison, wait for models to finish loading before starting. Name the scenario in the model/browser field.
 4. Follow the same route and camera path on every build. Run Independence Square (geometry/characters), then Accra Mall toward Villaggio/Senchi (buildings and distant models), then drive the same airport-bound route. Record time of day, graphics pixel ratio, network/cache state, device refresh rate and battery/charging state alongside the JSON.
@@ -19,10 +21,12 @@ For comparison, run each scenario three times on the same physical device, brows
 - Raw rendered-frame intervals: p50, p95, p99, maximum, counts above 50/100 ms. Spikes are retained, not capped away or hidden by average FPS.
 - Startup (first 10 seconds) and settled intervals separately.
 - Three.js CPU render submission, separately from frame intervals. **This is not GPU execution time or the complete game loop.**
+- Schema 2 adds startup/settled CPU distributions for preparation, camera, players, streaming, crowd, effects and render inside the Three.js custom layer. These exclude simulation, MapLibre, DOM labels and asynchronous completion; short phase times cannot rule out those sources or GPU stalls. Collection is disabled outside an active capture, and progress updates do not sort the full report.
 - Peak draw calls, triangles and GPU geometry/texture object counts; final loaded/medium-detail model counts, pixel ratio, preparation queue timings and `KHR_parallel_shader_compile` availability. Object counts are not driver memory bytes.
 - Browser Long Tasks where supported. Safari may not expose this API; absence is not proof of zero long tasks.
+- Schema 3 adds local Long Animation Frame attribution where the browser supports it: the 20 script entry points with the highest total duration, and the 12 worst captured frames. It retains at most 240 frames and 32 scripts per frame, reports dropped frames, and strips URL credentials/query strings/fragments. DOM nodes and window references are not exported. Attribution names an entry point, **not its complete nested call stack**; an empty or unsupported result does not rule out blocking work. Use a DevTools performance trace to resolve the nested function when necessary. Export includes observer records delivered after the capture's final rendered frame.
 
-A complete, uninterrupted run with at least 300 settled samples compares its p95 to 20 ms and 40 ms frame-interval budgets. This is a screening result, not a guarantee of smooth 60/30 fps or broad device support. Backgrounding, viewport/orientation/DPR changes, leaving 3D, a missing final rendered frame, or the 7,200-sample cap invalidates a run for comparison. Repeat orientation tests as separate runs.
+A complete, uninterrupted run with at least 300 settled samples compares its p95 to 20 ms and 40 ms frame-interval budgets. This is a screening result, not a guarantee of smooth 60/30 fps or broad device support. Backgrounding, viewport/orientation/DPR changes, leaving 3D, a missing final rendered frame, or the 7,200-sample cap invalidates a run for comparison. Repeat orientation tests as separate runs. Schema 2 stops immediately when the page is hidden and retains an invalid report; empty captures cannot be marked valid.
 
 The queue exposes asynchronous completion wall time (`lastMs/maxMs`) and synchronous job submission (`lastSubmitMs/maxSubmitMs`). Polling and driver waits contribute to completion wall time. Neither is a GPU timer.
 
@@ -48,3 +52,14 @@ node --test tests/render-lod-assets.test.mjs tests/render-preparation.test.mjs t
 ```
 
 `meshoptimizer@1.1.1` is a pinned build-only dependency. Its Wasm simplifier runs offline. The game loads ordinary indexed geometry; no new runtime Wasm engine is introduced. Keep the generated catalog, JSON, raw binary, gzip binary and MIT license together. SHA-256 and gzip round-trip tests verify them. Regenerate whenever the corresponding authored buildings or human garments change.
+
+
+### Gameplay operation attribution (schema 4)
+
+With `?benchmark=1`, the next capture also exports `gameplayCpu`: named
+synchronous operations, call counts, inclusive totals, exclusive `selfMs`,
+maximum duration and calls over 50 ms. Sort by exclusive time to locate the
+blocking subsystem, then inspect its nested operations. Do not sum inclusive
+parent/child totals. The twelve longest calls are retained; player data and
+function arguments are not collected. Timers stop when the capture finishes.
+This diagnostic addition does not itself demonstrate a performance improvement.

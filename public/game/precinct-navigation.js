@@ -61,7 +61,12 @@ export function precinctNavigation(data){
  }
  const result={surfaces,solids};cache.set(data.id,result);return result;
 }
-function contains(s,x,z,pad=0){const [u,v]=stripLocal(s,x,z);return Math.abs(u)<=s.w/2+pad+1e-6&&Math.abs(v)<=s.d/2+pad+1e-6}
+function contains(s,x,z,pad=0){
+ // Most platforms are axis-aligned in precinct space. Avoid allocating a
+ // rotated coordinate pair for every vehicle sample on every stair/terrace.
+ if(!s.angle)return Math.abs(x-s.x)<=s.w/2+pad+1e-6&&Math.abs(z-s.z)<=s.d/2+pad+1e-6;
+ const [u,v]=stripLocal(s,x,z);return Math.abs(u)<=s.w/2+pad+1e-6&&Math.abs(v)<=s.d/2+pad+1e-6;
+}
 export function precinctFloors(position){
  const values=[0];for(const d of NAVIGATION_SPACES){if(distanceMetres(position,d.position)>65)continue;const [x,z]=precinctLocal(d,position),nav=precinctNavigation(d);
   // In a stair aisle a lower half-tread cuts into the terrace beneath it.
@@ -74,8 +79,11 @@ export function precinctCollision(position,radius=.3,elevation=0){
  for(const d of NAVIGATION_SPACES){if(distanceMetres(position,d.position)>65)continue;const [x,z]=precinctLocal(d,position),nav=precinctNavigation(d);
   for(const s of nav.solids){const rise=surfaceOffset(s,x,z);if(elevation<s.top+rise-.02&&elevation+1.75>s.base+rise+.05&&contains(s,x,z,radius))return d;}
   for(const s of nav.surfaces){const rise=surfaceOffset(s,x,z);if(s.y+rise<=elevation+.245||s.base+rise>=elevation+1.75)continue;
+   // A distant terrace cannot collide. Test its own bounds before scanning
+   // all half-treads for an aisle opening (previously quadratic per probe).
+   if(!contains(s,x,z,s.kind==='step'?0:radius))continue;
    if(s.kind==='terrace'&&nav.surfaces.some(h=>h.kind==='step'&&contains(h,x,z)&&h.y<=elevation+.245&&s.y-h.y<.2))continue;
-   if(contains(s,x,z,s.kind==='step'?0:radius))return d;
+   return d;
   }
  }return null;
 }

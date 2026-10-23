@@ -12,3 +12,45 @@ test('real spikes are retained and no average FPS hides them',()=>{
 });
 
 test('cold-entry wait is explicit and shader failures invalidate a run',()=>{const b=createBenchmarkCapture({durationMs:3000,startupMs:500});b.start(100);b.sample(1100,{preparation:{failed:1}});b.sample(3100);const r=b.report();assert.equal(r.firstRenderedFrameMs,1000);assert.equal(r.valid,false);assert.ok(r.interruptions.includes('Graphics preparation reported failures'));});
+
+test('phase timings retain spikes, split startup and settled work and ignore missing values',()=>{
+ const b=createBenchmarkCapture({durationMs:1000,startupMs:500});b.start(0);
+ b.sample(0);b.sample(100,{phaseCpuMs:{preparation:80,streaming:NaN}});
+ b.sample(500,{phaseCpuMs:{preparation:2,streaming:35,crowd:-1}});
+ b.sample(1000,{phaseCpuMs:{preparation:3,streaming:1}});
+ const r=b.report();assert.equal(r.schema,4);
+ assert.equal(r.phaseCpuMs.preparation.startup.maxMs,80);
+ assert.equal(r.phaseCpuMs.preparation.settled.samples,2);
+ assert.equal(r.phaseCpuMs.streaming.settled.maxMs,35);
+ assert.equal(r.phaseCpuMs.streaming.startup.samples,0);
+ assert.equal(r.phaseCpuMs.crowd.settled.samples,0);
+ b.start(2000);assert.equal(b.report().phaseCpuMs.preparation.settled.samples,0);
+});
+
+
+test('progress is available without building a report and empty runs are not valid',()=>{
+ const b=createBenchmarkCapture({durationMs:1000,startupMs:500});
+ assert.equal(b.progress(0),null);b.start(100);
+ assert.deepEqual(b.progress(350),{durationMs:250,requestedDurationMs:1000,running:true});
+ b.finish(1100);assert.equal(b.report().valid,false);
+ assert.deepEqual(b.progress(1500),{durationMs:1000,requestedDurationMs:1000,running:false});
+});
+
+
+test('slow-frame attribution preserves spikes, strips URL secrets and accepts final observer delivery',()=>{
+ const b=createBenchmarkCapture({durationMs:1000,startupMs:0});
+ b.setLongFrameSupport(true);b.longFrame({startTime:1,duration:999});b.start(100);
+ b.longFrame({startTime:99,duration:900});
+ const script={sourceURL:'https://user:secret@example.com/game/app.js?token=secret#private',sourceFunctionName:'roamFrame',sourceCharPosition:12,invokerType:'user-callback',duration:500,forcedStyleAndLayoutDuration:8,window:{private:true}};
+ b.longFrame({startTime:200,duration:540,blockingDuration:490,scripts:[script]});
+ b.finish(1100);b.longFrame({startTime:1050,duration:70,scripts:[{...script,duration:60}]});b.longFrame({startTime:1101,duration:900});
+ const r=b.report().longAnimationFrames;
+ assert.equal(r.supported,true);assert.equal(r.captured,2);assert.equal(r.topScripts[0].totalMs,560);assert.equal(r.topScripts[0].count,2);assert.equal(r.worstFrames[0].durationMs,540);
+ assert.equal(r.topScripts[0].source,'https://example.com/game/app.js');assert.equal(JSON.stringify(r).includes('secret'),false);assert.equal(JSON.stringify(r).includes('private'),false);
+ b.start(2000);assert.equal(b.report().longAnimationFrames.captured,0);assert.equal(b.report().longAnimationFrames.supported,true);
+});
+test('slow-frame capture stays bounded and distinguishes unsupported attribution',()=>{
+ const b=createBenchmarkCapture({durationMs:10000});b.start(0);
+ for(let n=0;n<300;n++)b.longFrame({startTime:n,duration:100,scripts:Array(40).fill({sourceURL:'data:secret',duration:90})});
+ const r=b.report().longAnimationFrames;assert.equal(r.supported,false);assert.equal(r.captured,240);assert.equal(r.dropped,60);assert.equal(r.worstFrames.length,12);assert.equal(r.worstFrames[0].scripts.length,32);assert.equal(r.topScripts[0].source,'');
+});

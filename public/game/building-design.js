@@ -2,6 +2,7 @@ import {landmarkProfile} from './landmark-profiles.js';
 import {buildingStyle,stableHash} from './districts.js';
 import {interiorKind} from './venue-layouts.js';
 import {distanceMetres,projectOnSegment} from './motion.js';
+import {lineMayBeNear} from './road-proximity.js';
 export const PAINTS=[
  {wall:'#d1c4a9',trim:'#e9e4d6',accent:'#32695e',roof:'#754536'},
  {wall:'#b9bdae',trim:'#d9ddce',accent:'#38534c',roof:'#626d6a'},
@@ -19,7 +20,7 @@ export const PAINTS=[
 export function insideBuilding(point,rings){const inside=ring=>{let yes=false;for(let i=0,j=ring.length-1;i<ring.length;j=i++){const a=ring[i],b=ring[j];if((a[1]>point[1])!==(b[1]>point[1])&&point[0]<(b[0]-a[0])*(point[1]-a[1])/(b[1]-a[1])+a[0])yes=!yes}return yes};return !!rings?.length&&inside(rings[0])&&!rings.slice(1).some(inside)}
 export function buildingDistance(point,building){if(insideBuilding(point,building.rings))return 0;let d=Infinity;for(const ring of building.rings)for(let i=1;i<ring.length;i++)d=Math.min(d,projectOnSegment(point,ring[i-1],ring[i]).distance);return d}
 // One deterministic design record supplies both exterior and interior materials.
-export function buildingDesign(feature,places=[]){const base=buildingStyle(feature),rings=feature.geometry.coordinates,seed=stableHash(base.center.map(v=>v.toFixed(6)).join(','));const major=p=>['mall','stadium','church','mosque','terminal','theatre','bank','campus','gallery','civic','restaurant','nightclub'].includes(interiorKind(p));const place=places.filter(p=>Number.isFinite(p.lng)&&(p.buildingId===feature.id||insideBuilding([p.lng,p.lat],rings)||major(p)&&buildingDistance([p.lng,p.lat],{rings})<18)).sort((a,b)=>Number(major(b))-Number(major(a))||distanceMetres([a.lng,a.lat],base.center)-distanceMetres([b.lng,b.lat],base.center)).find(p=>interiorKind(p)!=='generic');
+export function buildingDesign(feature,places=[]){const base=buildingStyle(feature),rings=feature.geometry.coordinates,seed=stableHash(base.center.map(v=>v.toFixed(6)).join(','));const major=p=>['mall','stadium','church','mosque','terminal','theatre','bank','campus','gallery','civic','restaurant','nightclub'].includes(interiorKind(p));const place=places.filter(p=>Number.isFinite(p.lng)&&(p.buildingId===feature.id||rings.some(ring=>lineMayBeNear([p.lng,p.lat],ring,18))&&(insideBuilding([p.lng,p.lat],rings)||major(p)&&buildingDistance([p.lng,p.lat],{rings})<18))).sort((a,b)=>Number(major(b))-Number(major(a))||distanceMetres([a.lng,a.lat],base.center)-distanceMetres([b.lng,b.lat],base.center)).find(p=>interiorKind(p)!=='generic');
  const residence=places.find(p=>p.buildingId&&p.buildingId===feature.id);
  const mappedLandmark=landmarkProfile(feature.properties?.name);
  const mappedKind=residence?'home':interiorKind((mappedLandmark?{name:feature.properties.name}:place)||{name:feature.properties?.name,type:feature.properties?.type||feature.properties?.building||feature.properties?.class});const fallback={glass:'office',office:'office',shop:'shop',market:'market',school:'classroom',church:'church',mosque:'mosque',apartment:'home',veranda:'home',coastal:'home',plaster:'home',pastel:'home',brick:'home',heritage:'home'};

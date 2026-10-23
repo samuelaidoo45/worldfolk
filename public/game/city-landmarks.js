@@ -81,7 +81,10 @@ import {createSignature} from './signature.js';
 // OSM positions/way IDs from the bundled Accra extract. Models are authored from
 // photo references (docs/landmark-references.md), not inferred from POI category.
 export const CITY_LANDMARKS=[...CASTLE_SITES,...CIVIC_SITES,...OSU_SITES,...SKY_SITES,...BOUND_SITES,...BOUND_GROUNDS,...AREA_SITES,...MAHAMA_SITES,...POLO_SITES,REGENT_ROADSIDE,SHANGRI_BLOCK,RESIDENTIAL_BLOCK,OAK_PLAZA,VILLA_MONTICELLO,LANCASTER,AIRPORT_VIEW,AIRPORT_ANNEX,...AIRPORT_ISLANDS,...AIRPORT_STOPS,AIRPORT_CORRIDOR,...BUSINESS_SITES,...AIRPORT_CITY_SITES,AIRPORT_T2,AIRPORT_T3,...KOFI_SITES,...NEIGHBOUR_SITES,INTERCHANGE,CITY_GALLERIA,GHUD_PARK,MALL_FRONTAGE,...MALL_BUS_STOPS,MALL_TERMINAL,MALL_ROUNDABOUT,...POPULAR_LANDMARKS.filter(p=>p.id!==NKRUMAH_PARK.id&&!CIVIC_SITES.some(s=>s.id===p.id)&&!AIRPORT_CITY_SITES.some(s=>s.id===p.id)),NKRUMAH_PARK,SIGNATURE,VILLAGGIO,GALLERY,...PRECINCT_LANDMARKS,PRECINCT_STREET_SCENE];
-export const isCityLandmark=id=>CITY_LANDMARKS.some(l=>(l.sourceIds||[l.sourceId]).some(sourceId=>sourceId!==undefined&&String(sourceId)===String(id)));
+// Source ownership is immutable at runtime. Collision refresh visits every
+// loaded footprint; do not rescan every landmark/source ID for each one.
+const landmarkSourceIds=new Set(CITY_LANDMARKS.flatMap(l=>l.sourceIds||[l.sourceId]).filter(id=>id!==undefined).map(String));
+export const isCityLandmark=id=>landmarkSourceIds.has(String(id));
 export function landmarkColliders(origin,context={}){
  const out=[];
  for(const l of CITY_LANDMARKS){if(distanceMetres(origin,l.position)>Math.max(200,l.width,l.depth))continue;

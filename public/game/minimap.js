@@ -1,9 +1,10 @@
 import {roadFeatures} from './road-cache.js';
+import {createMiniMapGeometry,createMiniMapProjection} from './minimap-geometry.js';
 // Reuse loaded vector tiles: this radar needs no second map or extra tile requests.
 export function createMiniMap({state,places}){
  const root=document.createElement('section');root.className='game-minimap';root.setAttribute('aria-label','Mini-map');
  root.innerHTML='<div id="minimap-content"><button class="minimap-open" type="button" aria-label="Open full city map"><canvas width="440" height="440" role="img" aria-label="Nearby roads, places and your selected route"></canvas></button><button class="minimap-places" type="button" aria-label="Choose destination"><span class="minimap-caption">Choose destination</span></button></div><button class="minimap-toggle" type="button" aria-controls="minimap-content"></button>';
- document.body.append(root);const button=root.querySelector('.minimap-toggle'),content=root.querySelector('#minimap-content'),canvas=root.querySelector('canvas'),ctx=canvas.getContext('2d'),caption=root.querySelector('.minimap-caption');let enabled=true,last=0,roads=[],land=[],buildings=[],water=[],lastTiles=-Infinity;
+ document.body.append(root);const button=root.querySelector('.minimap-toggle'),content=root.querySelector('#minimap-content'),canvas=root.querySelector('canvas'),ctx=canvas.getContext('2d'),caption=root.querySelector('.minimap-caption');let enabled=true,last=0,geometry={polygons:[],segments:[]},lastTiles=-Infinity;
  try{enabled=localStorage.getItem('worldfolk-minimap')!=='off'}catch{}
  function toggle(value){enabled=value;content.hidden=!value;button.textContent=value?'−':'⌖';button.setAttribute('aria-label',value?'Hide mini-map':'Show mini-map');button.title=value?'Hide mini-map':'Show mini-map';button.setAttribute('aria-expanded',String(value));root.classList.toggle('collapsed',!value);document.body.classList.toggle('minimap-enabled',value);try{localStorage.setItem('worldfolk-minimap',value?'on':'off')}catch{}last=0}
  button.onclick=()=>toggle(!enabled);root.querySelector('.minimap-places').onclick=()=>state.navigation?.toggle(true);root.querySelector('.minimap-open').onclick=()=>document.getElementById('roamToggle').click();toggle(enabled);
@@ -11,14 +12,13 @@ export function createMiniMap({state,places}){
  function update(now){
   root.hidden=!state.roam||state.view==='2d'||state.mode==='indoor'||!!state.chatOpen||!!state.navigation?.isOpen||!!state.lifeUI?.isOpen;
   if(root.hidden||!enabled||!state.position||now-last<200)return;last=now;
-  if(now-lastTiles>2000){lastTiles=now;roads=roadFeatures(state.map);land=read('landuse');buildings=read('building');water=read('water')}
-  const size=440,mid=size/2,radius=210,scale=1.4,p=state.position,project=c=>[mid+(c[0]-p[0])*111320*Math.cos(p[1]*Math.PI/180)*scale,mid-(c[1]-p[1])*111320*scale];
+  if(now-lastTiles>2000){lastTiles=now;geometry=createMiniMapGeometry({roads:roadFeatures(state.map),land:read('landuse'),buildings:read('building'),water:read('water')})}
+  const size=440,mid=size/2,radius=210,projection=createMiniMapProjection(state.position,size),project=projection.point;
   ctx.clearRect(0,0,size,size);ctx.save();ctx.beginPath();ctx.arc(mid,mid,radius,0,Math.PI*2);ctx.clip();ctx.fillStyle='#dcded3';ctx.fillRect(0,0,size,size);
-  function polygon(feature,color,stroke){const g=feature.geometry,polys=g.type==='Polygon'?[g.coordinates]:g.type==='MultiPolygon'?g.coordinates:[];for(const rings of polys){const projected=rings.map(r=>r.map(project)),outer=projected[0];if(!outer?.length||outer.every(v=>v[0]<0)||outer.every(v=>v[0]>size)||outer.every(v=>v[1]<0)||outer.every(v=>v[1]>size))continue;ctx.beginPath();for(const ring of projected){ring.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y));ctx.closePath()}ctx.fillStyle=color;ctx.fill('evenodd');if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=1.3;ctx.stroke()}}}
-  land.forEach(f=>polygon(f,/park|grass|wood|scrub|pitch|cemetery/.test(f.properties?.class||'')?'#9db891':'#d2d4c7'));water.forEach(f=>polygon(f,'#8cbcc9'));buildings.forEach(f=>polygon(f,'#b6b9ad','#9ba499'));
+  for(const {rings,bounds,color,stroke} of geometry.polygons){if(!projection.visible(bounds))continue;ctx.beginPath();for(const ring of rings){ring.forEach((c,i)=>{const [x,y]=project(c);i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.closePath()}ctx.fillStyle=color;ctx.fill('evenodd');if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=1.3;ctx.stroke()}}
   function line(coords,color,width,dash=[]){ctx.beginPath();coords.forEach((c,i)=>{const [x,y]=project(c);i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.lineJoin='round';ctx.lineCap='round';ctx.strokeStyle=color;ctx.lineWidth=width;ctx.setLineDash(dash);ctx.stroke();ctx.setLineDash([])}
-  const segments=roads.flatMap(f=>{const g=f.geometry;return (g.type==='LineString'?[g.coordinates]:g.type==='MultiLineString'?g.coordinates:[]).map(coords=>({coords,kind:f.properties?.class||'street'}))});
-  for(const {coords,kind} of segments){if(/rail|ferry/.test(kind))continue;const width=/motorway|trunk|primary/.test(kind)?15:/secondary|tertiary/.test(kind)?11:/path|pedestrian|steps/.test(kind)?3:7;line(coords,'#949d94',width+3);line(coords,/path|pedestrian|steps/.test(kind)?'#c1b394':'#f3f2e7',width)}
+  if(geometry.segments.length){ctx.lineJoin='round';ctx.lineCap='round'}
+  for(const {coords,bounds,width,color} of geometry.segments){if(!projection.visible(bounds,(width+3)/2+2))continue;line(coords,'#949d94',width+3);line(coords,color,width)}
   const route=state.navigation?.coordinates;if(route?.length){line(route,'#815619',10);line(route,'#ffd16c',6)}
   const nearby=places().map(place=>({...place,xy:project([place.lng,place.lat])})).filter(q=>Math.hypot(q.xy[0]-mid,q.xy[1]-mid)<radius-36).sort((a,b)=>Math.hypot(a.xy[0]-mid,a.xy[1]-mid)-Math.hypot(b.xy[0]-mid,b.xy[1]-mid)).slice(0,8);
   ctx.font='600 23px sans-serif';const labels=[];nearby.forEach(q=>{const [x,y]=q.xy;ctx.fillStyle='#25665e';ctx.beginPath();ctx.arc(x,y,6,0,Math.PI*2);ctx.fill();if(labels.length>=3||labels.some(v=>Math.hypot(v[0]-x,v[1]-y)<78)||Math.hypot(x-mid,y-mid)<65)return;labels.push([x,y]);ctx.lineWidth=5;ctx.strokeStyle='#f5f6ee';const label=q.name.slice(0,20),tx=Math.max(20,Math.min(size-ctx.measureText(label).width-20,x+9));ctx.strokeText(label,tx,y-13);ctx.fillText(label,tx,y-13)});

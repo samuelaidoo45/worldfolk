@@ -8,8 +8,9 @@ const listOnly = files.length === 1 && files[0] === '--list' && suite !== 'api';
 const legacyIntegration = new Set(['multiplayer-capacity.test.mjs']);
 const smoke = [
   'auth-session-handoff', 'game-notifications', 'game-audio', 'human-gait',
-  'precinct-life', 'precinct-navigation', 'session-stability', 'gameplay-stability',
-  'shared-viewport', 'render-preparation', 'voice-peer', 'traffic-routing', 'simulation-proximity',
+  'precinct-life', 'precinct-navigation', 'session-stability', 'gameplay-stability', 'gameplay-profiler', 'performance-benchmark',
+  'shared-viewport', 'world-entry', 'render-preparation', 'ambient-model-pool', 'voice-peer', 'traffic-routing', 'simulation-proximity',
+  'building-collision-bounds', 'physics-hotpaths', 'facade-selection', 'minimap-geometry', 'static-landmark-worker',
   'castle-asomdwe', 'contributor-tooling', 'repository-security',
 ].map(name => `tests/${name}.test.mjs`);
 const available = readdirSync('tests').filter(name => name.endsWith('.test.mjs'));

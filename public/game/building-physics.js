@@ -1,3 +1,4 @@
+import {lineMayBeNear} from './road-proximity.js';
 import {roadHeight} from './road-elevation.js';
 import {vehicleSpec} from './vehicle-catalog.js';
 const vehicleSampleCache=new Map();
@@ -15,12 +16,35 @@ function inPolygon(point,rings){return rings.length>0&&inRing(point,rings[0])&&!
 function segments(ring){const out=[];for(let i=0;i<ring.length-1;i++)out.push([ring[i],ring[i+1]]);return out}
 function closestSegment(point,a,b){const vx=b[0]-a[0],vy=b[1]-a[1],length=vx*vx+vy*vy,t=length?Math.max(0,Math.min(1,((point[0]-a[0])*vx+(point[1]-a[1])*vy)/length)):0;const x=a[0]+t*vx,y=a[1]+t*vy;return {x,y,distance:Math.hypot(point[0]-x,point[1]-y)}}
 function polygons(feature){const g=feature.geometry;if(g?.type==='Polygon')return [g.coordinates];if(g?.type==='MultiPolygon')return g.coordinates;return []}
+// Native buildings already carry bounds. Authored walls, platforms and towers
+// often do not; cache their immutable rings once instead of walking every edge
+// for every camera probe. Weak keys release streamed-out collider geometry.
+const derivedBounds=new WeakMap();
+function withinCollisionBounds(feature,position,radius){
+  let bounds=feature.bounds;
+  if(!bounds){
+    bounds=derivedBounds.get(feature.rings);
+    if(!bounds){
+      bounds=[Infinity,Infinity,-Infinity,-Infinity];
+      for(const ring of feature.rings)for(const [lng,lat] of ring){
+        bounds[0]=Math.min(bounds[0],lng);bounds[1]=Math.min(bounds[1],lat);
+        bounds[2]=Math.max(bounds[2],lng);bounds[3]=Math.max(bounds[3],lat);
+      }
+      derivedBounds.set(feature.rings,bounds);
+    }
+  }
+  const pad=radius/110000;
+  // Preserve existing explicit bounds exactly. Derived bounds must contain the
+  // full metre-radius circle, including longitude's latitude-dependent scale.
+  const lngPad=feature.bounds?pad:Math.max(pad,radius/(M*Math.abs(Math.cos(position[1]*Math.PI/180))))+1e-12;
+  return !(position[0]<bounds[0]-lngPad||position[0]>bounds[2]+lngPad||position[1]<bounds[1]-pad||position[1]>bounds[3]+pad);
+}
 export function createBuildingPhysics(map,getContext=()=>({})){
   let features=[],lastCenter=null,lastScan=0;
   function refresh(position,force=false){if(!map?.queryRenderedFeatures||!position)return features;const now=performance.now();if(!force&&lastCenter&&Math.hypot(...local(lastCenter,position))<12&&now-lastScan<1400)return features;lastCenter=[...position];lastScan=now;
     try{const p=map.project(position),bounds=[[p.x-250,p.y-250],[p.x+250,p.y+250]],rendered=()=>map.queryRenderedFeatures(bounds,map.getLayer?.(BUILDING_LAYER)?{layers:[BUILDING_LAYER]}:{target}),source=map.getSource?.('accralife-streets')?map.querySourceFeatures('accralife-streets',{sourceLayer:'building'}):[],raw=source.length?source:rendered();const seen=new Set(),next=[];for(const feature of raw){if(isCityLandmark(feature.id))continue;if(Number(feature.properties?.min_height||0)>1.5||String(feature.properties?.extrude)==='false')continue;for(const rings of polygons(feature)){const first=rings[0]?.[0];if(!first||rings[0].length<4)continue;const coords=rings[0].map(p=>local(position,p));if(Math.min(...coords.map(p=>p[0]))>90||Math.max(...coords.map(p=>p[0]))< -90||Math.min(...coords.map(p=>p[1]))>90||Math.max(...coords.map(p=>p[1]))< -90)continue;const key=`${feature.id||''}:${first[0].toFixed(6)}:${first[1].toFixed(6)}:${rings[0].length}`;if(seen.has(key))continue;seen.add(key);next.push({id:key,rings,bounds:[Math.min(...rings[0].map(p=>p[0])),Math.min(...rings[0].map(p=>p[1])),Math.max(...rings[0].map(p=>p[0])),Math.max(...rings[0].map(p=>p[1]))],height:Number(feature.properties?.height||4.5)})}}next.push(...landmarkColliders(position,getContext()));if(next.length||!features.length||map.isSourceLoaded?.('accralife-streets'))features=next}catch(error){console.warn('Building collision data',error)}return features}
-  function collision(position,radius=.6,elevation=null){if(elevation!==null&&precinctCollision(position,radius,elevation))return {id:"precinct-surface",rings:[]};for(const feature of features){if(feature.minHeight!==undefined&&((elevation||0)>=feature.height-.02||(elevation||0)+1.75<=feature.minHeight+.02))continue;if(elevation!==null&&feature.precinctWalkable)continue;const b=feature.bounds,pad=radius/110000;if(b&&(position[0]<b[0]-pad||position[0]>b[2]+pad||position[1]<b[1]-pad||position[1]>b[3]+pad))continue;const rings=feature.rings;if(inPolygon(position,rings))return feature;const p=local(position,position);for(const ring of rings)for(const [a,b] of segments(ring)){const aa=local(position,a),bb=local(position,b);if(closestSegment(p,aa,bb).distance<radius)return feature}}return null}
-  function penetration(position,radius=.6,elevation=null){let total=0;for(const feature of features){if(feature.minHeight!==undefined&&((elevation||0)>=feature.height-.02||(elevation||0)+1.75<=feature.minHeight+.02))continue;if(elevation!==null&&feature.precinctWalkable)continue;const b=feature.bounds,pad=radius/110000;if(b&&(position[0]<b[0]-pad||position[0]>b[2]+pad||position[1]<b[1]-pad||position[1]>b[3]+pad))continue;let nearest=Infinity;for(const ring of feature.rings)for(const [a,b] of segments(ring))nearest=Math.min(nearest,closestSegment([0,0],local(position,a),local(position,b)).distance);total+=inPolygon(position,feature.rings)?nearest+radius:Math.max(0,radius-nearest)}return total}
+  function collision(position,radius=.6,elevation=null){if(elevation!==null&&precinctCollision(position,radius,elevation))return {id:"precinct-surface",rings:[]};for(const feature of features){if(feature.minHeight!==undefined&&((elevation||0)>=feature.height-.02||(elevation||0)+1.75<=feature.minHeight+.02))continue;if(elevation!==null&&feature.precinctWalkable)continue;if(!withinCollisionBounds(feature,position,radius))continue;const rings=feature.rings;if(inPolygon(position,rings))return feature;const p=local(position,position);for(const ring of rings)for(const [a,b] of segments(ring)){const aa=local(position,a),bb=local(position,b);if(closestSegment(p,aa,bb).distance<radius)return feature}}return null}
+  function penetration(position,radius=.6,elevation=null){let total=0;for(const feature of features){if(feature.minHeight!==undefined&&((elevation||0)>=feature.height-.02||(elevation||0)+1.75<=feature.minHeight+.02))continue;if(elevation!==null&&feature.precinctWalkable)continue;if(!withinCollisionBounds(feature,position,radius))continue;let nearest=Infinity;for(const ring of feature.rings)for(const [a,b] of segments(ring))nearest=Math.min(nearest,closestSegment([0,0],local(position,a),local(position,b)).distance);total+=inPolygon(position,feature.rings)?nearest+radius:Math.max(0,radius-nearest)}return total}
   function move(from,to,radius=.6,elevation=null){
     const delta=local(from,to),steps=Math.max(1,Math.ceil(Math.hypot(...delta)/.28));let current=[...from],blocked=false;
     for(let i=0;i<steps;i++){
@@ -47,11 +71,17 @@ export function createBuildingPhysics(map,getContext=()=>({})){
       // Keep tangential motion at glancing impacts. A head-on contact stops;
       // reversing away remains possible even when streamed geometry overlaps.
       let best=null,bestProgress=0;
-      for(const feature of features)for(const ring of feature.rings)for(const [a,b] of segments(ring)){
+      for(const feature of features)for(const ring of feature.rings){
+        // Only edges within four metres can supply the existing slide tangent.
+        // Reject distant rings before allocating/traversing all their edges.
+        if(!lineMayBeNear(current,ring,4.00001))continue;
+        for(let edge=1;edge<ring.length;edge++){
+        const a=ring[edge-1],b=ring[edge];
         const aa=local(current,a),bb=local(current,b);if(closestSegment([0,0],aa,bb).distance>4)continue;
         const ex=bb[0]-aa[0],ey=bb[1]-aa[1],len=Math.hypot(ex,ey)||1,along=(dx*ex+dy*ey)/len;
         const candidate=global(current,ex/len*along,ey/len*along);
         if(Math.abs(along)>bestProgress&&allowed(candidate)){best=candidate;bestProgress=Math.abs(along)}
+        }
       }
       if(!best||bestProgress<.00001)break;current=best;
     }

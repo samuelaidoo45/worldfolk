@@ -230,3 +230,12 @@ body.touch-device.roam-mode.mobile-paused .life-shift.work-assignment{visibility
 .connection-status button{font:inherit;font-weight:700;min-height:36px;padding:6px 12px;border:1px solid #91b9a7;border-radius:8px;background:#f1ce77;color:#142d29;cursor:pointer}
 body[data-connection="Active in another tab"] .connection-status,body[data-connection="Session ended"] .connection-status{pointer-events:auto}
 body[data-session-paused="true"] .connection-status{display:block!important;position:fixed;z-index:180;top:max(12px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);max-width:calc(100vw - 32px);padding:10px 16px;border-radius:12px;background:#183c36ee;color:#fff;font-size:12px;text-align:center;pointer-events:auto}
+
+/* Render the actual arrival behind an opaque cover; never expose placeholders. */
+.scene-loading.world-entry-loading{inset:0;transform:none;max-width:none;width:auto;border:0;border-radius:0;z-index:2147483000;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:20px;padding:max(24px,env(safe-area-inset-top)) 24px;background:linear-gradient(0deg,#07191ff5,#07191fbb),url('./assets/launch/accra-key-art.jpg') center/cover #07191f;color:#fff3d5;font-size:clamp(18px,3vw,26px);text-align:center;box-shadow:none}
+.scene-loading.world-entry-loading::before{content:'WORLDFOLK · ACCRA';font-size:clamp(26px,6vw,56px);font-weight:900;letter-spacing:.08em;color:#f6cf77}
+.scene-loading.world-entry-loading span{max-width:600px;line-height:1.5}
+.scene-loading.world-entry-loading button{font-size:16px;min-height:44px;padding:12px 24px}
+.scene-loading.world-entry-loading button[hidden]{display:none}
+.city-home .scene-loading.world-entry-loading{display:flex!important}
+body.world-entering #worldfolk-graphics-stats{visibility:hidden}
